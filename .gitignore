@@ -1,0 +1,14 @@
+# Quarto build artifacts. _freeze/ is deliberately NOT ignored: it caches
+# rendered chunk output and is what lets a CI runner publish without your
+# Python environment installed.
+/.quarto/
+/_site/
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+
+**/*.quarto_ipynb

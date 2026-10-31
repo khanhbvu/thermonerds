@@ -1,0 +1,31 @@
+---
+# Copy this folder to posts/<your-slug>/ and edit. Quarto ignores any folder
+# whose name starts with an underscore, so this template never publishes.
+title: "Post title"
+date: 2026-10-30
+categories: [peng-robinson, numerics]
+# Old Blogger URL, so existing links keep working. Delete if there isn't one.
+# aliases:
+#   - /2026/10/old-blogger-slug.html
+---
+
+Inline math is $T_r = T/T_c$. Display math is numbered and referenceable:
+
+$$
+P = \frac{RT}{\Vm - b} - \frac{a\,\alpha(T_r)}{\Vm^2 + 2b\Vm - b^2}
+$$ {#eq-pr}
+
+@eq-pr is the Peng-Robinson form. Chemistry works too: $\ce{CH4 + 2O2 -> CO2 + 2H2O}$.
+
+```{python}
+#| label: fig-example
+#| fig-cap: "Caption goes here."
+#| echo: false
+
+import matplotlib.pyplot as plt
+
+plt.plot([1, 2, 3], [1, 4, 9])
+plt.xlabel("T (K)")
+plt.ylabel("P (bar)")
+plt.show()
+```

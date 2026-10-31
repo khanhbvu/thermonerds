@@ -1,0 +1,15 @@
+---
+title: "About"
+image: profile.jpg
+about:
+  template: jolla
+  # Add links back once the accounts exist; the scaffold's placeholders
+  # pointed at bare domains, which render as broken links.
+  # links:
+  #   - icon: github
+  #     text: GitHub
+  #     href: https://github.com/<username>
+---
+
+Notes on phase behaviour, equations of state, and the numerics underneath
+them, by Khanh Vu.

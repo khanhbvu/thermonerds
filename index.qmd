@@ -1,0 +1,14 @@
+---
+title: "Thermo Nerds"
+subtitle: "Phase behaviour, equations of state, and the numerics behind them"
+listing:
+  contents: posts
+  feed: true
+  sort: "date desc"
+  type: default
+  categories: true
+  sort-ui: false
+  filter-ui: false
+page-layout: full
+title-block-banner: false
+---

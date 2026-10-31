@@ -1,0 +1,49 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Thermo Nerds"
+  description: "Phase behaviour, equations of state, and the numerics behind them"
+  # Required for RSS feeds and for canonical links to be correct.
+  site-url: https://www.thermonerds.com
+  navbar:
+    right:
+      - about.qmd
+      # Uncomment once the repo exists, with your actual username:
+      # - icon: github
+      #   href: https://github.com/<username>/thermonerds
+
+format:
+  html:
+    toc: true
+    html-math-method: mathjax
+    theme:
+      - cosmo
+      - theme.scss
+    css: styles.css
+    grid:
+      # ~46rem of text at 19px root: a comfortable measure for derivations.
+      body-width: 840px
+    include-in-header:
+      - text: |
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400">
+          <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700">
+          <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400">
+          <script>
+            window.MathJax = {
+              loader: { load: ['[tex]/mhchem'] },
+              tex: {
+                packages: { '[+]': ['mhchem'] },
+                tags: 'ams',
+                tagSide: 'right',
+                macros: {
+                  Vm:   "V_{m}",
+                  kij:  "k_{ij}",
+                  Rgas: "R"
+                }
+              }
+            };
+          </script>
