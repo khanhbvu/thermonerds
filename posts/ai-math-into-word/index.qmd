@@ -1,0 +1,169 @@
+---
+title: "Why AI Chat Math Won't Paste Into Word, and What Actually Travels on the Clipboard"
+date: 2026-10-30
+categories: [tools, latex, word, texbridge]
+---
+
+Copy a formula out of ChatGPT and paste it into Word and you get one of three
+disappointments: a picture you cannot edit, a line of raw `\frac{a}{b}`, or a
+row of mangled symbols. None of them is a Word equation.
+
+That is not Word being obtuse. The formula on screen was never an equation,
+and the thing Word wants is a format no chat site produces. This post is about
+what sits on each side of that gap, and what has to go on the clipboard to
+bridge it.
+
+## A formula on a web page is not a formula
+
+Nothing in a web page is an equation. A chat site renders math with a
+JavaScript library, almost always MathJax or KaTeX, and what lands in the DOM
+is one of:
+
+- **SVG.** MathJax's SVG output draws each glyph as vector paths. Visually
+  perfect, semantically nothing. Copy it and you have copied a drawing.
+- **Styled HTML.** MathJax's CommonHTML output and KaTeX build the formula
+  from spans with careful CSS. What looks like a fraction bar is a `<span>`
+  with a border.
+- **An image.** A few sites still render server-side to PNG.
+
+The visual layer is a dead end in all three cases. What rescues the situation
+is that the libraries also leave the semantics in the page, out of sight.
+KaTeX emits a hidden MathML copy next to the visual one; MathJax ships an
+Assistive MathML extension that, in its own words, "inserts hidden MathML for
+the usual output renderers." And MathML has a slot for the original source:
+
+``` html
+<annotation encoding="application/x-tex">\frac{RT}{V_m - b}</annotation>
+```
+
+So the LaTeX you typed is usually still on the page, one layer down. Finding
+it reliably is harder than it sounds: the attribute names, the element
+structure and even whether the hidden copy exists at all vary by renderer, by
+renderer version, and by how a given site configures it. But the principle
+holds everywhere. Anything that moves chat math somewhere useful works from
+that hidden semantic layer, not from the pixels on top.
+
+## What Word stores
+
+Word's native equation format is **OMML**, Office Math Markup Language. An
+equation inside a `.docx` is a tree of `m:` elements in `word/document.xml`,
+in the namespace
+
+```
+http://schemas.openxmlformats.org/officeDocument/2006/math
+```
+
+Nothing on a web page produces OMML. That is the problem in one sentence.
+
+## Route 1: linear format, typed by hand
+
+Word accepts an equation written on one line and then "built up" into two
+dimensions. It supports two linear formats, and the difference matters:
+**UnicodeMath**, Microsoft's own compact notation, and **LaTeX**.
+
+`Alt` + `=` opens an equation field; type or paste the linear source; `Ctrl` +
+`=` builds it up. `Ctrl` + `Shift` + `=` goes back.
+
+Two limits before you rely on it. Microsoft describes LaTeX input as new to
+Microsoft 365 subscribers, so on a perpetual licence do not assume it is
+there. And Word's LaTeX is a dialect: `\begin{}` and `\end{}` are
+unsupported, so environments do not work and you write `\matrix{a & b \\ c &
+d}` instead, while `\eqarray`, `\Middle`, `\ldiv` and `\dsmash` are not
+supported at all.
+
+This route works, it needs no tooling, and it does not scale past a few
+formulas.
+
+## Route 2: hand Word its own format on the clipboard
+
+This is the route that actually scales, and the one people are surprised
+exists.
+
+When you paste into Word, Word does not read the plain-text flavour of the
+clipboard. It reads the **`text/html`** flavour — and it reads it as *Word's
+own HTML*, a dialect that has carried Office-specific markup since the days of
+"Save as Web Page". Word understands OMML embedded there, and it understands
+markup addressed to itself that every other application is required to skip.
+
+That second property is what makes the whole thing work. A single clipboard
+payload can carry a real OMML equation for Word and readable LaTeX for
+everything else, and each reader takes its own branch. Paste into Word and you
+get a native equation; paste the same clipboard into a plain text editor and
+you get `$\frac{RT}{V_m - b}$`.
+
+The practical consequence is that a tool doing this well is not "converting
+LaTeX to Word". It is walking the page's MathML into OMML, wrapping that in a
+Word-flavoured HTML payload, and writing `text/html` and `text/plain` together
+so the paste degrades sensibly wherever it lands. Getting the conversion right
+across real-world formulas — matrices, cases, multi-line alignments,
+over- and under-braces — is where the actual work is.
+
+## Route 3: write the file
+
+Skip the clipboard and generate the `.docx` yourself. A Word file is a zip of
+XML; the math goes in under the `officeDocument/2006/math` namespace and the
+document body under `wordprocessingml/2006/main`. Most work, most control, and
+the only route that handles a whole chat transcript at once rather than one
+formula at a time.
+
+## Why Word on the web is different
+
+Word in a browser cannot accept a pasted equation from any application,
+because a browser tab never receives the rich clipboard payload the desktop
+app does. The conditional-comment trick needs Word itself reading the
+clipboard, and in the web app there is no Word reading the clipboard.
+
+The workaround is Route 1, explicitly: `Insert` → `Equation`, paste the linear
+source into the box at the top of the panel, press `Space`, insert. It works,
+and it is also where the dialect limits bite hardest, because matrices, cases
+and multi-line equations are exactly what that box cannot build.
+
+## PowerPoint, Excel, Google
+
+One line in Microsoft's documentation explains a great deal of confusion:
+
+> All other Office applications support only UnicodeMath.
+
+PowerPoint, Excel and Outlook do not take LaTeX input. A workflow built on
+pasting LaTeX into Word does not transfer to a slide deck, which is why
+getting a formula into PowerPoint means OMML or an image.
+
+Google Docs and Slides have no equation format worth targeting at all. There a
+high-resolution image is not a compromise, it is the correct answer.
+
+## Picking a route
+
+| Route | Result | Where it works | Main cost |
+| --- | --- | --- | --- |
+| Linear, typed | Native, editable | Word desktop; LaTeX needs 365 | Manual; dialect gaps |
+| OMML in HTML clipboard | Native, editable | Word, PowerPoint desktop | Must generate OMML |
+| Generated `.docx` | Native, editable | Anywhere Word opens | Most work |
+| Image | Not editable | Everywhere, incl. Google | Fixed resolution |
+
+There is no single format that is both easy to produce and universally
+accepted, which is the whole reason this is annoying.
+
+## The tool
+
+I write thermodynamics, and a post like
+[Thermodynamic Potentials Applied for Equations of State](../potentials-for-eos/)
+carries over two hundred equations. Rebuilding those by hand in Word for a
+report was not something I was willing to keep doing, so I built
+[TeXbridge](https://chromewebstore.google.com/detail/dhncopmbldpljhclmnaadlgomflnadlm),
+a Chrome and Edge extension that does the above: reads the hidden semantic
+layer, converts to OMML, and picks a target format based on where the formula
+is going. If a site renders something it handles badly, there is a
+[support page and FAQ](https://khanhbvu.github.io/texbridge/).
+
+The mechanism is worth knowing either way. If you understand that the LaTeX is
+hiding in an annotation element, and that Word reads `text/html` with a
+conditional comment in it, you can get a formula where it needs to go by hand.
+
+## Sources
+
+Linear formats, the `Alt` + `=` and `Ctrl` + `=` mechanics, the Microsoft 365
+note and the unsupported LaTeX keywords come from Microsoft's
+[Linear format equations using UnicodeMath and LaTeX in Word](https://support.microsoft.com/en-US/Word/linear-format-equations-using-unicodemath-and-Latex-in-word).
+The assistive MathML behaviour is described in the
+[MathJax MathML documentation](https://docs.mathjax.org/en/v4.1/output/mathml.html).
+Checked 30 October 2026.

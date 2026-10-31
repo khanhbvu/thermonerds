@@ -1,0 +1,208 @@
+---
+title: "Thermodynamic Potentials"
+# TODO: replace the date and alias with the real ones from Blogger.
+date: 2026-10-02
+categories: [thermodynamics, helmholtz, gibbs, equations-of-state]
+# aliases:
+#   - /2026/10/the-blogger-slug.html
+---
+
+Starting with:
+
+$$
+dU = T dS - P dV + \sum_r \mu_r dn_r \tag{1}
+$$
+
+Notice that Equation 1 is now composed entirely of state functions. This introduces internal energy ($U$) as a thermodynamic potential, indicating that $U$ is fundamentally a function of entropy, volume, and the number of moles. While it is mathematically possible to express internal energy using temperature and volume instead, the resulting equation loses its compact elegance—a natural mathematical framing referred to as a canonical relationship.
+
+However, applying Equation 1 directly requires functional models that relate variables like $T$, $P$, and $\mu_i$ back to $S$, $V$, and $\bar{n}$. Because such models are rare and typically impractical for standard chemical engineering applications, it is often more useful to mathematically eliminate entropy as an independent variable. We do this using an operation called a Legendre transformation:
+
+$$
+dU - d(TS) = T dS - P dV + \sum_r \mu_r dn_r - d(TS)
+$$
+
+Expanding the differential $d(TS)$ yields:
+
+$$
+d(U - TS) = T dS - P dV + \sum_r \mu_r dn_r - T dS - S dT
+$$
+
+Canceling out the $T dS$ terms gives us the transformed potential:
+
+$$
+d(U - TS) = -S dT - P dV + \sum_r \mu_r dn_r \tag{2}
+$$
+
+We might recognize the left side of Equation 2 as the definition of the Helmholtz free energy ($A$):
+
+$$
+A \equiv U - TS \tag{3}
+$$
+
+If you haven't encountered Helmholtz free energy before, do not worry; the key takeaway at this stage is recognizing that we have defined a new property (distinct from internal energy) that acts as a canonical function of temperature, volume, and composition ($\bar{n}$):
+
+$$
+dA = -S dT - P dV + \sum_r \mu_r dn_r \tag{4}
+$$
+
+From a multivariable calculus perspective, this total differential allows us to extract the following partial derivatives:
+
+$$
+\left( \frac{\partial A}{\partial T} \right)_{V, \bar{n}} = -S \tag{5}
+$$
+
+$$
+\left( \frac{\partial A}{\partial V} \right)_{T, \bar{n}} = -P \tag{6}
+$$
+
+$$
+\left( \frac{\partial A}{\partial n_i} \right)_{T, V, n_{k \neq i}} = \mu_i \tag{7}
+$$
+
+For our current purposes, Equation 6 is the most crucial. If we have a pressure-explicit equation of state—meaning we know pressure as a function of $T$, $V$, and $\bar{n}$—we can easily calculate differences in Helmholtz free energy by integrating:
+
+$$
+A(T, V, \bar{n}) - A(T, V_R, \bar{n}) = \int_{V_R}^{V} \left( \frac{\partial A}{\partial V} \right)_{T, \bar{n}} dV = -\int_{V_R}^{V} P dV \tag{8}
+$$
+
+An even more commonly recognized potential is the Gibbs free energy. We can derive it by applying another Legendre transformation to Equation 4, this time swapping out volume in favor of pressure as our independent variable:
+
+$$
+dA + d(PV) = -S dT - P dV + \sum_r \mu_r dn_r + d(PV)
+$$
+
+Expanding this and substituting our previous enthalpy definitions yields the fundamental relation for Gibbs free energy ($G$):
+
+$$
+d(U - TS + PV) \equiv d(H - TS) \equiv d(G) = -S dT + V dP + \sum_r \mu_r dn_r \tag{9}
+$$
+
+Although Gibbs energy is ideal for constant T and P problems, it is clumsy as an overarching computational framework. Most equations of state solve for P(T, V), not V(T, P), because volume is multi-valued across phase transitions—such as water at 100°C and 1atm, where liquid and vapor share identical pressures. Practical computational thermodynamics therefore depends on working with other potentials, notably Helmholtz energy, to avoid root-finding ambiguities.
+
+## Summary of Potentials for Simple Systems
+
+### Helmholtz free energy, $A$
+
+**Differential form**
+
+$$
+dA = -S dT - P dV + \sum_r \mu_r dn_r
+$$
+
+**Derivatives**
+
+- $\left( \frac{\partial A}{\partial T} \right)_{V,\bar{n}} = -S$
+- $\left( \frac{\partial A}{\partial V} \right)_{T,\bar{n}} = -P$
+- $\left( \frac{\partial A}{\partial n_i} \right)_{T,V,n_{k \neq i}} = \mu_i$
+
+### Gibbs free energy, $G = A + PV$
+
+**Differential form**
+
+$$
+dG = -S dT + V dP + \sum_r \mu_r dn_r
+$$
+
+**Derivatives**
+
+- $\left( \frac{\partial G}{\partial T} \right)_{P,\bar{n}} = -S$
+- $\left( \frac{\partial G}{\partial P} \right)_{T,\bar{n}} = V$
+- $\left( \frac{\partial G}{\partial n_i} \right)_{T,P,n_{k \neq i}} = \mu_i$
+
+### Enthalpy, $H = A + PV + TS$
+
+**Differential form**
+
+$$
+dH = T dS + V dP + \sum_r \mu_r dn_r
+$$
+
+**Derivatives**
+
+- $\left( \frac{\partial H}{\partial S} \right)_{P,\bar{n}} = T$
+- $\left( \frac{\partial H}{\partial P} \right)_{S,\bar{n}} = V$
+- $\left( \frac{\partial H}{\partial n_i} \right)_{S,P,n_{k \neq i}} = \mu_i$
+
+### Internal energy, $U = A + TS$
+
+**Differential form**
+
+$$
+dU = T dS - P dV + \sum_r \mu_r dn_r
+$$
+
+**Derivatives**
+
+- $\left( \frac{\partial U}{\partial S} \right)_{V,\bar{n}} = T$
+- $\left( \frac{\partial U}{\partial V} \right)_{S,\bar{n}} = -P$
+- $\left( \frac{\partial U}{\partial n_i} \right)_{S,V,n_{k \neq i}} = \mu_i$
+
+Also, as mentioned above, the chemical potential can be written in terms of any of the potentials:
+
+$$
+\mu_i = \left( \frac{\partial A}{\partial n_i} \right)_{T,V,n_{k \neq i}} = \left( \frac{\partial G}{\partial n_i} \right)_{T,P,n_{k \neq i}} = \left( \frac{\partial H}{\partial n_i} \right)_{S,P,n_{k \neq i}} = \left( \frac{\partial U}{\partial n_i} \right)_{S,V,n_{k \neq i}} \tag{10}
+$$
+
+## Why Gibbs Energy Is Difficult to Integrate Directly from an EOS
+
+While Gibbs free energy might feel more intuitive when dealing with constant temperature ($T$) and pressure ($P$) problems like phase equilibrium and reactions, directly calculating $G(T, P, n)$ by integrating an equation of state presents significant mathematical hurdles.
+
+The fundamental differential expression for $G$ requires us to integrate volume with respect to pressure:
+
+$$
+\Delta G = \int V(T, P, n) dP
+$$
+
+The problem is that standard equations of state (like cubic EOS models) are fundamentally cubic in volume ($V$). This means it is impossible to algebraically rearrange them into a clean, single-valued explicit function of the form $V = f(T, P, n)$.
+
+Furthermore, if you are working within the two-phase region, the function $V(P)$ becomes multi-valued—it simultaneously yields roots for the liquid phase, the vapor phase, and a mechanically unstable state. This multi-valued nature makes integrating directly along the $dP$ path incredibly cumbersome.
+
+Helmholtz energy ($A$), however, offers a trivial workaround. Integrating the expression $-P(T, V, n) dV$ is straightforward because pressure ($P$) is explicitly and uniquely defined as an algebraic function of volume ($V$) across the entire thermodynamic domain. Once you have calculated $A(T, V, n)$, you can instantly recover the Gibbs energy simply by adding the $PV$ term.
+
+### 1. Volume Is Not a Mathematical Function of Pressure
+
+Strictly speaking, for a mathematical relationship to be considered a true function ($y = f(x)$), every input must map to exactly one output.
+
+However, for fluids operating below their critical point, defining the temperature ($T$) and pressure ($P$) does not guarantee a unique volume:
+
+Phase Coexistence: Think about water boiling at 100°C and 1 atm. At those exact conditions, the system could be a purely saturated liquid ($V_L \approx 0.00104\text{ m}^3\text{/kg}$), a purely saturated vapor ($V_V \approx 1.673\text{ m}^3\text{/kg}$), or any two-phase mixture in between.
+
+Analytic Equations of State: When using models like Peng-Robinson or Soave-Redlich-Kwong, setting $T$ and $P$ within the two-phase envelope results in a cubic polynomial that produces three real roots:
+
+1. A small root (representing the liquid-like volume).
+2. A large root (representing the vapor-like volume).
+3. An intermediate root that is mechanically unstable (where $(\partial P / \partial V)_T > 0$).
+
+Because $V(P)$ is multi-valued in these scenarios, it is impossible to express it as a clean, explicit, single-valued algebraic function of the form $V = f(T, P)$.
+
+### 2. The Computational Bottleneck with Gibbs Energy
+
+To compute changes in Gibbs energy directly from mechanical variables, the fundamental math requires us to integrate volume over pressure
+
+$$
+\Delta G = \int V(T, P) dP
+$$
+
+Because volume is multi-valued across phase transitions, trying to evaluate $\int V dP$ forces us to trace theoretical paths through unstable van der Waals loops or manually enforce equal-area Maxwell constructions. This complexity makes direct path integration of Gibbs energy highly impractical for computational models.
+
+### 3. Why the Helmholtz Framework Resolves This
+
+While volume is not a single-valued function of pressure, the reverse is incredibly convenient: pressure is always a single-valued function of volume.
+
+$$
+P = f(T, V, n)
+$$
+
+Because of this mathematical reality, if you specify the temperature ($T$) and volume ($V$), calculating the pressure requires only a single, straightforward evaluation of the equation of state (EOS). This leads to two major advantages in computational thermodynamics:
+
+Seamless Integration: The integral used to calculate the residual Helmholtz free energy is continuous, single-valued, and analytically integrable across the entire fluid domain (smoothly covering both liquid and vapor phases without unstable loops):
+
+$$
+A^{res}(T, V) = -\int_{\infty}^{V} \left( P - \frac{RT}{V} \right) dV
+$$
+
+How Thermodynamics Engines Actually Work: Because of these mathematical advantages, modern computational thermodynamics engines compute all their core variables—including residual properties, fugacity coefficients ($\ln \phi_i$), and chemical potentials—entirely within the $(T, V)$ Helmholtz domain. When a user actually requests a result at a specific constant temperature and pressure ($T, P$), the solver first finds the volumetric roots ($V$) at that given pressure, evaluates $A(T, V)$, and then simply recovers the Gibbs free energy algebraically at the very end:
+
+$$
+G = A + PV
+$$

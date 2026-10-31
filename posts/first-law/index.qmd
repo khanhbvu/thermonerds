@@ -1,0 +1,180 @@
+---
+# TODO: replace the title, date and alias with the real ones from Blogger.
+title: "From the First Law to the Fundamental Relation"
+date: 2026-10-01
+categories: [thermodynamics, first-law, second-law]
+# aliases:
+#   - /2026/10/the-blogger-slug.html
+---
+
+First Law of Thermodynamics for a closed system, starting from the universal principle of conservation of energy.
+
+## 1. Total Energy Conservation
+
+Because the universe is isolated, the sum of all energy changes must equal zero: energy cannot be created or destroyed:
+
+$$\Delta(E_{kin} + E_{pot} + U)_{Sys} + \Delta(E_{kin} + E_{pot} + U)_{Surr} = 0\tag{1}$$
+
+The universe is divided into two parts: the System (Sys, the region of interest) and the Surroundings (Surr, everything else).
+
+The total energy of any body or region consists of:
+
+- $E_{kin}$: macroscopic kinetic energy (movement of the center of mass)
+- $E_{pot}$: macroscopic potential energy (position in external fields, like gravity).
+- $U$: microscopic internal energy (molecular vibrations, rotations, electronic states, intermolecular forces)
+
+## 2. Practical Approximations and Boundary Transfers
+
+$$\Delta(U)_{Sys} = -\Delta(E_k + E_p + U)_{Surr} = Q + W\tag{2}$$
+
+Neglecting macroscopic motion of the system: In most chemical and physical systems (e.g., a beaker, reactor, or piston), the system as a whole does not undergo changes in bulk elevation or bulk velocity, meaning $\Delta E_{kin} = 0$ and $\Delta E_{pot} = 0$. Therefore, the only energy change occurring inside the system is internal energy: $\Delta U_{\text{Sys}}$.
+
+Energy transfer across the boundary: Modeling the entire surrounding universe is practically impossible. Instead of tracking what happens inside the surroundings, thermodynamics tracks the energy crossing the boundary between the system and surroundings:
+
+- $Q$ (Heat): Energy transferred due to a temperature difference.
+- $W$ (Work): Energy transferred through mechanical, electrical, or expansion forces.
+
+Under this sign convention (the standard IUPAC convention), heat added to the system ($Q > 0$) and work done on the system ($W > 0$) increase its internal energy.
+
+## 3. Differential Form
+
+$$dU = \delta Q + \delta W\tag{3}$$
+
+When focusing strictly on the system, the "$Sys$" subscript is dropped for simplicity.
+
+Expressed for an infinitesimal process:
+
+$dU$ is an exact differential, indicating that internal energy $U$ is a state function (depends only on the current state, not the path taken).
+
+$\delta Q$ and $\delta W$ use the inexact differential symbol ($\delta$ or sometimes $d$), signifying that heat and work are path functions (they depend on the specific path taken between states.
+
+If we limit to boundary work:
+
+$$
+\delta W_{Bound} = -P dV \tag{4}
+$$
+
+::: {.callout-note}
+**Physical meaning.** Represents mechanical expansion or compression work exerted across a movable system boundary (such as a piston).
+
+**Sign convention.**
+
+- When a system expands ($\Delta V > 0$), it does work on the surroundings, spending its own internal energy; hence $\delta W < 0$.
+- When a system is compressed ($\Delta V < 0$), the surroundings do work on the system, adding energy; hence $\delta W > 0$.
+- The negative sign ensures consistency with the standard IUPAC convention where energy entering the system is positive.
+:::
+
+Substitute (4) into (3):
+
+$$
+dU = \delta Q - P dV \tag{5}
+$$
+
+::: {.callout-note}
+Substituting $\delta W = -P dV$ into $dU = \delta Q + \delta W$ limits the mechanical interactions strictly to reversible boundary work, neglecting other forms like shaft work, electrical work, or surface tension.
+
+Internal energy therefore changes through two primary pathways: heat transfer ($\delta Q$) and mechanical volume changes ($-P dV$).
+:::
+
+## 4. Extension to Variable Composition and Open Systems
+
+### 4.1. Functional Dependence of Internal Energy
+
+For a closed system of fixed composition, internal energy depends only on two independent extensive state variables—typically entropy $S$ and volume $V$:
+
+$$
+U = U(S, V)
+$$
+
+If matter can cross the boundary, or if chemical reactions/phase changes alter the amounts of species present, $U$ must also depend explicitly on the mole numbers of each constituent species $n_1, n_2, \dots, n_k$:
+
+$$
+U = U(S, V, n_1, n_2, \dots, n_k)
+$$
+
+### 4.2. Total Differential via Multivariable Calculus
+
+Taking the total differential of $U(S, V, \{n_r\})$ using the chain rule gives:
+
+$$
+dU = \left(\frac{\partial U}{\partial S}\right)_{V, n} dS + \left(\frac{\partial U}{\partial V}\right)_{S, n} dV + \sum_r \left(\frac{\partial U}{\partial n_r}\right)_{S, V, n_{j \neq r}} dn_r
+$$
+
+From classical closed-system thermodynamics:
+
+$$
+\left(\frac{\partial U}{\partial S}\right)_{V, n} = T
+$$
+
+$$
+\left(\frac{\partial U}{\partial V}\right)_{S, n} = -P
+$$
+
+### 4.3. Definition of Chemical Potential
+
+The partial derivative with respect to composition is defined as the chemical potential of species $r$:
+
+$$
+\mu_r \equiv \left(\frac{\partial U}{\partial n_r}\right)_{S, V, n_{j \neq r}}
+$$
+
+Substituting these definitions into the total differential yields:
+
+$$
+dU = T dS - P dV + \sum_r \mu_r dn_r \tag{6}
+$$
+
+For a reversible heat transfer where $\delta Q_{rev} = T dS$, this directly becomes:
+
+$$
+dU = \delta Q - P dV + \sum_r \mu_r dn_r
+$$
+
+::: {.callout-note}
+**Physical reason.** If molecules are added to or removed from a system, they carry internal energy with them (chemical bond energies, rotational/vibrational modes, and intermolecular potential energy with neighboring molecules). Even if heat transfer is zero ($\delta Q = 0$) and the volume remains rigid ($dV = 0$), adding particles changes the total internal energy of the system. The summation term $\sum_r \mu_r dn_r$ directly tracks that energetic change.
+:::
+
+## 5. The Second Law
+
+The Second Law of Thermodynamics is often more conceptually challenging for students than the First Law. At its core, the Second Law can be summarized simply: the total entropy of the universe can never decrease.
+
+$$
+\Delta S_{\text{Sys}} + \Delta S_{\text{Surr}} \ge 0 \tag{7}
+$$
+
+While the First Law focuses on the conservation of energy, the Second Law dictates the direction of natural processes. For example, the First Law alone doesn't rule out liquid water spontaneously freezing above its melting temperature; it only dictates the energy balance if such a process occurred. By introducing an inequality, the Second Law expressly forbids certain processes, establishing what is physically possible.
+
+It is important to note that the Second Law does not prevent the entropy of a specific system or its surroundings from decreasing individually—it only requires that their combined total cannot decrease. Furthermore, to make this principle practical, we need a way to actually calculate entropy changes. This is where the concept of a reversible process is introduced. In a purely reversible process, the total entropy change of the universe (system plus surroundings) is exactly zero, turning the inequality of Eq. 7 into an equality. This allows us to define the differential change in entropy mathematically as:
+
+$$
+dS \equiv \left( \frac{\delta Q}{T} \right)_{\text{rev}} \tag{8}
+$$
+
+## 6. Why State Functions, Not Path Functions
+
+By combining the First and Second Laws of Thermodynamics, we replace path functions (Q, W) with exact differentials (state functions: Internal Energy, Temperature, Entropy, Pressure, and Volume) to create the Fundamental Thermodynamic Relation (Equation 6).
+
+Path functions are not practically "bad"—in fact, heat and work are exactly what engineers care about because that is what we pay for in the real world (e.g., fuel for heat, electricity for work). However, from a mathematical and analytical standpoint, path functions are incredibly difficult to work with compared to state functions for three main reasons:
+
+### 6.1. The "Memory" Problem
+
+To calculate a path function like work ($W = \int P dV$), you cannot just look at the starting and ending volumes. You must know the exact history of how the expansion happened. Did the pressure drop linearly? Exponentially? Was there friction? Was it done infinitely slowly (reversible) or violently (irreversible)? If you do not know the exact mathematical function of the path taken, you cannot solve the integral.
+
+State functions, however, have no memory. To find the change in internal energy ($\Delta U$), you only need simple subtraction: $\Delta U = U_{final} - U_{initial}$. You do not need to know anything about the process itself.
+
+### 6.2. You Cannot Put Path Functions in a Table
+
+Because state functions ($P, V, T, U, S, H$) only depend on the current physical condition of the system, we can tabulate them. This is why we have Steam Tables and thermodynamic databases (like CoolProp or NIST). You can look up the exact internal energy or entropy of water at $100^\circ\text{C}$ and $1\text{ atm}$.
+
+You can never create a table for "Heat" or "Work" because a system does not contain heat or work. They are actions, not properties.
+
+### 6.3. The Thermodynamic "Cheat Code"
+
+Real-world processes are almost always irreversible (they happen quickly, with friction, turbulence, and heat loss). Calculating $\delta Q$ or $\delta W$ for an irreversible process is mathematically messy, sometimes impossible.
+
+Because state functions only care about the endpoints, they unlock a massive analytical loophole: You can calculate the change for a chaotic, irreversible process by inventing an imaginary, perfectly reversible path between the same two states.
+
+- If you want to know $\Delta U$ for a messy explosion in a cylinder, you don't need to model the explosion's path.
+- You just look at the state before the explosion ($T_1, P_1$) and the state after the explosion ($T_2, P_2$).
+- You use the fundamental relation ($dU = T dS - P dV$) over an easy, idealized path to find the difference between those two states.
+- Because $U$ is a state function, the $\Delta U$ you calculate for the imaginary easy path is 100% identical to the $\Delta U$ of the messy real-world explosion.

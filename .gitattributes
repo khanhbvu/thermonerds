@@ -1,0 +1,18 @@
+# Normalise line endings to LF in the repository and in the working copy.
+#
+# Why this matters here beyond tidiness: Quarto decides whether a frozen
+# chunk is still valid by hashing the source file. If the same .qmd is
+# checked out CRLF on Windows and LF on a Linux CI runner, the bytes differ,
+# the hash differs, and the freeze cache in _freeze/ is treated as stale --
+# so the runner tries to re-execute your Python and fails without CoolProp,
+# NeqSim and the rest installed. Pinning eol=lf keeps both sides identical.
+* text=auto eol=lf
+
+# Never touch binaries.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.pdf  binary
+*.woff  binary
+*.woff2 binary
