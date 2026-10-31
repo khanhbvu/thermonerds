@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.20">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-10-03">
+
+<title>Thermodynamic Potentials Applied for Equations of State – Thermo Nerds</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-d990f4a1de4b65ced66197ca86f45077.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-b95e18d632023e70fcd2ee9564da8ee3.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400">
+<script>
+  window.MathJax = {
+    loader: { load: ['[tex]/mhchem'] },
+    tex: {
+      packages: { '[+]': ['mhchem'] },
+      tags: 'ams',
+      tagSide: 'right',
+      macros: {
+        Vm:   "V_{m}",
+        kij:  "k_{ij}",
+        Rgas: "R"
+      }
+    }
+  };
+</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Thermo Nerds</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#equation-of-state-of-an-ideal-gas" id="toc-equation-of-state-of-an-ideal-gas" class="nav-link active" data-scroll-target="#equation-of-state-of-an-ideal-gas">Equation of State of an Ideal Gas</a></li>
+  <li><a href="#soaveredlichkwong-equation-of-state" id="toc-soaveredlichkwong-equation-of-state" class="nav-link" data-scroll-target="#soaveredlichkwong-equation-of-state">Soave–Redlich–Kwong Equation of State</a></li>
+  <li><a href="#the-chemical-potential-of-an-ideal-gas" id="toc-the-chemical-potential-of-an-ideal-gas" class="nav-link" data-scroll-target="#the-chemical-potential-of-an-ideal-gas">The Chemical Potential of an Ideal Gas</a></li>
+  <li><a href="#derivation-of-equation-30" id="toc-derivation-of-equation-30" class="nav-link" data-scroll-target="#derivation-of-equation-30">Derivation of Equation 30</a>
+  <ul class="collapse">
+  <li><a href="#first-line-of-equation-30-euler-expansion-of-helmholtz-energy" id="toc-first-line-of-equation-30-euler-expansion-of-helmholtz-energy" class="nav-link" data-scroll-target="#first-line-of-equation-30-euler-expansion-of-helmholtz-energy">1. First Line of Equation 30: Euler Expansion of Helmholtz Energy</a></li>
+  <li><a href="#second-line-of-equation-30-matching-the-volume-and-composition-dependencies" id="toc-second-line-of-equation-30-matching-the-volume-and-composition-dependencies" class="nav-link" data-scroll-target="#second-line-of-equation-30-matching-the-volume-and-composition-dependencies">2. Second Line of Equation 30: Matching the Volume and Composition Dependencies</a></li>
+  <li><a href="#the-extensivity-requirement-1st-order-homogeneity" id="toc-the-extensivity-requirement-1st-order-homogeneity" class="nav-link" data-scroll-target="#the-extensivity-requirement-1st-order-homogeneity">1. The Extensivity Requirement (1st Order Homogeneity)</a></li>
+  <li><a href="#derivation-of-equation-37-via-eulers-theorem" id="toc-derivation-of-equation-37-via-eulers-theorem" class="nav-link" data-scroll-target="#derivation-of-equation-37-via-eulers-theorem">2. Derivation of Equation 37 via Euler’s Theorem</a></li>
+  <li><a href="#understanding-the-behavior-of-f_i" id="toc-understanding-the-behavior-of-f_i" class="nav-link" data-scroll-target="#understanding-the-behavior-of-f_i">1. Understanding the Behavior of <span class="math inline">\(f_i\)</span></a></li>
+  <li><a href="#the-resulting-chemical-potential-equation-40" id="toc-the-resulting-chemical-potential-equation-40" class="nav-link" data-scroll-target="#the-resulting-chemical-potential-equation-40">2. The Resulting Chemical Potential (Equation 40)</a></li>
+  </ul></li>
+  <li><a href="#determination-of-k_i" id="toc-determination-of-k_i" class="nav-link" data-scroll-target="#determination-of-k_i">Determination of <span class="math inline">\(k_i\)</span></a>
+  <ul class="collapse">
+  <li><a href="#matching-mu_iig-to-the-pure-component-limit" id="toc-matching-mu_iig-to-the-pure-component-limit" class="nav-link" data-scroll-target="#matching-mu_iig-to-the-pure-component-limit">1. Matching <span class="math inline">\(\mu_i^{IG}\)</span> to the Pure Component Limit</a></li>
+  <li><a href="#physical-origin-of-g_icirct-and-equation-48" id="toc-physical-origin-of-g_icirct-and-equation-48" class="nav-link" data-scroll-target="#physical-origin-of-g_icirct-and-equation-48">2. Physical Origin of <span class="math inline">\(g_i^\circ(T)\)</span> and Equation 48</a></li>
+  <li><a href="#solving-explicitly-for-k_it" id="toc-solving-explicitly-for-k_it" class="nav-link" data-scroll-target="#solving-explicitly-for-k_it">3. Solving Explicitly for <span class="math inline">\(k_i(T)\)</span></a></li>
+  <li><a href="#step-2-substitution-of-k_it" id="toc-step-2-substitution-of-k_it" class="nav-link" data-scroll-target="#step-2-substitution-of-k_it">Step 2: Substitution of <span class="math inline">\(k_i(T)\)</span></a></li>
+  <li><a href="#step-3-combining-the-logarithmic-terms" id="toc-step-3-combining-the-logarithmic-terms" class="nav-link" data-scroll-target="#step-3-combining-the-logarithmic-terms">Step 3: Combining the Logarithmic Terms</a></li>
+  <li><a href="#step-4-the-final-form-of-equation-61" id="toc-step-4-the-final-form-of-equation-61" class="nav-link" data-scroll-target="#step-4-the-final-form-of-equation-61">Step 4: The Final Form of Equation 61</a></li>
+  </ul></li>
+  <li><a href="#physical-interpretation-and-real-fluid-extension" id="toc-physical-interpretation-and-real-fluid-extension" class="nav-link" data-scroll-target="#physical-interpretation-and-real-fluid-extension">Physical Interpretation and Real-Fluid Extension</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Thermodynamic Potentials Applied for Equations of State</h1>
+  <div class="quarto-categories">
+    <div class="quarto-category">thermodynamics</div>
+    <div class="quarto-category">equations-of-state</div>
+    <div class="quarto-category">srk</div>
+    <div class="quarto-category">residual-properties</div>
+    <div class="quarto-category">fugacity</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">October 3, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="equation-of-state-of-an-ideal-gas" class="level2">
+<h2 class="anchored" data-anchor-id="equation-of-state-of-an-ideal-gas">Equation of State of an Ideal Gas</h2>
+<p><span class="math display">\[
+A(T, V, \bar{n}) - A(T, V_R, \bar{n}) = \int_{V_R}^{V} \left( \frac{\partial A}{\partial V} \right)_{T, \bar{n}} dV = -\int_{V_R}^{V} P dV \tag{1}
+\]</span></p>
+<p>In Equation 1, the term <span class="math inline">\(V_R\)</span> acts as an arbitrary reference volume, which corresponds to a specific but unknown reference Helmholtz free energy, <span class="math inline">\(A_R\)</span> (where <span class="math inline">\(A(T, V_R, \bar{n}) = A_R\)</span>). To see how this plays out mathematically, let’s look at the most basic example using the ideal-gas equation of state:</p>
+<p><span class="math display">\[
+P^{IG}(T, V, \bar{n}) = \frac{n R_g T}{V} \tag{2}
+\]</span></p>
+<p>By substituting this into the fundamental volume derivative of the Helmholtz energy and performing the integration, we get:</p>
+<p><span class="math display">\[
+A^{IG}(T, V, \bar{n}) - A^{IG}(T, V_R, \bar{n}) = -\int_{V_R}^{V} P^{IG} dV
+\]</span></p>
+<p><span class="math display">\[
+= -\int_{V_R}^{V} \frac{n R T}{V} dV = -n R_g T \ln\left(\frac{V}{V_R}\right) \tag{3}
+\]</span></p>
+<p>While Equation 3 allows us to calculate changes in Helmholtz free energy, it only provides the difference between states—we still do not know the absolute values of <span class="math inline">\(A\)</span> or <span class="math inline">\(A_R\)</span>. If we differentiate Equation 3 with respect to temperature and apply the canonical entropy relationship, we arrive at a familiar expression for entropy:</p>
+<p><span class="math display">\[
+S^{IG}(T, V, \bar{n}) - S^{IG}(T, V_R, \bar{n}) = n R_g \ln\left(\frac{V}{V_R}\right) \tag{4}
+\]</span></p>
+<p>Notice that in Equation 4, the temperature remains constant between the state of interest and the reference state.</p>
+<p>If we were to differentiate Equation 3 with respect to volume instead, we would simply get the ideal gas law (<span class="math inline">\(P = n R_g T / V\)</span>). However, differentiating with respect to the number of moles yields the change in chemical potential:</p>
+<p><span class="math display">\[
+\mu_i^{IG}(T, V, \bar{n}) - \mu_i^{IG}(T, V_R, \bar{n}) = -R_g T \ln\left(\frac{V}{V_R}\right) \tag{5}
+\]</span></p>
+<p>These relationships highlight a major limitation: an equation of state (EOS) is not very helpful for calculating absolute thermodynamic properties. For instance, Equation 4 doesn’t give us the actual overarching formula for entropy; it only shows how entropy differences relate to changes in volume and composition. The same limitation applies to Equation 5 regarding chemical potential.</p>
+<p>For now, we can set this limitation aside. Moving forward, we will apply this exact same mathematical framework to much more powerful equations of state. To make those models work, we will introduce the concept of a residual property—which is simply the mathematical difference between a property calculated from our advanced real-gas model and that same property calculated for an ideal gas.</p>
+</section>
+<section id="soaveredlichkwong-equation-of-state" class="level2">
+<h2 class="anchored" data-anchor-id="soaveredlichkwong-equation-of-state">Soave–Redlich–Kwong Equation of State</h2>
+<p>Now, let’s apply the integration specified in Equation 3 to a more advanced model: the Soave-Redlich-Kwong equation of state (SRK EOS).</p>
+<p><span class="math display">\[
+P = \frac{n R_g T}{V - nb} - \frac{n^2 a}{V(V + nb)} \tag{6}
+\]</span></p>
+<p>In this expression, the parameters <span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span> are typically dependent on both temperature and composition. Notice that we have structured the SRK EOS here as a function of <span class="math inline">\(T\)</span>, <span class="math inline">\(V\)</span>, and the total number of moles (<span class="math inline">\(\bar{n}\)</span>), rather than using mole fractions. We have also kept the unit choices generalized, consistent with our earlier discussions.</p>
+<p>Finally, because it will be necessary for future calculations, we can determine the absolute minimum possible volume for the SRK EOS simply by inspecting the denominator of the first term:</p>
+<p><span class="math display">\[
+V_{min}^{SRK} = nb \tag{7}
+\]</span></p>
+<p>Before we dive into the integration, it helps to algebraically rewrite the SRK EOS into a form that is easier to integrate:</p>
+<p><span class="math display">\[
+P = \frac{n R_g T}{(V - nb)} - \frac{n^2 a}{nb} \left( \frac{1}{V} - \frac{1}{V + nb} \right) \tag{8}
+\]</span></p>
+<p>Applying the integration from Equation 3 to this new form yields:</p>
+<p><span class="math display">\[
+A(T, V, \bar{n}) - A(T, V_R, \bar{n}) = \left[ -n R_g T \ln(V - nb) + \frac{n^2 a}{nb} \ln \frac{V + nb}{V} \right]_{V_R}^{V}
+\]</span></p>
+<p><span class="math display">\[
+= -n R_g T \ln \frac{(V - nb)}{(V_R - nb)} + \frac{n^2 a}{nb} \ln \frac{(V + nb)V_R}{V(V_R + nb)} \tag{9}
+\]</span></p>
+<p>At this point, we could try to push forward, but we run into the exact same roadblock we saw with Equation 3: we still don’t know the absolute value of <span class="math inline">\(A(T, V_R, \bar{n})\)</span> for an SRK fluid at an arbitrary reference volume.</p>
+<p>However, we can bypass this issue by comparing our SRK fluid calculations directly to those of an ideal gas. If we subtract the ideal gas result (Equation 3) from our SRK result (Equation 9), we get:</p>
+<p><span class="math display">\[
+A(T, V, \bar{n}) - A(T, V_R, \bar{n}) - A^{IG}(T, V, \bar{n}) + A^{IG}(T, V_R, \bar{n})
+\]</span></p>
+<p><span class="math display">\[
+= -n R_g T \ln \frac{(V - nb)V_R}{(V_R - nb)V} + \frac{n^2 a}{nb} \ln \frac{(V + nb)V_R}{V(V_R + nb)} \tag{10}
+\]</span></p>
+<p>At first glance, it might look like we just mashed two underdefined equations together. But remember two crucial facts: first, the conditions <span class="math inline">\((T, V, V_R, \bar{n})\)</span> apply equally to both the SRK fluid and the Ideal Gas. Second, we have complete freedom to choose our reference volume, <span class="math inline">\(V_R\)</span>, however is most convenient.</p>
+<p>If we define <span class="math inline">\(V_R\)</span> to approach infinity (<span class="math inline">\(V_R \to \infty\)</span>), we are simulating an infinitely expanded gas. Because any valid, useful equation of state must trend toward ideal gas behavior at infinite volume, we can safely conclude that as <span class="math inline">\(V_R \to \infty\)</span>, the real fluid properties converge with the ideal gas properties (<span class="math inline">\(A(T, V_R, \bar{n}) \to A^{IG}(T, V_R, \bar{n})\)</span>). Additionally, under this mathematical limit, terms like <span class="math inline">\(\frac{V_R}{V_R \pm nb}\)</span> simply approach 1.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>As <span class="math inline">\(V_R \to \infty\)</span>, the <span class="math inline">\(nb\)</span> term becomes negligible compared to the infinitely expanding volume, causing the fraction to approach unity:</p>
+</div>
+</div>
+<p><span class="math display">\[
+\lim_{V_R \to \infty} \frac{V_R}{V_R \pm nb} = 1 \tag{11}
+\]</span></p>
+<p>Alternatively, expressed as a simple directional trend:</p>
+<p><span class="math display">\[
+\frac{V_R}{V_R \pm nb} \to 1 \tag{12}
+\]</span></p>
+<p>By applying this infinite-volume reference state, Equation 10 beautifully simplifies to:</p>
+<p><span class="math display">\[
+A(T, V, \bar{n}) - A^{IG}(T, V, \bar{n}) = -n R_g T \ln \left[ \frac{V - nb}{V} \right] + \frac{n^2 a}{nb} \ln \left[ \frac{V + nb}{V} \right] \tag{13}
+\]</span></p>
+<p>The left-hand side of Equation 13 provides us with the formal definition of the Residual Helmholtz Free Energy:</p>
+<p><span class="math display">\[
+A^{Res} \equiv A(T, V, \bar{n}) - A^{IG}(T, V, \bar{n}) \tag{14}
+\]</span></p>
+<p>It is crucial to understand the conceptual leap that led us to Equation 13, particularly how specific terms algebraically cancel out as our reference volume approaches infinity (<span class="math inline">\(V_R \to \infty\)</span>). Furthermore, the core definition of any Residual Property strictly requires that both the real fluid and the Ideal Gas (IG) reference state share the exact same temperature (<span class="math inline">\(T\)</span>), volume (<span class="math inline">\(V\)</span>), and composition (<span class="math inline">\(\bar{n}\)</span>). By substituting residual properties into our earlier definitions, we obtain the following relationships:</p>
+<p><span class="math display">\[
+\left( \frac{\partial A^{Res}}{\partial T} \right)_{V, \bar{n}} = -S^{Res} = -S(T, V, \bar{n}) + S^{IG}(T, V, \bar{n}) \tag{15}
+\]</span></p>
+<p><span class="math display">\[
+\left( \frac{\partial A^{Res}}{\partial V} \right)_{T, \bar{n}} = -P^{Res} = -P(T, V, \bar{n}) + \frac{n R_g T}{V} \tag{16}
+\]</span></p>
+<p><span class="math display">\[
+\left( \frac{\partial A^{Res}}{\partial n_i} \right)_{T, V, n_{k \neq i}} = \mu_i^{Res} = \mu_i(T, V, \bar{n}) - \mu_i^{IG}(T, V, \bar{n}) \tag{17}
+\]</span></p>
+<p>However, Equations 15 through 17 do not magically solve all our problems. While we can differentiate Equation 13 with respect to <span class="math inline">\(T\)</span>, <span class="math inline">\(V\)</span>, or <span class="math inline">\(\bar{n}\)</span> to generate residual properties, we still cannot determine the absolute property of the SRK fluid without knowing the corresponding property of the ideal gas.</p>
+<p>Fortunately, we do know the pressure for both the ideal gas and the SRK fluid, which allows us to completely solve for the volume derivative, <span class="math inline">\(\left( \frac{\partial A^{Res}}{\partial V} \right)_{T, \bar{n}}\)</span>.</p>
+<p>Regarding composition (<span class="math inline">\(\bar{n}\)</span>), we will see in the next section that if we can successfully formulate the ideal gas chemical potential (<span class="math inline">\(\mu_i^{IG}\)</span>), we can then derive a highly useful expression for the chemical potential (<span class="math inline">\(\mu_i\)</span>) of the SRK fluid (and other equations of state).</p>
+<p>Finally, when it comes to temperature (<span class="math inline">\(T\)</span>), we will discover that for a massive category of thermodynamic calculations, we actually do not need to know the absolute ideal gas entropy. In practice, those terms frequently end up canceling out algebraically when we assemble the final equations.</p>
+</section>
+<section id="the-chemical-potential-of-an-ideal-gas" class="level2">
+<h2 class="anchored" data-anchor-id="the-chemical-potential-of-an-ideal-gas">The Chemical Potential of an Ideal Gas</h2>
+<p>Let’s start from the canonical derivative relation for the ideal gas Helmholtz free energy (Equation 18):</p>
+<p><span class="math display">\[
+\left( \frac{\partial A^{IG}}{\partial V} \right)_{T, \bar{n}} = -P^{IG} \tag{18}
+\]</span></p>
+<p>Substituting the ideal gas law, <span class="math inline">\(P^{IG} = \frac{n R_g T}{V}\)</span> (Equation 2), yields:</p>
+<p><span class="math display">\[
+\left( \frac{\partial A^{IG}}{\partial V} \right)_{T, \bar{n}} = -\frac{n R_g T}{V} \tag{19}
+\]</span></p>
+<p>Integrating this expression with respect to volume (<span class="math inline">\(V\)</span>), while keeping temperature (<span class="math inline">\(T\)</span>) and the composition vector (<span class="math inline">\(\bar{n}\)</span>) constant, gives us:</p>
+<p><span class="math display">\[
+A^{IG} = \int \left( -\frac{n R_g T}{V} \right) dV = -n R_g T \ln(V) + C \tag{20}
+\]</span></p>
+<p>In multivariable calculus, the “constant of integration” (<span class="math inline">\(C\)</span>) is not simply a static number; it can depend on any variables that were deliberately held constant during the partial integration. Because <span class="math inline">\(T\)</span> and <span class="math inline">\(\bar{n}\)</span> were treated as constants, <span class="math inline">\(C\)</span> is actually an arbitrary function, <span class="math inline">\(F(T, \bar{n})\)</span>. This leaves us with:</p>
+<p><span class="math display">\[
+A^{IG} = -n R_g T \ln(V) + F(T, \bar{n}) \tag{21}
+\]</span></p>
+</section>
+<section id="derivation-of-equation-30" class="level2">
+<h2 class="anchored" data-anchor-id="derivation-of-equation-30">Derivation of Equation 30</h2>
+<p>Equation 30 resolves the structure of this unknown integration function <span class="math inline">\(F(T, \bar{n})\)</span> by leveraging Euler’s theorem for homogeneous functions alongside the Legendre transform.</p>
+<section id="first-line-of-equation-30-euler-expansion-of-helmholtz-energy" class="level3">
+<h3 class="anchored" data-anchor-id="first-line-of-equation-30-euler-expansion-of-helmholtz-energy">1. First Line of Equation 30: Euler Expansion of Helmholtz Energy</h3>
+<p>From classical thermodynamics, we know the fundamental potentials are related by:</p>
+<p><span class="math display">\[
+A \equiv U - TS = (H - PV) - TS = (H - TS) - PV = G - PV \tag{22}
+\]</span></p>
+<p>Applying Euler’s theorem for first-order extensive thermodynamic potentials tells us that the total Gibbs free energy is simply the sum of molar chemical potentials weighted by their respective mole numbers:</p>
+<p><span class="math display">\[
+G = \sum_r \mu_r n_r \tag{23}
+\]</span></p>
+<p>By substituting this definition of <span class="math inline">\(G\)</span> back into our relation <span class="math inline">\(A = G - PV\)</span> specifically for an ideal gas mixture, we arrive at the first line of Equation 30:</p>
+<p><span class="math display">\[
+A^{IG} = -(PV)^{IG} + \sum_r \mu_r^{IG} n_r \tag{24}
+\]</span></p>
+</section>
+<section id="second-line-of-equation-30-matching-the-volume-and-composition-dependencies" class="level3">
+<h3 class="anchored" data-anchor-id="second-line-of-equation-30-matching-the-volume-and-composition-dependencies">2. Second Line of Equation 30: Matching the Volume and Composition Dependencies</h3>
+<p>Applying the ideal gas equation of state, we know that <span class="math inline">\((PV)^{IG} = n R_g T\)</span>. Substituting this into our previous expression yields:</p>
+<p><span class="math display">\[
+A^{IG} = -n R_g T + \sum_r \mu_r^{IG} n_r \tag{25}
+\]</span></p>
+<p>Recalling Equation 17, the chemical potential is defined as the partial derivative of the Helmholtz free energy with respect to the mole number:</p>
+<p><span class="math display">\[
+\mu_r^{IG} = \left( \frac{\partial A^{IG}}{\partial n_r} \right)_{T, V, n_{k \neq r}} \tag{26}
+\]</span></p>
+<p>Now, if we differentiate Equation 21 with respect to <span class="math inline">\(n_r\)</span>—keeping in mind that the total moles <span class="math inline">\(n = \sum_j n_j\)</span>, meaning <span class="math inline">\(\frac{\partial n}{\partial n_r} = 1\)</span>—we get:</p>
+<p><span class="math display">\[
+\mu_r^{IG} = -R_g T \ln(V) + \left( \frac{\partial F(T, \bar{n})}{\partial n_r} \right)_{T, n_{k \neq r}} \tag{27}
+\]</span></p>
+<p>To simplify this, we can define a dimensionless component function, <span class="math inline">\(f_r(T, \bar{n})\)</span>:</p>
+<p><span class="math display">\[
+f_r(T, \bar{n}) \equiv \frac{1}{R_g T} \left( \frac{\partial F}{\partial n_r} \right)_{T, n_{k \neq r}} \tag{28}
+\]</span></p>
+<p>This allows us to rewrite the chemical potential cleanly as:</p>
+<p><span class="math display">\[
+\mu_r^{IG} = R_g T \left[ -\ln(V) + f_r(T, \bar{n}) \right] \tag{29}
+\]</span></p>
+<p>Finally, substituting this chemical potential back into our earlier expression (<span class="math inline">\(A^{IG} = -(PV)^{IG} + \sum_r \mu_r^{IG} n_r\)</span>) brings us to the complete Equation 30:</p>
+<p><span class="math display">\[
+A^{IG} = -n R_g T + R_g T \sum_r \left[ -\ln(V) + f_r(T, \bar{n}) \right] n_r \tag{30}
+\]</span></p>
+</section>
+<section id="the-extensivity-requirement-1st-order-homogeneity" class="level3">
+<h3 class="anchored" data-anchor-id="the-extensivity-requirement-1st-order-homogeneity">1. The Extensivity Requirement (1st Order Homogeneity)</h3>
+<p>Helmholtz free energy (<span class="math inline">\(A\)</span>) is fundamentally an extensive property. This means that if we scale the entire size of our system by some factor <span class="math inline">\(\lambda &gt; 0\)</span> while holding the temperature (<span class="math inline">\(T\)</span>) constant, both the total volume (<span class="math inline">\(V\)</span>) and the individual mole numbers (<span class="math inline">\(n_r\)</span>) will scale by that exact same factor <span class="math inline">\(\lambda\)</span>:</p>
+<p><span class="math display">\[
+V \to \lambda V, \quad n_r \to \lambda n_r
+\]</span></p>
+<p>For the ideal gas Helmholtz energy (<span class="math inline">\(A^{IG}\)</span>) to scale proportionally alongside the system (<span class="math inline">\(A^{IG} \to \lambda A^{IG}\)</span>), it must mathematically behave as a function that is homogeneous of degree 1 with respect to volume and composition <span class="math inline">\((V, \bar{n})\)</span>.</p>
+<p>Let’s look back at our newly derived Equation 30 to see how this applies:</p>
+<p><span class="math display">\[
+A^{IG} = -n R_g T + R_g T \sum_r \left[ -\ln(V) + f_r(T, \bar{n}) \right] n_r
+\]</span></p>
+<p>The leading term, <span class="math inline">\(-n R_g T\)</span>, is naturally first-order homogeneous because the total moles scale directly with <span class="math inline">\(\lambda\)</span> (where <span class="math inline">\(n = \sum n_r\)</span>, meaning <span class="math inline">\(n \to \lambda n\)</span>).</p>
+<p>Inside the summation, the trailing factor <span class="math inline">\(n_r\)</span> also scales perfectly as <span class="math inline">\(\lambda^1\)</span>.</p>
+<p>Because the <span class="math inline">\(n_r\)</span> outside the brackets already satisfies the scaling requirement, the entire bracketed quantity, <span class="math inline">\(\left[ -\ln(V) + f_r(T, \bar{n}) \right]\)</span>, must be homogeneous of degree 0. In other words, it must act as an intensive quantity that remains completely unchanged when the system is scaled by <span class="math inline">\(\lambda\)</span>:</p>
+<p><span class="math display">\[
+-\ln(\lambda V) + f_r(T, \lambda \bar{n}) = -\ln(V) + f_r(T, \bar{n}) \tag{31}
+\]</span></p>
+<p>By expanding the logarithm on the left side of that relationship, we can isolate the function <span class="math inline">\(f_r\)</span> to understand exactly how it must behave:</p>
+<p><span class="math display">\[
+-\ln(\lambda) - \ln(V) + f_r(T, \lambda \bar{n}) = -\ln(V) + f_r(T, \bar{n}) \tag{32}
+\]</span></p>
+<p><span class="math display">\[
+f_r(T, \lambda \bar{n}) - f_r(T, \bar{n}) = \ln(\lambda) \tag{33}
+\]</span></p>
+</section>
+<section id="derivation-of-equation-37-via-eulers-theorem" class="level3">
+<h3 class="anchored" data-anchor-id="derivation-of-equation-37-via-eulers-theorem">2. Derivation of Equation 37 via Euler’s Theorem</h3>
+<p>Euler’s homogeneous function theorem states that for any function <span class="math inline">\(g(x_1, x_2, \dots, x_m)\)</span> that is homogeneous of degree <span class="math inline">\(k\)</span>, the following relationship holds true:</p>
+<p><span class="math display">\[
+\sum_j x_j \frac{\partial g}{\partial x_j} = k \cdot g \tag{34}
+\]</span></p>
+<p>We can apply this theorem directly to our bracketed function, <span class="math inline">\(g(V, \bar{n}) = -\ln(V) + f_i(T, \bar{n})\)</span>, which we just established is homogeneous of degree zero (<span class="math inline">\(k = 0\)</span>):</p>
+<p><span class="math display">\[
+V \frac{\partial \left[ -\ln(V) + f_i \right]}{\partial V} + \sum_r n_r \frac{\partial \left[ -\ln(V) + f_i \right]}{\partial n_r} = 0 \cdot \left[ -\ln(V) + f_i \right] = 0 \tag{35}
+\]</span></p>
+<p>Next, let’s quickly evaluate those two partial derivatives individually:</p>
+<ol type="1">
+<li>With respect to volume: <span class="math inline">\(\frac{\partial \left[ -\ln(V) + f_i \right]}{\partial V} = -\frac{1}{V}\)</span></li>
+<li>With respect to mole numbers: <span class="math inline">\(\frac{\partial \left[ -\ln(V) + f_i \right]}{\partial n_r} = \frac{\partial f_i}{\partial n_r}\)</span></li>
+</ol>
+<p>Substituting these evaluated derivatives back into our Euler relation gives us the first line of Equation 37:</p>
+<p><span class="math display">\[
+-\frac{1}{V} V + \sum_r \frac{\partial f_i}{\partial n_r} n_r = 0 \tag{36}
+\]</span></p>
+<p>Finally, by simplifying the first term (<span class="math inline">\(-\frac{1}{V} V = -1\)</span>) and moving that negative one to the right-hand side of the equation, we arrive perfectly at Equation 37:</p>
+<p><span class="math display">\[
+\sum_r \frac{\partial f_i}{\partial n_r} n_r = 1 \tag{37}
+\]</span></p>
+</section>
+<section id="understanding-the-behavior-of-f_i" class="level3">
+<h3 class="anchored" data-anchor-id="understanding-the-behavior-of-f_i">1. Understanding the Behavior of <span class="math inline">\(f_i\)</span></h3>
+<p>Equation 37 reveals a couple of fascinating mathematical quirks about our component function, <span class="math inline">\(f_i\)</span>:</p>
+<ul>
+<li><span class="math inline">\(f_i\)</span> is not homogeneous in <span class="math inline">\(\bar{n}\)</span>: Because the right-hand side of Equation 37 equals 1 rather than <span class="math inline">\(k \cdot f_i\)</span>, the function itself does not follow standard homogeneity rules.</li>
+<li><strong>Universal sum to 1</strong> For that sum to reliably equal 1 regardless of the mixture’s actual composition, the partial derivative must perfectly isolate the specific component’s mole number. This means:</li>
+</ul>
+<p><span class="math display">\[
+\frac{\partial f_i}{\partial n_i} = \frac{1}{n_i} \quad \text{and} \quad \frac{\partial f_i}{\partial n_r} = 0 \quad (r \neq i) \tag{38}
+\]</span></p>
+<p>If we take that relationship and directly integrate <span class="math inline">\(\frac{1}{n_i} dn_i\)</span>, we arrive at Equation 39:</p>
+<p><span class="math display">\[
+f_i = \ln(n_i) + k_i(T) \tag{39}
+\]</span></p>
+<p>In this expression, <span class="math inline">\(k_i(T)\)</span> serves as an integration constant that is exclusively dependent on the temperature, <span class="math inline">\(T\)</span>.</p>
+</section>
+<section id="the-resulting-chemical-potential-equation-40" class="level3">
+<h3 class="anchored" data-anchor-id="the-resulting-chemical-potential-equation-40">2. The Resulting Chemical Potential (Equation 40)</h3>
+<p>We are finally ready to put the pieces together. By substituting our newly derived <span class="math inline">\(f_i = \ln(n_i) + k_i\)</span> back into the ideal gas chemical potential expression we built earlier (<span class="math inline">\(\mu_i^{IG} = R_g T \left[ -\ln(V) + f_i \right]\)</span>), we get Equation 40:</p>
+<p><span class="math display">\[
+\mu_i^{IG} = -R_g T \ln(V) + R_g T \ln(n_i) + R_g T k_i \tag{40}
+\]</span></p>
+<p>By algebraically grouping the volume and mole terms together, the underlying physics finally become visible. This arrangement reveals a direct, tangible connection to the molar concentration (<span class="math inline">\(c_i = n_i / V\)</span>) or the partial pressure (<span class="math inline">\(P_i = y_i P\)</span>):</p>
+<p><span class="math display">\[
+\mu_i^{IG} = R_g T \ln\left(\frac{n_i}{V}\right) + R_g T k_i(T) \tag{41}
+\]</span></p>
+</section>
+</section>
+<section id="determination-of-k_i" class="level2">
+<h2 class="anchored" data-anchor-id="determination-of-k_i">Determination of <span class="math inline">\(k_i\)</span></h2>
+<section id="matching-mu_iig-to-the-pure-component-limit" class="level3">
+<h3 class="anchored" data-anchor-id="matching-mu_iig-to-the-pure-component-limit">1. Matching <span class="math inline">\(\mu_i^{IG}\)</span> to the Pure Component Limit</h3>
+<p>In Equation 40, the ideal gas chemical potential is given by:</p>
+<p><span class="math display">\[
+\mu_i^{IG} = -R_g T \ln(V) + R_g T \ln(n_i) + R_g T k_i = R_g T \ln\left(\frac{n_i}{V}\right) + R_g T k_i \tag{42}
+\]</span></p>
+<p>For a pure substance (<span class="math inline">\(n_i = n\)</span>), the chemical potential is identical to the molar Gibbs free energy:</p>
+<p><span class="math display">\[
+\mu_i^{IG} = g_i^{IG} \tag{43}
+\]</span></p>
+<p>Using the ideal gas relation (<span class="math inline">\(V = \frac{n R_g T}{P}\)</span>), the molar concentration becomes <span class="math inline">\(\frac{n_i}{V} = \frac{P}{R_g T}\)</span>. Substituting this into Equation 42 gives us an expression for the pure ideal gas:</p>
+<p><span class="math display">\[
+g_i^{IG}(T, P) = R_g T \ln\left(\frac{P}{R_g T}\right) + R_g T k_i = R_g T \ln(P) - R_g T \ln(R_g T) + R_g T k_i \tag{44}
+\]</span></p>
+</section>
+<section id="physical-origin-of-g_icirct-and-equation-48" class="level3">
+<h3 class="anchored" data-anchor-id="physical-origin-of-g_icirct-and-equation-48">2. Physical Origin of <span class="math inline">\(g_i^\circ(T)\)</span> and Equation 48</h3>
+<p>To assign an actual numerical value to <span class="math inline">\(g_i^{IG}(T, P)\)</span>, thermodynamics anchors the property to standard formation data:</p>
+<p><strong>Reference State.</strong> Data for standard Gibbs energy of formation (<span class="math inline">\(\Delta g_{f, i}^\circ\)</span>) or standard enthalpy of formation (<span class="math inline">\(\Delta h_{f, i}^\circ\)</span>) and absolute entropy (<span class="math inline">\(s_i^\circ\)</span>) are tabulated at <span class="math inline">\(T_0 = 298.15\text{ K}\)</span> and <span class="math inline">\(P_0 = 1\text{ bar}\)</span>.</p>
+<p><strong>Temperature Integration.</strong> Using pure-component ideal-gas heat capacity polynomials (<span class="math inline">\(C_{p, i}^0(T)\)</span>), the enthalpy and entropy are integrated from <span class="math inline">\(T_0\)</span> to the system temperature <span class="math inline">\(T\)</span>:</p>
+<p><span class="math display">\[
+h_i^\circ(T) = \Delta h_{f, i}^\circ(T_0) + \int_{T_0}^T C_{p, i}^0(T') \, dT' \tag{45}
+\]</span></p>
+<p><span class="math display">\[
+s_i^\circ(T) = s_i^\circ(T_0, P_0) + \int_{T_0}^T \frac{C_{p, i}^0(T')}{T'} \, dT' \tag{46}
+\]</span></p>
+<p><span class="math display">\[
+g_i^\circ(T) \equiv h_i^\circ(T) - T s_i^\circ(T) = g_i(T, P_0) \tag{47}
+\]</span></p>
+<p><strong>Pressure Isotherm (Equation 48).</strong> At a constant temperature, the change in Gibbs free energy with respect to pressure is given by <span class="math inline">\(dg_i = v \, dP = \frac{R_g T}{P} \, dP\)</span>. Integrating this from the standard pressure <span class="math inline">\(P_0\)</span> to the system pressure <span class="math inline">\(P\)</span> gives:</p>
+<p><span class="math display">\[
+g_i^{IG}(T, P) = g_i(T, P_0) + R_g T \ln\left(\frac{P}{P_0}\right) = g_i^\circ(T) + R_g T \ln(P) - R_g T \ln(P_0) \tag{48}
+\]</span></p>
+</section>
+<section id="solving-explicitly-for-k_it" class="level3">
+<h3 class="anchored" data-anchor-id="solving-explicitly-for-k_it">3. Solving Explicitly for <span class="math inline">\(k_i(T)\)</span></h3>
+<p>We now have two different expressions for <span class="math inline">\(g_i^{IG}(T, P)\)</span>. Equating them directly isolates our unknown integration constant, <span class="math inline">\(k_i(T)\)</span>:</p>
+<p><span class="math display">\[
+R_g T \ln(P) - R_g T \ln(R_g T) + R_g T k_i = g_i^\circ(T) + R_g T \ln(P) - R_g T \ln(P_0) \tag{49}
+\]</span></p>
+<p>Notice that the <span class="math inline">\(R_g T \ln(P)\)</span> term beautifully cancels out on both sides:</p>
+<p><span class="math display">\[
+-R_g T \ln(R_g T) + R_g T k_i = g_i^\circ(T) - R_g T \ln(P_0) \tag{50}
+\]</span></p>
+<p>Finally, by dividing everything through by <span class="math inline">\(R_g T\)</span>, we arrive at our explicit solution for the temperature-dependent integration constant:</p>
+<p><span class="math display">\[
+k_i(T) = \frac{g_i^\circ(T)}{R_g T} + \ln\left(\frac{R_g T}{P_0}\right) \tag{51}
+\]</span></p>
+<p>Let’s start by revisiting Equation 40 and factoring out the <span class="math inline">\(R_g T\)</span> term:</p>
+<p><span class="math display">\[
+\mu_i^{IG} = -R_g T \ln(V) + R_g T \ln(n_i) + R_g T k_i \tag{52}
+\]</span></p>
+<p><span class="math display">\[
+\mu_i^{IG} = R_g T \left[ \ln\left(\frac{n_i}{V}\right) + k_i(T) \right] \tag{53}
+\]</span></p>
+<p>From our previous derivation (Equation 51), we solved for the explicit expression of <span class="math inline">\(k_i(T)\)</span>:</p>
+<p><span class="math display">\[
+k_i(T) = \frac{g_i^\circ(T)}{R_g T} + \ln(R_g T) - \ln(P_0) \tag{54}
+\]</span></p>
+</section>
+<section id="step-2-substitution-of-k_it" class="level3">
+<h3 class="anchored" data-anchor-id="step-2-substitution-of-k_it">Step 2: Substitution of <span class="math inline">\(k_i(T)\)</span></h3>
+<p>Now, we substitute that expression for <span class="math inline">\(k_i(T)\)</span> directly into our bracketed term:</p>
+<p><span class="math display">\[
+\mu_i^{IG} = R_g T \left[ \ln\left(\frac{n_i}{V}\right) + \frac{g_i^\circ(T)}{R_g T} + \ln(R_g T) - \ln(P_0) \right] \tag{55}
+\]</span></p>
+<p>By distributing <span class="math inline">\(R_g T\)</span> back through the equation, we can pull the standard Gibbs energy out front:</p>
+<p><span class="math display">\[
+\mu_i^{IG} = g_i^\circ(T) + R_g T \left[ \ln\left(\frac{n_i}{V}\right) + \ln(R_g T) - \ln(P_0) \right] \tag{56}
+\]</span></p>
+</section>
+<section id="step-3-combining-the-logarithmic-terms" class="level3">
+<h3 class="anchored" data-anchor-id="step-3-combining-the-logarithmic-terms">Step 3: Combining the Logarithmic Terms</h3>
+<p>Using standard logarithmic identities (<span class="math inline">\(\ln(x) + \ln(y) = \ln(xy)\)</span> and <span class="math inline">\(\ln(a) - \ln(b) = \ln(a/b)\)</span>), we can compress the terms inside the bracket:</p>
+<p><span class="math display">\[
+\ln\left(\frac{n_i}{V}\right) + \ln(R_g T) - \ln(P_0) = \ln\left( \frac{n_i R_g T}{V \cdot P_0} \right) \tag{57}
+\]</span></p>
+<p>Next, we express the total mixture pressure using the ideal gas law (<span class="math inline">\(P = \frac{n R_g T}{V}\)</span>), which rearranges to <span class="math inline">\(\frac{R_g T}{V} = \frac{P}{n}\)</span>. Substituting this into our logarithmic argument simplifies it beautifully:</p>
+<p><span class="math display">\[
+\frac{n_i R_g T}{V \cdot P_0} = \frac{n_i}{n} \cdot \frac{P}{P_0} \tag{59}
+\]</span></p>
+</section>
+<section id="step-4-the-final-form-of-equation-61" class="level3">
+<h3 class="anchored" data-anchor-id="step-4-the-final-form-of-equation-61">Step 4: The Final Form of Equation 61</h3>
+<p>Let <span class="math inline">\(c_i \equiv y_i = \frac{n_i}{n}\)</span> represent the mole fraction of species <span class="math inline">\(i\)</span> in our ideal gas mixture. We can split the product inside the logarithm one last time:</p>
+<p><span class="math display">\[
+\ln\left( \frac{P}{P_0} \cdot c_i \right) = \ln\left(\frac{P}{P_0}\right) + \ln(c_i) \tag{60}
+\]</span></p>
+<p>Multiplying this by <span class="math inline">\(R_g T\)</span> and adding it back to <span class="math inline">\(g_i^\circ(T)\)</span> yields the final, highly useful Equation 61:</p>
+<p><span class="math display">\[
+\mu_i^{IG}(T, P, \bar{n}) = g_i^\circ(T) + R_g T \ln\left(\frac{P}{P_0}\right) + R_g T \ln(c_i) \tag{61}
+\]</span></p>
+</section>
+</section>
+<section id="physical-interpretation-and-real-fluid-extension" class="level2">
+<h2 class="anchored" data-anchor-id="physical-interpretation-and-real-fluid-extension">Physical Interpretation and Real-Fluid Extension</h2>
+<p>Equation 61 is incredibly elegant because every single term tells a specific physical story about the gas:</p>
+<ul>
+<li><strong>Reference State (<span class="math inline">\(g_i^\circ\)</span>)</strong> This captures the pure substance’s caloric properties at temperature <span class="math inline">\(T\)</span> and standard pressure <span class="math inline">\(P_0\)</span> (typically 1 bar).</li>
+<li><strong>Isothermal Pressure Effect (<span class="math inline">\(R_g T \ln(P/P_0)\)</span>)</strong> This mathematically compresses or expands the pure ideal gas isothermally from standard pressure to the actual system pressure <span class="math inline">\(P\)</span>.</li>
+<li><strong>Ideal Mixing Effect (<span class="math inline">\(R_g T \ln c_i\)</span>)</strong> This accounts for the entropy of mixing at constant temperature and pressure, representing Dalton’s partial pressure contribution.</li>
+</ul>
+<p>For a real fluid, we simply add the residual chemical potential (<span class="math inline">\(\mu_i^{Res} = \left(\frac{\partial A^{Res}}{\partial n_i}\right)_{T, V, n_{k \neq i}}\)</span>) to define the total chemical potential:</p>
+<p><span class="math display">\[
+\mu_i = \mu_i^{IG} + \mu_i^{Res} = g_i^\circ(T) + R_g T \ln\left(\frac{P}{P_0}\right) + R_g T \ln(c_i) + \mu_i^{Res} \tag{62}
+\]</span></p>
+<p>Because the chemical potential of a real component is formally defined via its fugacity (<span class="math inline">\(\hat{f}_i\)</span>) as:</p>
+<p><span class="math display">\[
+\mu_i \equiv g_i^\circ(T) + R_g T \ln\left(\frac{\hat{f}_i}{P_0}\right) \tag{63}
+\]</span></p>
+<p>We can equate the two forms. By defining the fugacity coefficient as <span class="math inline">\(\phi_i \equiv \frac{\hat{f}_i}{c_i P}\)</span>, we directly recover the fundamental link between residual properties and phase equilibrium:</p>
+<p><span class="math display">\[
+\ln \phi_i = \frac{\mu_i^{Res}}{R_g T} - \ln Z \tag{64}
+\]</span></p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The <span class="math inline">\(\ln Z\)</span> term, where compressibility factor <span class="math inline">\(Z = \frac{PV}{n R_g T}\)</span>, acts as the required mathematical adjustment for the coordinate transformation from the <span class="math inline">\((T, V)\)</span> Helmholtz domain over to the <span class="math inline">\((T, P)\)</span> Gibbs domain).</p>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/www\.thermonerds\.com");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

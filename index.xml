@@ -1,0 +1,710 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss  xmlns:atom="http://www.w3.org/2005/Atom" 
+      xmlns:media="http://search.yahoo.com/mrss/" 
+      xmlns:content="http://purl.org/rss/1.0/modules/content/" 
+      xmlns:dc="http://purl.org/dc/elements/1.1/" 
+      version="2.0">
+<channel>
+<title>Thermo Nerds</title>
+<link>https://www.thermonerds.com/</link>
+<atom:link href="https://www.thermonerds.com/index.xml" rel="self" type="application/rss+xml"/>
+<description>Phase behaviour, equations of state, and the numerics behind them</description>
+<generator>quarto-1.10.20</generator>
+<lastBuildDate>Fri, 30 Oct 2026 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>Why AI Chat Math Won’t Paste Into Word, and What Actually Travels on the Clipboard</title>
+  <link>https://www.thermonerds.com/posts/ai-math-into-word/</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>Copy a formula out of ChatGPT and paste it into Word and you get one of three disappointments: a picture you cannot edit, a line of raw <code>\frac{a}{b}</code>, or a row of mangled symbols. None of them is a Word equation.</p>
+<p>That is not Word being obtuse. The formula on screen was never an equation, and the thing Word wants is a format no chat site produces. This post is about what sits on each side of that gap, and what has to go on the clipboard to bridge it.</p>
+<section id="a-formula-on-a-web-page-is-not-a-formula" class="level2">
+<h2 class="anchored" data-anchor-id="a-formula-on-a-web-page-is-not-a-formula">A formula on a web page is not a formula</h2>
+<p>Nothing in a web page is an equation. A chat site renders math with a JavaScript library, almost always MathJax or KaTeX, and what lands in the DOM is one of:</p>
+<ul>
+<li><strong>SVG.</strong> MathJax’s SVG output draws each glyph as vector paths. Visually perfect, semantically nothing. Copy it and you have copied a drawing.</li>
+<li><strong>Styled HTML.</strong> MathJax’s CommonHTML output and KaTeX build the formula from spans with careful CSS. What looks like a fraction bar is a <code>&lt;span&gt;</code> with a border.</li>
+<li><strong>An image.</strong> A few sites still render server-side to PNG.</li>
+</ul>
+<p>The visual layer is a dead end in all three cases. What rescues the situation is that the libraries also leave the semantics in the page, out of sight. KaTeX emits a hidden MathML copy next to the visual one; MathJax ships an Assistive MathML extension that, in its own words, “inserts hidden MathML for the usual output renderers.” And MathML has a slot for the original source:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode html code-with-copy"><code class="sourceCode html"><span id="cb1-1"><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">&lt;</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">annotation</span><span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;"> encoding</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"application/x-tex"</span><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">&gt;</span>\frac{RT}{V_m - b}<span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">&lt;/</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">annotation</span><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">&gt;</span></span></code></pre></div></div>
+<p>So the LaTeX you typed is usually still on the page, one layer down. Finding it reliably is harder than it sounds: the attribute names, the element structure and even whether the hidden copy exists at all vary by renderer, by renderer version, and by how a given site configures it. But the principle holds everywhere. Anything that moves chat math somewhere useful works from that hidden semantic layer, not from the pixels on top.</p>
+</section>
+<section id="what-word-stores" class="level2">
+<h2 class="anchored" data-anchor-id="what-word-stores">What Word stores</h2>
+<p>Word’s native equation format is <strong>OMML</strong>, Office Math Markup Language. An equation inside a <code>.docx</code> is a tree of <code>m:</code> elements in <code>word/document.xml</code>, in the namespace</p>
+<pre><code>http://schemas.openxmlformats.org/officeDocument/2006/math</code></pre>
+<p>Nothing on a web page produces OMML. That is the problem in one sentence.</p>
+</section>
+<section id="route-1-linear-format-typed-by-hand" class="level2">
+<h2 class="anchored" data-anchor-id="route-1-linear-format-typed-by-hand">Route 1: linear format, typed by hand</h2>
+<p>Word accepts an equation written on one line and then “built up” into two dimensions. It supports two linear formats, and the difference matters: <strong>UnicodeMath</strong>, Microsoft’s own compact notation, and <strong>LaTeX</strong>.</p>
+<p><code>Alt</code> + <code>=</code> opens an equation field; type or paste the linear source; <code>Ctrl</code> + <code>=</code> builds it up. <code>Ctrl</code> + <code>Shift</code> + <code>=</code> goes back.</p>
+<p>Two limits before you rely on it. Microsoft describes LaTeX input as new to Microsoft 365 subscribers, so on a perpetual licence do not assume it is there. And Word’s LaTeX is a dialect: <code>\begin{}</code> and <code>\end{}</code> are unsupported, so environments do not work and you write <code>\matrix{a &amp; b \\ c &amp; d}</code> instead, while <code>\eqarray</code>, <code>\Middle</code>, <code>\ldiv</code> and <code>\dsmash</code> are not supported at all.</p>
+<p>This route works, it needs no tooling, and it does not scale past a few formulas.</p>
+</section>
+<section id="route-2-hand-word-its-own-format-on-the-clipboard" class="level2">
+<h2 class="anchored" data-anchor-id="route-2-hand-word-its-own-format-on-the-clipboard">Route 2: hand Word its own format on the clipboard</h2>
+<p>This is the route that actually scales, and the one people are surprised exists.</p>
+<p>When you paste into Word, Word does not read the plain-text flavour of the clipboard. It reads the <strong><code>text/html</code></strong> flavour — and it reads it as <em>Word’s own HTML</em>, a dialect that has carried Office-specific markup since the days of “Save as Web Page”. Word understands OMML embedded there, and it understands markup addressed to itself that every other application is required to skip.</p>
+<p>That second property is what makes the whole thing work. A single clipboard payload can carry a real OMML equation for Word and readable LaTeX for everything else, and each reader takes its own branch. Paste into Word and you get a native equation; paste the same clipboard into a plain text editor and you get <code>$\frac{RT}{V_m - b}$</code>.</p>
+<p>The practical consequence is that a tool doing this well is not “converting LaTeX to Word”. It is walking the page’s MathML into OMML, wrapping that in a Word-flavoured HTML payload, and writing <code>text/html</code> and <code>text/plain</code> together so the paste degrades sensibly wherever it lands. Getting the conversion right across real-world formulas — matrices, cases, multi-line alignments, over- and under-braces — is where the actual work is.</p>
+</section>
+<section id="route-3-write-the-file" class="level2">
+<h2 class="anchored" data-anchor-id="route-3-write-the-file">Route 3: write the file</h2>
+<p>Skip the clipboard and generate the <code>.docx</code> yourself. A Word file is a zip of XML; the math goes in under the <code>officeDocument/2006/math</code> namespace and the document body under <code>wordprocessingml/2006/main</code>. Most work, most control, and the only route that handles a whole chat transcript at once rather than one formula at a time.</p>
+</section>
+<section id="why-word-on-the-web-is-different" class="level2">
+<h2 class="anchored" data-anchor-id="why-word-on-the-web-is-different">Why Word on the web is different</h2>
+<p>Word in a browser cannot accept a pasted equation from any application, because a browser tab never receives the rich clipboard payload the desktop app does. The conditional-comment trick needs Word itself reading the clipboard, and in the web app there is no Word reading the clipboard.</p>
+<p>The workaround is Route 1, explicitly: <code>Insert</code> → <code>Equation</code>, paste the linear source into the box at the top of the panel, press <code>Space</code>, insert. It works, and it is also where the dialect limits bite hardest, because matrices, cases and multi-line equations are exactly what that box cannot build.</p>
+</section>
+<section id="powerpoint-excel-google" class="level2">
+<h2 class="anchored" data-anchor-id="powerpoint-excel-google">PowerPoint, Excel, Google</h2>
+<p>One line in Microsoft’s documentation explains a great deal of confusion:</p>
+<blockquote class="blockquote">
+<p>All other Office applications support only UnicodeMath.</p>
+</blockquote>
+<p>PowerPoint, Excel and Outlook do not take LaTeX input. A workflow built on pasting LaTeX into Word does not transfer to a slide deck, which is why getting a formula into PowerPoint means OMML or an image.</p>
+<p>Google Docs and Slides have no equation format worth targeting at all. There a high-resolution image is not a compromise, it is the correct answer.</p>
+</section>
+<section id="picking-a-route" class="level2">
+<h2 class="anchored" data-anchor-id="picking-a-route">Picking a route</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Route</th>
+<th>Result</th>
+<th>Where it works</th>
+<th>Main cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Linear, typed</td>
+<td>Native, editable</td>
+<td>Word desktop; LaTeX needs 365</td>
+<td>Manual; dialect gaps</td>
+</tr>
+<tr class="even">
+<td>OMML in HTML clipboard</td>
+<td>Native, editable</td>
+<td>Word, PowerPoint desktop</td>
+<td>Must generate OMML</td>
+</tr>
+<tr class="odd">
+<td>Generated <code>.docx</code></td>
+<td>Native, editable</td>
+<td>Anywhere Word opens</td>
+<td>Most work</td>
+</tr>
+<tr class="even">
+<td>Image</td>
+<td>Not editable</td>
+<td>Everywhere, incl.&nbsp;Google</td>
+<td>Fixed resolution</td>
+</tr>
+</tbody>
+</table>
+<p>There is no single format that is both easy to produce and universally accepted, which is the whole reason this is annoying.</p>
+</section>
+<section id="the-tool" class="level2">
+<h2 class="anchored" data-anchor-id="the-tool">The tool</h2>
+<p>I write thermodynamics, and a post like <a href="../potentials-for-eos/">Thermodynamic Potentials Applied for Equations of State</a> carries over two hundred equations. Rebuilding those by hand in Word for a report was not something I was willing to keep doing, so I built <a href="https://chromewebstore.google.com/detail/dhncopmbldpljhclmnaadlgomflnadlm">TeXbridge</a>, a Chrome and Edge extension that does the above: reads the hidden semantic layer, converts to OMML, and picks a target format based on where the formula is going. If a site renders something it handles badly, there is a <a href="https://khanhbvu.github.io/texbridge/">support page and FAQ</a>.</p>
+<p>The mechanism is worth knowing either way. If you understand that the LaTeX is hiding in an annotation element, and that Word reads <code>text/html</code> with a conditional comment in it, you can get a formula where it needs to go by hand.</p>
+</section>
+<section id="sources" class="level2">
+<h2 class="anchored" data-anchor-id="sources">Sources</h2>
+<p>Linear formats, the <code>Alt</code> + <code>=</code> and <code>Ctrl</code> + <code>=</code> mechanics, the Microsoft 365 note and the unsupported LaTeX keywords come from Microsoft’s <a href="https://support.microsoft.com/en-US/Word/linear-format-equations-using-unicodemath-and-Latex-in-word">Linear format equations using UnicodeMath and LaTeX in Word</a>. The assistive MathML behaviour is described in the <a href="https://docs.mathjax.org/en/v4.1/output/mathml.html">MathJax MathML documentation</a>. Checked 30 October 2026.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>tools</category>
+  <category>latex</category>
+  <category>word</category>
+  <category>texbridge</category>
+  <guid>https://www.thermonerds.com/posts/ai-math-into-word/</guid>
+  <pubDate>Fri, 30 Oct 2026 05:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Thermodynamic Potentials Applied for Equations of State</title>
+  <link>https://www.thermonerds.com/posts/potentials-for-eos/</link>
+  <description><![CDATA[ 
+
+
+
+
+<section id="equation-of-state-of-an-ideal-gas" class="level2">
+<h2 class="anchored" data-anchor-id="equation-of-state-of-an-ideal-gas">Equation of State of an Ideal Gas</h2>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA(T,%20V,%20%5Cbar%7Bn%7D)%20-%20A(T,%20V_R,%20%5Cbar%7Bn%7D)%20=%20%5Cint_%7BV_R%7D%5E%7BV%7D%20%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%7D%7B%5Cpartial%20V%7D%20%5Cright)_%7BT,%20%5Cbar%7Bn%7D%7D%20dV%20=%20-%5Cint_%7BV_R%7D%5E%7BV%7D%20P%20dV%20%5Ctag%7B1%7D%0A"></p>
+<p>In Equation 1, the term <img src="https://latex.codecogs.com/png.latex?V_R"> acts as an arbitrary reference volume, which corresponds to a specific but unknown reference Helmholtz free energy, <img src="https://latex.codecogs.com/png.latex?A_R"> (where <img src="https://latex.codecogs.com/png.latex?A(T,%20V_R,%20%5Cbar%7Bn%7D)%20=%20A_R">). To see how this plays out mathematically, let’s look at the most basic example using the ideal-gas equation of state:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AP%5E%7BIG%7D(T,%20V,%20%5Cbar%7Bn%7D)%20=%20%5Cfrac%7Bn%20R_g%20T%7D%7BV%7D%20%5Ctag%7B2%7D%0A"></p>
+<p>By substituting this into the fundamental volume derivative of the Helmholtz energy and performing the integration, we get:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA%5E%7BIG%7D(T,%20V,%20%5Cbar%7Bn%7D)%20-%20A%5E%7BIG%7D(T,%20V_R,%20%5Cbar%7Bn%7D)%20=%20-%5Cint_%7BV_R%7D%5E%7BV%7D%20P%5E%7BIG%7D%20dV%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A=%20-%5Cint_%7BV_R%7D%5E%7BV%7D%20%5Cfrac%7Bn%20R%20T%7D%7BV%7D%20dV%20=%20-n%20R_g%20T%20%5Cln%5Cleft(%5Cfrac%7BV%7D%7BV_R%7D%5Cright)%20%5Ctag%7B3%7D%0A"></p>
+<p>While Equation 3 allows us to calculate changes in Helmholtz free energy, it only provides the difference between states—we still do not know the absolute values of <img src="https://latex.codecogs.com/png.latex?A"> or <img src="https://latex.codecogs.com/png.latex?A_R">. If we differentiate Equation 3 with respect to temperature and apply the canonical entropy relationship, we arrive at a familiar expression for entropy:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AS%5E%7BIG%7D(T,%20V,%20%5Cbar%7Bn%7D)%20-%20S%5E%7BIG%7D(T,%20V_R,%20%5Cbar%7Bn%7D)%20=%20n%20R_g%20%5Cln%5Cleft(%5Cfrac%7BV%7D%7BV_R%7D%5Cright)%20%5Ctag%7B4%7D%0A"></p>
+<p>Notice that in Equation 4, the temperature remains constant between the state of interest and the reference state.</p>
+<p>If we were to differentiate Equation 3 with respect to volume instead, we would simply get the ideal gas law (<img src="https://latex.codecogs.com/png.latex?P%20=%20n%20R_g%20T%20/%20V">). However, differentiating with respect to the number of moles yields the change in chemical potential:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_i%5E%7BIG%7D(T,%20V,%20%5Cbar%7Bn%7D)%20-%20%5Cmu_i%5E%7BIG%7D(T,%20V_R,%20%5Cbar%7Bn%7D)%20=%20-R_g%20T%20%5Cln%5Cleft(%5Cfrac%7BV%7D%7BV_R%7D%5Cright)%20%5Ctag%7B5%7D%0A"></p>
+<p>These relationships highlight a major limitation: an equation of state (EOS) is not very helpful for calculating absolute thermodynamic properties. For instance, Equation 4 doesn’t give us the actual overarching formula for entropy; it only shows how entropy differences relate to changes in volume and composition. The same limitation applies to Equation 5 regarding chemical potential.</p>
+<p>For now, we can set this limitation aside. Moving forward, we will apply this exact same mathematical framework to much more powerful equations of state. To make those models work, we will introduce the concept of a residual property—which is simply the mathematical difference between a property calculated from our advanced real-gas model and that same property calculated for an ideal gas.</p>
+</section>
+<section id="soaveredlichkwong-equation-of-state" class="level2">
+<h2 class="anchored" data-anchor-id="soaveredlichkwong-equation-of-state">Soave–Redlich–Kwong Equation of State</h2>
+<p>Now, let’s apply the integration specified in Equation 3 to a more advanced model: the Soave-Redlich-Kwong equation of state (SRK EOS).</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AP%20=%20%5Cfrac%7Bn%20R_g%20T%7D%7BV%20-%20nb%7D%20-%20%5Cfrac%7Bn%5E2%20a%7D%7BV(V%20+%20nb)%7D%20%5Ctag%7B6%7D%0A"></p>
+<p>In this expression, the parameters <img src="https://latex.codecogs.com/png.latex?a"> and <img src="https://latex.codecogs.com/png.latex?b"> are typically dependent on both temperature and composition. Notice that we have structured the SRK EOS here as a function of <img src="https://latex.codecogs.com/png.latex?T">, <img src="https://latex.codecogs.com/png.latex?V">, and the total number of moles (<img src="https://latex.codecogs.com/png.latex?%5Cbar%7Bn%7D">), rather than using mole fractions. We have also kept the unit choices generalized, consistent with our earlier discussions.</p>
+<p>Finally, because it will be necessary for future calculations, we can determine the absolute minimum possible volume for the SRK EOS simply by inspecting the denominator of the first term:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AV_%7Bmin%7D%5E%7BSRK%7D%20=%20nb%20%5Ctag%7B7%7D%0A"></p>
+<p>Before we dive into the integration, it helps to algebraically rewrite the SRK EOS into a form that is easier to integrate:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AP%20=%20%5Cfrac%7Bn%20R_g%20T%7D%7B(V%20-%20nb)%7D%20-%20%5Cfrac%7Bn%5E2%20a%7D%7Bnb%7D%20%5Cleft(%20%5Cfrac%7B1%7D%7BV%7D%20-%20%5Cfrac%7B1%7D%7BV%20+%20nb%7D%20%5Cright)%20%5Ctag%7B8%7D%0A"></p>
+<p>Applying the integration from Equation 3 to this new form yields:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA(T,%20V,%20%5Cbar%7Bn%7D)%20-%20A(T,%20V_R,%20%5Cbar%7Bn%7D)%20=%20%5Cleft%5B%20-n%20R_g%20T%20%5Cln(V%20-%20nb)%20+%20%5Cfrac%7Bn%5E2%20a%7D%7Bnb%7D%20%5Cln%20%5Cfrac%7BV%20+%20nb%7D%7BV%7D%20%5Cright%5D_%7BV_R%7D%5E%7BV%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A=%20-n%20R_g%20T%20%5Cln%20%5Cfrac%7B(V%20-%20nb)%7D%7B(V_R%20-%20nb)%7D%20+%20%5Cfrac%7Bn%5E2%20a%7D%7Bnb%7D%20%5Cln%20%5Cfrac%7B(V%20+%20nb)V_R%7D%7BV(V_R%20+%20nb)%7D%20%5Ctag%7B9%7D%0A"></p>
+<p>At this point, we could try to push forward, but we run into the exact same roadblock we saw with Equation 3: we still don’t know the absolute value of <img src="https://latex.codecogs.com/png.latex?A(T,%20V_R,%20%5Cbar%7Bn%7D)"> for an SRK fluid at an arbitrary reference volume.</p>
+<p>However, we can bypass this issue by comparing our SRK fluid calculations directly to those of an ideal gas. If we subtract the ideal gas result (Equation 3) from our SRK result (Equation 9), we get:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA(T,%20V,%20%5Cbar%7Bn%7D)%20-%20A(T,%20V_R,%20%5Cbar%7Bn%7D)%20-%20A%5E%7BIG%7D(T,%20V,%20%5Cbar%7Bn%7D)%20+%20A%5E%7BIG%7D(T,%20V_R,%20%5Cbar%7Bn%7D)%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A=%20-n%20R_g%20T%20%5Cln%20%5Cfrac%7B(V%20-%20nb)V_R%7D%7B(V_R%20-%20nb)V%7D%20+%20%5Cfrac%7Bn%5E2%20a%7D%7Bnb%7D%20%5Cln%20%5Cfrac%7B(V%20+%20nb)V_R%7D%7BV(V_R%20+%20nb)%7D%20%5Ctag%7B10%7D%0A"></p>
+<p>At first glance, it might look like we just mashed two underdefined equations together. But remember two crucial facts: first, the conditions <img src="https://latex.codecogs.com/png.latex?(T,%20V,%20V_R,%20%5Cbar%7Bn%7D)"> apply equally to both the SRK fluid and the Ideal Gas. Second, we have complete freedom to choose our reference volume, <img src="https://latex.codecogs.com/png.latex?V_R">, however is most convenient.</p>
+<p>If we define <img src="https://latex.codecogs.com/png.latex?V_R"> to approach infinity (<img src="https://latex.codecogs.com/png.latex?V_R%20%5Cto%20%5Cinfty">), we are simulating an infinitely expanded gas. Because any valid, useful equation of state must trend toward ideal gas behavior at infinite volume, we can safely conclude that as <img src="https://latex.codecogs.com/png.latex?V_R%20%5Cto%20%5Cinfty">, the real fluid properties converge with the ideal gas properties (<img src="https://latex.codecogs.com/png.latex?A(T,%20V_R,%20%5Cbar%7Bn%7D)%20%5Cto%20A%5E%7BIG%7D(T,%20V_R,%20%5Cbar%7Bn%7D)">). Additionally, under this mathematical limit, terms like <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7BV_R%7D%7BV_R%20%5Cpm%20nb%7D"> simply approach 1.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>As <img src="https://latex.codecogs.com/png.latex?V_R%20%5Cto%20%5Cinfty">, the <img src="https://latex.codecogs.com/png.latex?nb"> term becomes negligible compared to the infinitely expanding volume, causing the fraction to approach unity:</p>
+</div>
+</div>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Clim_%7BV_R%20%5Cto%20%5Cinfty%7D%20%5Cfrac%7BV_R%7D%7BV_R%20%5Cpm%20nb%7D%20=%201%20%5Ctag%7B11%7D%0A"></p>
+<p>Alternatively, expressed as a simple directional trend:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7BV_R%7D%7BV_R%20%5Cpm%20nb%7D%20%5Cto%201%20%5Ctag%7B12%7D%0A"></p>
+<p>By applying this infinite-volume reference state, Equation 10 beautifully simplifies to:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA(T,%20V,%20%5Cbar%7Bn%7D)%20-%20A%5E%7BIG%7D(T,%20V,%20%5Cbar%7Bn%7D)%20=%20-n%20R_g%20T%20%5Cln%20%5Cleft%5B%20%5Cfrac%7BV%20-%20nb%7D%7BV%7D%20%5Cright%5D%20+%20%5Cfrac%7Bn%5E2%20a%7D%7Bnb%7D%20%5Cln%20%5Cleft%5B%20%5Cfrac%7BV%20+%20nb%7D%7BV%7D%20%5Cright%5D%20%5Ctag%7B13%7D%0A"></p>
+<p>The left-hand side of Equation 13 provides us with the formal definition of the Residual Helmholtz Free Energy:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA%5E%7BRes%7D%20%5Cequiv%20A(T,%20V,%20%5Cbar%7Bn%7D)%20-%20A%5E%7BIG%7D(T,%20V,%20%5Cbar%7Bn%7D)%20%5Ctag%7B14%7D%0A"></p>
+<p>It is crucial to understand the conceptual leap that led us to Equation 13, particularly how specific terms algebraically cancel out as our reference volume approaches infinity (<img src="https://latex.codecogs.com/png.latex?V_R%20%5Cto%20%5Cinfty">). Furthermore, the core definition of any Residual Property strictly requires that both the real fluid and the Ideal Gas (IG) reference state share the exact same temperature (<img src="https://latex.codecogs.com/png.latex?T">), volume (<img src="https://latex.codecogs.com/png.latex?V">), and composition (<img src="https://latex.codecogs.com/png.latex?%5Cbar%7Bn%7D">). By substituting residual properties into our earlier definitions, we obtain the following relationships:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%5E%7BRes%7D%7D%7B%5Cpartial%20T%7D%20%5Cright)_%7BV,%20%5Cbar%7Bn%7D%7D%20=%20-S%5E%7BRes%7D%20=%20-S(T,%20V,%20%5Cbar%7Bn%7D)%20+%20S%5E%7BIG%7D(T,%20V,%20%5Cbar%7Bn%7D)%20%5Ctag%7B15%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%5E%7BRes%7D%7D%7B%5Cpartial%20V%7D%20%5Cright)_%7BT,%20%5Cbar%7Bn%7D%7D%20=%20-P%5E%7BRes%7D%20=%20-P(T,%20V,%20%5Cbar%7Bn%7D)%20+%20%5Cfrac%7Bn%20R_g%20T%7D%7BV%7D%20%5Ctag%7B16%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%5E%7BRes%7D%7D%7B%5Cpartial%20n_i%7D%20%5Cright)_%7BT,%20V,%20n_%7Bk%20%5Cneq%20i%7D%7D%20=%20%5Cmu_i%5E%7BRes%7D%20=%20%5Cmu_i(T,%20V,%20%5Cbar%7Bn%7D)%20-%20%5Cmu_i%5E%7BIG%7D(T,%20V,%20%5Cbar%7Bn%7D)%20%5Ctag%7B17%7D%0A"></p>
+<p>However, Equations 15 through 17 do not magically solve all our problems. While we can differentiate Equation 13 with respect to <img src="https://latex.codecogs.com/png.latex?T">, <img src="https://latex.codecogs.com/png.latex?V">, or <img src="https://latex.codecogs.com/png.latex?%5Cbar%7Bn%7D"> to generate residual properties, we still cannot determine the absolute property of the SRK fluid without knowing the corresponding property of the ideal gas.</p>
+<p>Fortunately, we do know the pressure for both the ideal gas and the SRK fluid, which allows us to completely solve for the volume derivative, <img src="https://latex.codecogs.com/png.latex?%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%5E%7BRes%7D%7D%7B%5Cpartial%20V%7D%20%5Cright)_%7BT,%20%5Cbar%7Bn%7D%7D">.</p>
+<p>Regarding composition (<img src="https://latex.codecogs.com/png.latex?%5Cbar%7Bn%7D">), we will see in the next section that if we can successfully formulate the ideal gas chemical potential (<img src="https://latex.codecogs.com/png.latex?%5Cmu_i%5E%7BIG%7D">), we can then derive a highly useful expression for the chemical potential (<img src="https://latex.codecogs.com/png.latex?%5Cmu_i">) of the SRK fluid (and other equations of state).</p>
+<p>Finally, when it comes to temperature (<img src="https://latex.codecogs.com/png.latex?T">), we will discover that for a massive category of thermodynamic calculations, we actually do not need to know the absolute ideal gas entropy. In practice, those terms frequently end up canceling out algebraically when we assemble the final equations.</p>
+</section>
+<section id="the-chemical-potential-of-an-ideal-gas" class="level2">
+<h2 class="anchored" data-anchor-id="the-chemical-potential-of-an-ideal-gas">The Chemical Potential of an Ideal Gas</h2>
+<p>Let’s start from the canonical derivative relation for the ideal gas Helmholtz free energy (Equation 18):</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%5E%7BIG%7D%7D%7B%5Cpartial%20V%7D%20%5Cright)_%7BT,%20%5Cbar%7Bn%7D%7D%20=%20-P%5E%7BIG%7D%20%5Ctag%7B18%7D%0A"></p>
+<p>Substituting the ideal gas law, <img src="https://latex.codecogs.com/png.latex?P%5E%7BIG%7D%20=%20%5Cfrac%7Bn%20R_g%20T%7D%7BV%7D"> (Equation 2), yields:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%5E%7BIG%7D%7D%7B%5Cpartial%20V%7D%20%5Cright)_%7BT,%20%5Cbar%7Bn%7D%7D%20=%20-%5Cfrac%7Bn%20R_g%20T%7D%7BV%7D%20%5Ctag%7B19%7D%0A"></p>
+<p>Integrating this expression with respect to volume (<img src="https://latex.codecogs.com/png.latex?V">), while keeping temperature (<img src="https://latex.codecogs.com/png.latex?T">) and the composition vector (<img src="https://latex.codecogs.com/png.latex?%5Cbar%7Bn%7D">) constant, gives us:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA%5E%7BIG%7D%20=%20%5Cint%20%5Cleft(%20-%5Cfrac%7Bn%20R_g%20T%7D%7BV%7D%20%5Cright)%20dV%20=%20-n%20R_g%20T%20%5Cln(V)%20+%20C%20%5Ctag%7B20%7D%0A"></p>
+<p>In multivariable calculus, the “constant of integration” (<img src="https://latex.codecogs.com/png.latex?C">) is not simply a static number; it can depend on any variables that were deliberately held constant during the partial integration. Because <img src="https://latex.codecogs.com/png.latex?T"> and <img src="https://latex.codecogs.com/png.latex?%5Cbar%7Bn%7D"> were treated as constants, <img src="https://latex.codecogs.com/png.latex?C"> is actually an arbitrary function, <img src="https://latex.codecogs.com/png.latex?F(T,%20%5Cbar%7Bn%7D)">. This leaves us with:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA%5E%7BIG%7D%20=%20-n%20R_g%20T%20%5Cln(V)%20+%20F(T,%20%5Cbar%7Bn%7D)%20%5Ctag%7B21%7D%0A"></p>
+</section>
+<section id="derivation-of-equation-30" class="level2">
+<h2 class="anchored" data-anchor-id="derivation-of-equation-30">Derivation of Equation 30</h2>
+<p>Equation 30 resolves the structure of this unknown integration function <img src="https://latex.codecogs.com/png.latex?F(T,%20%5Cbar%7Bn%7D)"> by leveraging Euler’s theorem for homogeneous functions alongside the Legendre transform.</p>
+<section id="first-line-of-equation-30-euler-expansion-of-helmholtz-energy" class="level3">
+<h3 class="anchored" data-anchor-id="first-line-of-equation-30-euler-expansion-of-helmholtz-energy">1. First Line of Equation 30: Euler Expansion of Helmholtz Energy</h3>
+<p>From classical thermodynamics, we know the fundamental potentials are related by:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA%20%5Cequiv%20U%20-%20TS%20=%20(H%20-%20PV)%20-%20TS%20=%20(H%20-%20TS)%20-%20PV%20=%20G%20-%20PV%20%5Ctag%7B22%7D%0A"></p>
+<p>Applying Euler’s theorem for first-order extensive thermodynamic potentials tells us that the total Gibbs free energy is simply the sum of molar chemical potentials weighted by their respective mole numbers:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AG%20=%20%5Csum_r%20%5Cmu_r%20n_r%20%5Ctag%7B23%7D%0A"></p>
+<p>By substituting this definition of <img src="https://latex.codecogs.com/png.latex?G"> back into our relation <img src="https://latex.codecogs.com/png.latex?A%20=%20G%20-%20PV"> specifically for an ideal gas mixture, we arrive at the first line of Equation 30:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA%5E%7BIG%7D%20=%20-(PV)%5E%7BIG%7D%20+%20%5Csum_r%20%5Cmu_r%5E%7BIG%7D%20n_r%20%5Ctag%7B24%7D%0A"></p>
+</section>
+<section id="second-line-of-equation-30-matching-the-volume-and-composition-dependencies" class="level3">
+<h3 class="anchored" data-anchor-id="second-line-of-equation-30-matching-the-volume-and-composition-dependencies">2. Second Line of Equation 30: Matching the Volume and Composition Dependencies</h3>
+<p>Applying the ideal gas equation of state, we know that <img src="https://latex.codecogs.com/png.latex?(PV)%5E%7BIG%7D%20=%20n%20R_g%20T">. Substituting this into our previous expression yields:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA%5E%7BIG%7D%20=%20-n%20R_g%20T%20+%20%5Csum_r%20%5Cmu_r%5E%7BIG%7D%20n_r%20%5Ctag%7B25%7D%0A"></p>
+<p>Recalling Equation 17, the chemical potential is defined as the partial derivative of the Helmholtz free energy with respect to the mole number:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_r%5E%7BIG%7D%20=%20%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%5E%7BIG%7D%7D%7B%5Cpartial%20n_r%7D%20%5Cright)_%7BT,%20V,%20n_%7Bk%20%5Cneq%20r%7D%7D%20%5Ctag%7B26%7D%0A"></p>
+<p>Now, if we differentiate Equation 21 with respect to <img src="https://latex.codecogs.com/png.latex?n_r">—keeping in mind that the total moles <img src="https://latex.codecogs.com/png.latex?n%20=%20%5Csum_j%20n_j">, meaning <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20n%7D%7B%5Cpartial%20n_r%7D%20=%201">—we get:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_r%5E%7BIG%7D%20=%20-R_g%20T%20%5Cln(V)%20+%20%5Cleft(%20%5Cfrac%7B%5Cpartial%20F(T,%20%5Cbar%7Bn%7D)%7D%7B%5Cpartial%20n_r%7D%20%5Cright)_%7BT,%20n_%7Bk%20%5Cneq%20r%7D%7D%20%5Ctag%7B27%7D%0A"></p>
+<p>To simplify this, we can define a dimensionless component function, <img src="https://latex.codecogs.com/png.latex?f_r(T,%20%5Cbar%7Bn%7D)">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Af_r(T,%20%5Cbar%7Bn%7D)%20%5Cequiv%20%5Cfrac%7B1%7D%7BR_g%20T%7D%20%5Cleft(%20%5Cfrac%7B%5Cpartial%20F%7D%7B%5Cpartial%20n_r%7D%20%5Cright)_%7BT,%20n_%7Bk%20%5Cneq%20r%7D%7D%20%5Ctag%7B28%7D%0A"></p>
+<p>This allows us to rewrite the chemical potential cleanly as:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_r%5E%7BIG%7D%20=%20R_g%20T%20%5Cleft%5B%20-%5Cln(V)%20+%20f_r(T,%20%5Cbar%7Bn%7D)%20%5Cright%5D%20%5Ctag%7B29%7D%0A"></p>
+<p>Finally, substituting this chemical potential back into our earlier expression (<img src="https://latex.codecogs.com/png.latex?A%5E%7BIG%7D%20=%20-(PV)%5E%7BIG%7D%20+%20%5Csum_r%20%5Cmu_r%5E%7BIG%7D%20n_r">) brings us to the complete Equation 30:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA%5E%7BIG%7D%20=%20-n%20R_g%20T%20+%20R_g%20T%20%5Csum_r%20%5Cleft%5B%20-%5Cln(V)%20+%20f_r(T,%20%5Cbar%7Bn%7D)%20%5Cright%5D%20n_r%20%5Ctag%7B30%7D%0A"></p>
+</section>
+<section id="the-extensivity-requirement-1st-order-homogeneity" class="level3">
+<h3 class="anchored" data-anchor-id="the-extensivity-requirement-1st-order-homogeneity">1. The Extensivity Requirement (1st Order Homogeneity)</h3>
+<p>Helmholtz free energy (<img src="https://latex.codecogs.com/png.latex?A">) is fundamentally an extensive property. This means that if we scale the entire size of our system by some factor <img src="https://latex.codecogs.com/png.latex?%5Clambda%20%3E%200"> while holding the temperature (<img src="https://latex.codecogs.com/png.latex?T">) constant, both the total volume (<img src="https://latex.codecogs.com/png.latex?V">) and the individual mole numbers (<img src="https://latex.codecogs.com/png.latex?n_r">) will scale by that exact same factor <img src="https://latex.codecogs.com/png.latex?%5Clambda">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AV%20%5Cto%20%5Clambda%20V,%20%5Cquad%20n_r%20%5Cto%20%5Clambda%20n_r%0A"></p>
+<p>For the ideal gas Helmholtz energy (<img src="https://latex.codecogs.com/png.latex?A%5E%7BIG%7D">) to scale proportionally alongside the system (<img src="https://latex.codecogs.com/png.latex?A%5E%7BIG%7D%20%5Cto%20%5Clambda%20A%5E%7BIG%7D">), it must mathematically behave as a function that is homogeneous of degree 1 with respect to volume and composition <img src="https://latex.codecogs.com/png.latex?(V,%20%5Cbar%7Bn%7D)">.</p>
+<p>Let’s look back at our newly derived Equation 30 to see how this applies:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA%5E%7BIG%7D%20=%20-n%20R_g%20T%20+%20R_g%20T%20%5Csum_r%20%5Cleft%5B%20-%5Cln(V)%20+%20f_r(T,%20%5Cbar%7Bn%7D)%20%5Cright%5D%20n_r%0A"></p>
+<p>The leading term, <img src="https://latex.codecogs.com/png.latex?-n%20R_g%20T">, is naturally first-order homogeneous because the total moles scale directly with <img src="https://latex.codecogs.com/png.latex?%5Clambda"> (where <img src="https://latex.codecogs.com/png.latex?n%20=%20%5Csum%20n_r">, meaning <img src="https://latex.codecogs.com/png.latex?n%20%5Cto%20%5Clambda%20n">).</p>
+<p>Inside the summation, the trailing factor <img src="https://latex.codecogs.com/png.latex?n_r"> also scales perfectly as <img src="https://latex.codecogs.com/png.latex?%5Clambda%5E1">.</p>
+<p>Because the <img src="https://latex.codecogs.com/png.latex?n_r"> outside the brackets already satisfies the scaling requirement, the entire bracketed quantity, <img src="https://latex.codecogs.com/png.latex?%5Cleft%5B%20-%5Cln(V)%20+%20f_r(T,%20%5Cbar%7Bn%7D)%20%5Cright%5D">, must be homogeneous of degree 0. In other words, it must act as an intensive quantity that remains completely unchanged when the system is scaled by <img src="https://latex.codecogs.com/png.latex?%5Clambda">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A-%5Cln(%5Clambda%20V)%20+%20f_r(T,%20%5Clambda%20%5Cbar%7Bn%7D)%20=%20-%5Cln(V)%20+%20f_r(T,%20%5Cbar%7Bn%7D)%20%5Ctag%7B31%7D%0A"></p>
+<p>By expanding the logarithm on the left side of that relationship, we can isolate the function <img src="https://latex.codecogs.com/png.latex?f_r"> to understand exactly how it must behave:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A-%5Cln(%5Clambda)%20-%20%5Cln(V)%20+%20f_r(T,%20%5Clambda%20%5Cbar%7Bn%7D)%20=%20-%5Cln(V)%20+%20f_r(T,%20%5Cbar%7Bn%7D)%20%5Ctag%7B32%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Af_r(T,%20%5Clambda%20%5Cbar%7Bn%7D)%20-%20f_r(T,%20%5Cbar%7Bn%7D)%20=%20%5Cln(%5Clambda)%20%5Ctag%7B33%7D%0A"></p>
+</section>
+<section id="derivation-of-equation-37-via-eulers-theorem" class="level3">
+<h3 class="anchored" data-anchor-id="derivation-of-equation-37-via-eulers-theorem">2. Derivation of Equation 37 via Euler’s Theorem</h3>
+<p>Euler’s homogeneous function theorem states that for any function <img src="https://latex.codecogs.com/png.latex?g(x_1,%20x_2,%20%5Cdots,%20x_m)"> that is homogeneous of degree <img src="https://latex.codecogs.com/png.latex?k">, the following relationship holds true:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Csum_j%20x_j%20%5Cfrac%7B%5Cpartial%20g%7D%7B%5Cpartial%20x_j%7D%20=%20k%20%5Ccdot%20g%20%5Ctag%7B34%7D%0A"></p>
+<p>We can apply this theorem directly to our bracketed function, <img src="https://latex.codecogs.com/png.latex?g(V,%20%5Cbar%7Bn%7D)%20=%20-%5Cln(V)%20+%20f_i(T,%20%5Cbar%7Bn%7D)">, which we just established is homogeneous of degree zero (<img src="https://latex.codecogs.com/png.latex?k%20=%200">):</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AV%20%5Cfrac%7B%5Cpartial%20%5Cleft%5B%20-%5Cln(V)%20+%20f_i%20%5Cright%5D%7D%7B%5Cpartial%20V%7D%20+%20%5Csum_r%20n_r%20%5Cfrac%7B%5Cpartial%20%5Cleft%5B%20-%5Cln(V)%20+%20f_i%20%5Cright%5D%7D%7B%5Cpartial%20n_r%7D%20=%200%20%5Ccdot%20%5Cleft%5B%20-%5Cln(V)%20+%20f_i%20%5Cright%5D%20=%200%20%5Ctag%7B35%7D%0A"></p>
+<p>Next, let’s quickly evaluate those two partial derivatives individually:</p>
+<ol type="1">
+<li>With respect to volume: <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cleft%5B%20-%5Cln(V)%20+%20f_i%20%5Cright%5D%7D%7B%5Cpartial%20V%7D%20=%20-%5Cfrac%7B1%7D%7BV%7D"></li>
+<li>With respect to mole numbers: <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cleft%5B%20-%5Cln(V)%20+%20f_i%20%5Cright%5D%7D%7B%5Cpartial%20n_r%7D%20=%20%5Cfrac%7B%5Cpartial%20f_i%7D%7B%5Cpartial%20n_r%7D"></li>
+</ol>
+<p>Substituting these evaluated derivatives back into our Euler relation gives us the first line of Equation 37:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A-%5Cfrac%7B1%7D%7BV%7D%20V%20+%20%5Csum_r%20%5Cfrac%7B%5Cpartial%20f_i%7D%7B%5Cpartial%20n_r%7D%20n_r%20=%200%20%5Ctag%7B36%7D%0A"></p>
+<p>Finally, by simplifying the first term (<img src="https://latex.codecogs.com/png.latex?-%5Cfrac%7B1%7D%7BV%7D%20V%20=%20-1">) and moving that negative one to the right-hand side of the equation, we arrive perfectly at Equation 37:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Csum_r%20%5Cfrac%7B%5Cpartial%20f_i%7D%7B%5Cpartial%20n_r%7D%20n_r%20=%201%20%5Ctag%7B37%7D%0A"></p>
+</section>
+<section id="understanding-the-behavior-of-f_i" class="level3">
+<h3 class="anchored" data-anchor-id="understanding-the-behavior-of-f_i">1. Understanding the Behavior of <img src="https://latex.codecogs.com/png.latex?f_i"></h3>
+<p>Equation 37 reveals a couple of fascinating mathematical quirks about our component function, <img src="https://latex.codecogs.com/png.latex?f_i">:</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?f_i"> is not homogeneous in <img src="https://latex.codecogs.com/png.latex?%5Cbar%7Bn%7D">: Because the right-hand side of Equation 37 equals 1 rather than <img src="https://latex.codecogs.com/png.latex?k%20%5Ccdot%20f_i">, the function itself does not follow standard homogeneity rules.</li>
+<li><strong>Universal sum to 1</strong> For that sum to reliably equal 1 regardless of the mixture’s actual composition, the partial derivative must perfectly isolate the specific component’s mole number. This means:</li>
+</ul>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20f_i%7D%7B%5Cpartial%20n_i%7D%20=%20%5Cfrac%7B1%7D%7Bn_i%7D%20%5Cquad%20%5Ctext%7Band%7D%20%5Cquad%20%5Cfrac%7B%5Cpartial%20f_i%7D%7B%5Cpartial%20n_r%7D%20=%200%20%5Cquad%20(r%20%5Cneq%20i)%20%5Ctag%7B38%7D%0A"></p>
+<p>If we take that relationship and directly integrate <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B1%7D%7Bn_i%7D%20dn_i">, we arrive at Equation 39:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Af_i%20=%20%5Cln(n_i)%20+%20k_i(T)%20%5Ctag%7B39%7D%0A"></p>
+<p>In this expression, <img src="https://latex.codecogs.com/png.latex?k_i(T)"> serves as an integration constant that is exclusively dependent on the temperature, <img src="https://latex.codecogs.com/png.latex?T">.</p>
+</section>
+<section id="the-resulting-chemical-potential-equation-40" class="level3">
+<h3 class="anchored" data-anchor-id="the-resulting-chemical-potential-equation-40">2. The Resulting Chemical Potential (Equation 40)</h3>
+<p>We are finally ready to put the pieces together. By substituting our newly derived <img src="https://latex.codecogs.com/png.latex?f_i%20=%20%5Cln(n_i)%20+%20k_i"> back into the ideal gas chemical potential expression we built earlier (<img src="https://latex.codecogs.com/png.latex?%5Cmu_i%5E%7BIG%7D%20=%20R_g%20T%20%5Cleft%5B%20-%5Cln(V)%20+%20f_i%20%5Cright%5D">), we get Equation 40:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_i%5E%7BIG%7D%20=%20-R_g%20T%20%5Cln(V)%20+%20R_g%20T%20%5Cln(n_i)%20+%20R_g%20T%20k_i%20%5Ctag%7B40%7D%0A"></p>
+<p>By algebraically grouping the volume and mole terms together, the underlying physics finally become visible. This arrangement reveals a direct, tangible connection to the molar concentration (<img src="https://latex.codecogs.com/png.latex?c_i%20=%20n_i%20/%20V">) or the partial pressure (<img src="https://latex.codecogs.com/png.latex?P_i%20=%20y_i%20P">):</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_i%5E%7BIG%7D%20=%20R_g%20T%20%5Cln%5Cleft(%5Cfrac%7Bn_i%7D%7BV%7D%5Cright)%20+%20R_g%20T%20k_i(T)%20%5Ctag%7B41%7D%0A"></p>
+</section>
+</section>
+<section id="determination-of-k_i" class="level2">
+<h2 class="anchored" data-anchor-id="determination-of-k_i">Determination of <img src="https://latex.codecogs.com/png.latex?k_i"></h2>
+<section id="matching-mu_iig-to-the-pure-component-limit" class="level3">
+<h3 class="anchored" data-anchor-id="matching-mu_iig-to-the-pure-component-limit">1. Matching <img src="https://latex.codecogs.com/png.latex?%5Cmu_i%5E%7BIG%7D"> to the Pure Component Limit</h3>
+<p>In Equation 40, the ideal gas chemical potential is given by:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_i%5E%7BIG%7D%20=%20-R_g%20T%20%5Cln(V)%20+%20R_g%20T%20%5Cln(n_i)%20+%20R_g%20T%20k_i%20=%20R_g%20T%20%5Cln%5Cleft(%5Cfrac%7Bn_i%7D%7BV%7D%5Cright)%20+%20R_g%20T%20k_i%20%5Ctag%7B42%7D%0A"></p>
+<p>For a pure substance (<img src="https://latex.codecogs.com/png.latex?n_i%20=%20n">), the chemical potential is identical to the molar Gibbs free energy:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_i%5E%7BIG%7D%20=%20g_i%5E%7BIG%7D%20%5Ctag%7B43%7D%0A"></p>
+<p>Using the ideal gas relation (<img src="https://latex.codecogs.com/png.latex?V%20=%20%5Cfrac%7Bn%20R_g%20T%7D%7BP%7D">), the molar concentration becomes <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7Bn_i%7D%7BV%7D%20=%20%5Cfrac%7BP%7D%7BR_g%20T%7D">. Substituting this into Equation 42 gives us an expression for the pure ideal gas:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ag_i%5E%7BIG%7D(T,%20P)%20=%20R_g%20T%20%5Cln%5Cleft(%5Cfrac%7BP%7D%7BR_g%20T%7D%5Cright)%20+%20R_g%20T%20k_i%20=%20R_g%20T%20%5Cln(P)%20-%20R_g%20T%20%5Cln(R_g%20T)%20+%20R_g%20T%20k_i%20%5Ctag%7B44%7D%0A"></p>
+</section>
+<section id="physical-origin-of-g_icirct-and-equation-48" class="level3">
+<h3 class="anchored" data-anchor-id="physical-origin-of-g_icirct-and-equation-48">2. Physical Origin of <img src="https://latex.codecogs.com/png.latex?g_i%5E%5Ccirc(T)"> and Equation 48</h3>
+<p>To assign an actual numerical value to <img src="https://latex.codecogs.com/png.latex?g_i%5E%7BIG%7D(T,%20P)">, thermodynamics anchors the property to standard formation data:</p>
+<p><strong>Reference State.</strong> Data for standard Gibbs energy of formation (<img src="https://latex.codecogs.com/png.latex?%5CDelta%20g_%7Bf,%20i%7D%5E%5Ccirc">) or standard enthalpy of formation (<img src="https://latex.codecogs.com/png.latex?%5CDelta%20h_%7Bf,%20i%7D%5E%5Ccirc">) and absolute entropy (<img src="https://latex.codecogs.com/png.latex?s_i%5E%5Ccirc">) are tabulated at <img src="https://latex.codecogs.com/png.latex?T_0%20=%20298.15%5Ctext%7B%20K%7D"> and <img src="https://latex.codecogs.com/png.latex?P_0%20=%201%5Ctext%7B%20bar%7D">.</p>
+<p><strong>Temperature Integration.</strong> Using pure-component ideal-gas heat capacity polynomials (<img src="https://latex.codecogs.com/png.latex?C_%7Bp,%20i%7D%5E0(T)">), the enthalpy and entropy are integrated from <img src="https://latex.codecogs.com/png.latex?T_0"> to the system temperature <img src="https://latex.codecogs.com/png.latex?T">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ah_i%5E%5Ccirc(T)%20=%20%5CDelta%20h_%7Bf,%20i%7D%5E%5Ccirc(T_0)%20+%20%5Cint_%7BT_0%7D%5ET%20C_%7Bp,%20i%7D%5E0(T')%20%5C,%20dT'%20%5Ctag%7B45%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0As_i%5E%5Ccirc(T)%20=%20s_i%5E%5Ccirc(T_0,%20P_0)%20+%20%5Cint_%7BT_0%7D%5ET%20%5Cfrac%7BC_%7Bp,%20i%7D%5E0(T')%7D%7BT'%7D%20%5C,%20dT'%20%5Ctag%7B46%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ag_i%5E%5Ccirc(T)%20%5Cequiv%20h_i%5E%5Ccirc(T)%20-%20T%20s_i%5E%5Ccirc(T)%20=%20g_i(T,%20P_0)%20%5Ctag%7B47%7D%0A"></p>
+<p><strong>Pressure Isotherm (Equation 48).</strong> At a constant temperature, the change in Gibbs free energy with respect to pressure is given by <img src="https://latex.codecogs.com/png.latex?dg_i%20=%20v%20%5C,%20dP%20=%20%5Cfrac%7BR_g%20T%7D%7BP%7D%20%5C,%20dP">. Integrating this from the standard pressure <img src="https://latex.codecogs.com/png.latex?P_0"> to the system pressure <img src="https://latex.codecogs.com/png.latex?P"> gives:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ag_i%5E%7BIG%7D(T,%20P)%20=%20g_i(T,%20P_0)%20+%20R_g%20T%20%5Cln%5Cleft(%5Cfrac%7BP%7D%7BP_0%7D%5Cright)%20=%20g_i%5E%5Ccirc(T)%20+%20R_g%20T%20%5Cln(P)%20-%20R_g%20T%20%5Cln(P_0)%20%5Ctag%7B48%7D%0A"></p>
+</section>
+<section id="solving-explicitly-for-k_it" class="level3">
+<h3 class="anchored" data-anchor-id="solving-explicitly-for-k_it">3. Solving Explicitly for <img src="https://latex.codecogs.com/png.latex?k_i(T)"></h3>
+<p>We now have two different expressions for <img src="https://latex.codecogs.com/png.latex?g_i%5E%7BIG%7D(T,%20P)">. Equating them directly isolates our unknown integration constant, <img src="https://latex.codecogs.com/png.latex?k_i(T)">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AR_g%20T%20%5Cln(P)%20-%20R_g%20T%20%5Cln(R_g%20T)%20+%20R_g%20T%20k_i%20=%20g_i%5E%5Ccirc(T)%20+%20R_g%20T%20%5Cln(P)%20-%20R_g%20T%20%5Cln(P_0)%20%5Ctag%7B49%7D%0A"></p>
+<p>Notice that the <img src="https://latex.codecogs.com/png.latex?R_g%20T%20%5Cln(P)"> term beautifully cancels out on both sides:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A-R_g%20T%20%5Cln(R_g%20T)%20+%20R_g%20T%20k_i%20=%20g_i%5E%5Ccirc(T)%20-%20R_g%20T%20%5Cln(P_0)%20%5Ctag%7B50%7D%0A"></p>
+<p>Finally, by dividing everything through by <img src="https://latex.codecogs.com/png.latex?R_g%20T">, we arrive at our explicit solution for the temperature-dependent integration constant:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ak_i(T)%20=%20%5Cfrac%7Bg_i%5E%5Ccirc(T)%7D%7BR_g%20T%7D%20+%20%5Cln%5Cleft(%5Cfrac%7BR_g%20T%7D%7BP_0%7D%5Cright)%20%5Ctag%7B51%7D%0A"></p>
+<p>Let’s start by revisiting Equation 40 and factoring out the <img src="https://latex.codecogs.com/png.latex?R_g%20T"> term:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_i%5E%7BIG%7D%20=%20-R_g%20T%20%5Cln(V)%20+%20R_g%20T%20%5Cln(n_i)%20+%20R_g%20T%20k_i%20%5Ctag%7B52%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_i%5E%7BIG%7D%20=%20R_g%20T%20%5Cleft%5B%20%5Cln%5Cleft(%5Cfrac%7Bn_i%7D%7BV%7D%5Cright)%20+%20k_i(T)%20%5Cright%5D%20%5Ctag%7B53%7D%0A"></p>
+<p>From our previous derivation (Equation 51), we solved for the explicit expression of <img src="https://latex.codecogs.com/png.latex?k_i(T)">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ak_i(T)%20=%20%5Cfrac%7Bg_i%5E%5Ccirc(T)%7D%7BR_g%20T%7D%20+%20%5Cln(R_g%20T)%20-%20%5Cln(P_0)%20%5Ctag%7B54%7D%0A"></p>
+</section>
+<section id="step-2-substitution-of-k_it" class="level3">
+<h3 class="anchored" data-anchor-id="step-2-substitution-of-k_it">Step 2: Substitution of <img src="https://latex.codecogs.com/png.latex?k_i(T)"></h3>
+<p>Now, we substitute that expression for <img src="https://latex.codecogs.com/png.latex?k_i(T)"> directly into our bracketed term:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_i%5E%7BIG%7D%20=%20R_g%20T%20%5Cleft%5B%20%5Cln%5Cleft(%5Cfrac%7Bn_i%7D%7BV%7D%5Cright)%20+%20%5Cfrac%7Bg_i%5E%5Ccirc(T)%7D%7BR_g%20T%7D%20+%20%5Cln(R_g%20T)%20-%20%5Cln(P_0)%20%5Cright%5D%20%5Ctag%7B55%7D%0A"></p>
+<p>By distributing <img src="https://latex.codecogs.com/png.latex?R_g%20T"> back through the equation, we can pull the standard Gibbs energy out front:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_i%5E%7BIG%7D%20=%20g_i%5E%5Ccirc(T)%20+%20R_g%20T%20%5Cleft%5B%20%5Cln%5Cleft(%5Cfrac%7Bn_i%7D%7BV%7D%5Cright)%20+%20%5Cln(R_g%20T)%20-%20%5Cln(P_0)%20%5Cright%5D%20%5Ctag%7B56%7D%0A"></p>
+</section>
+<section id="step-3-combining-the-logarithmic-terms" class="level3">
+<h3 class="anchored" data-anchor-id="step-3-combining-the-logarithmic-terms">Step 3: Combining the Logarithmic Terms</h3>
+<p>Using standard logarithmic identities (<img src="https://latex.codecogs.com/png.latex?%5Cln(x)%20+%20%5Cln(y)%20=%20%5Cln(xy)"> and <img src="https://latex.codecogs.com/png.latex?%5Cln(a)%20-%20%5Cln(b)%20=%20%5Cln(a/b)">), we can compress the terms inside the bracket:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cln%5Cleft(%5Cfrac%7Bn_i%7D%7BV%7D%5Cright)%20+%20%5Cln(R_g%20T)%20-%20%5Cln(P_0)%20=%20%5Cln%5Cleft(%20%5Cfrac%7Bn_i%20R_g%20T%7D%7BV%20%5Ccdot%20P_0%7D%20%5Cright)%20%5Ctag%7B57%7D%0A"></p>
+<p>Next, we express the total mixture pressure using the ideal gas law (<img src="https://latex.codecogs.com/png.latex?P%20=%20%5Cfrac%7Bn%20R_g%20T%7D%7BV%7D">), which rearranges to <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7BR_g%20T%7D%7BV%7D%20=%20%5Cfrac%7BP%7D%7Bn%7D">. Substituting this into our logarithmic argument simplifies it beautifully:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7Bn_i%20R_g%20T%7D%7BV%20%5Ccdot%20P_0%7D%20=%20%5Cfrac%7Bn_i%7D%7Bn%7D%20%5Ccdot%20%5Cfrac%7BP%7D%7BP_0%7D%20%5Ctag%7B59%7D%0A"></p>
+</section>
+<section id="step-4-the-final-form-of-equation-61" class="level3">
+<h3 class="anchored" data-anchor-id="step-4-the-final-form-of-equation-61">Step 4: The Final Form of Equation 61</h3>
+<p>Let <img src="https://latex.codecogs.com/png.latex?c_i%20%5Cequiv%20y_i%20=%20%5Cfrac%7Bn_i%7D%7Bn%7D"> represent the mole fraction of species <img src="https://latex.codecogs.com/png.latex?i"> in our ideal gas mixture. We can split the product inside the logarithm one last time:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cln%5Cleft(%20%5Cfrac%7BP%7D%7BP_0%7D%20%5Ccdot%20c_i%20%5Cright)%20=%20%5Cln%5Cleft(%5Cfrac%7BP%7D%7BP_0%7D%5Cright)%20+%20%5Cln(c_i)%20%5Ctag%7B60%7D%0A"></p>
+<p>Multiplying this by <img src="https://latex.codecogs.com/png.latex?R_g%20T"> and adding it back to <img src="https://latex.codecogs.com/png.latex?g_i%5E%5Ccirc(T)"> yields the final, highly useful Equation 61:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_i%5E%7BIG%7D(T,%20P,%20%5Cbar%7Bn%7D)%20=%20g_i%5E%5Ccirc(T)%20+%20R_g%20T%20%5Cln%5Cleft(%5Cfrac%7BP%7D%7BP_0%7D%5Cright)%20+%20R_g%20T%20%5Cln(c_i)%20%5Ctag%7B61%7D%0A"></p>
+</section>
+</section>
+<section id="physical-interpretation-and-real-fluid-extension" class="level2">
+<h2 class="anchored" data-anchor-id="physical-interpretation-and-real-fluid-extension">Physical Interpretation and Real-Fluid Extension</h2>
+<p>Equation 61 is incredibly elegant because every single term tells a specific physical story about the gas:</p>
+<ul>
+<li><strong>Reference State (<img src="https://latex.codecogs.com/png.latex?g_i%5E%5Ccirc">)</strong> This captures the pure substance’s caloric properties at temperature <img src="https://latex.codecogs.com/png.latex?T"> and standard pressure <img src="https://latex.codecogs.com/png.latex?P_0"> (typically 1 bar).</li>
+<li><strong>Isothermal Pressure Effect (<img src="https://latex.codecogs.com/png.latex?R_g%20T%20%5Cln(P/P_0)">)</strong> This mathematically compresses or expands the pure ideal gas isothermally from standard pressure to the actual system pressure <img src="https://latex.codecogs.com/png.latex?P">.</li>
+<li><strong>Ideal Mixing Effect (<img src="https://latex.codecogs.com/png.latex?R_g%20T%20%5Cln%20c_i">)</strong> This accounts for the entropy of mixing at constant temperature and pressure, representing Dalton’s partial pressure contribution.</li>
+</ul>
+<p>For a real fluid, we simply add the residual chemical potential (<img src="https://latex.codecogs.com/png.latex?%5Cmu_i%5E%7BRes%7D%20=%20%5Cleft(%5Cfrac%7B%5Cpartial%20A%5E%7BRes%7D%7D%7B%5Cpartial%20n_i%7D%5Cright)_%7BT,%20V,%20n_%7Bk%20%5Cneq%20i%7D%7D">) to define the total chemical potential:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_i%20=%20%5Cmu_i%5E%7BIG%7D%20+%20%5Cmu_i%5E%7BRes%7D%20=%20g_i%5E%5Ccirc(T)%20+%20R_g%20T%20%5Cln%5Cleft(%5Cfrac%7BP%7D%7BP_0%7D%5Cright)%20+%20R_g%20T%20%5Cln(c_i)%20+%20%5Cmu_i%5E%7BRes%7D%20%5Ctag%7B62%7D%0A"></p>
+<p>Because the chemical potential of a real component is formally defined via its fugacity (<img src="https://latex.codecogs.com/png.latex?%5Chat%7Bf%7D_i">) as:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_i%20%5Cequiv%20g_i%5E%5Ccirc(T)%20+%20R_g%20T%20%5Cln%5Cleft(%5Cfrac%7B%5Chat%7Bf%7D_i%7D%7BP_0%7D%5Cright)%20%5Ctag%7B63%7D%0A"></p>
+<p>We can equate the two forms. By defining the fugacity coefficient as <img src="https://latex.codecogs.com/png.latex?%5Cphi_i%20%5Cequiv%20%5Cfrac%7B%5Chat%7Bf%7D_i%7D%7Bc_i%20P%7D">, we directly recover the fundamental link between residual properties and phase equilibrium:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cln%20%5Cphi_i%20=%20%5Cfrac%7B%5Cmu_i%5E%7BRes%7D%7D%7BR_g%20T%7D%20-%20%5Cln%20Z%20%5Ctag%7B64%7D%0A"></p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The <img src="https://latex.codecogs.com/png.latex?%5Cln%20Z"> term, where compressibility factor <img src="https://latex.codecogs.com/png.latex?Z%20=%20%5Cfrac%7BPV%7D%7Bn%20R_g%20T%7D">, acts as the required mathematical adjustment for the coordinate transformation from the <img src="https://latex.codecogs.com/png.latex?(T,%20V)"> Helmholtz domain over to the <img src="https://latex.codecogs.com/png.latex?(T,%20P)"> Gibbs domain).</p>
+</div>
+</div>
+
+
+</section>
+
+ ]]></description>
+  <category>thermodynamics</category>
+  <category>equations-of-state</category>
+  <category>srk</category>
+  <category>residual-properties</category>
+  <category>fugacity</category>
+  <guid>https://www.thermonerds.com/posts/potentials-for-eos/</guid>
+  <pubDate>Sat, 03 Oct 2026 05:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Thermodynamic Potentials</title>
+  <link>https://www.thermonerds.com/posts/thermodynamic-potentials/</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>Starting with:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AdU%20=%20T%20dS%20-%20P%20dV%20+%20%5Csum_r%20%5Cmu_r%20dn_r%20%5Ctag%7B1%7D%0A"></p>
+<p>Notice that Equation 1 is now composed entirely of state functions. This introduces internal energy (<img src="https://latex.codecogs.com/png.latex?U">) as a thermodynamic potential, indicating that <img src="https://latex.codecogs.com/png.latex?U"> is fundamentally a function of entropy, volume, and the number of moles. While it is mathematically possible to express internal energy using temperature and volume instead, the resulting equation loses its compact elegance—a natural mathematical framing referred to as a canonical relationship.</p>
+<p>However, applying Equation 1 directly requires functional models that relate variables like <img src="https://latex.codecogs.com/png.latex?T">, <img src="https://latex.codecogs.com/png.latex?P">, and <img src="https://latex.codecogs.com/png.latex?%5Cmu_i"> back to <img src="https://latex.codecogs.com/png.latex?S">, <img src="https://latex.codecogs.com/png.latex?V">, and <img src="https://latex.codecogs.com/png.latex?%5Cbar%7Bn%7D">. Because such models are rare and typically impractical for standard chemical engineering applications, it is often more useful to mathematically eliminate entropy as an independent variable. We do this using an operation called a Legendre transformation:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AdU%20-%20d(TS)%20=%20T%20dS%20-%20P%20dV%20+%20%5Csum_r%20%5Cmu_r%20dn_r%20-%20d(TS)%0A"></p>
+<p>Expanding the differential <img src="https://latex.codecogs.com/png.latex?d(TS)"> yields:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ad(U%20-%20TS)%20=%20T%20dS%20-%20P%20dV%20+%20%5Csum_r%20%5Cmu_r%20dn_r%20-%20T%20dS%20-%20S%20dT%0A"></p>
+<p>Canceling out the <img src="https://latex.codecogs.com/png.latex?T%20dS"> terms gives us the transformed potential:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ad(U%20-%20TS)%20=%20-S%20dT%20-%20P%20dV%20+%20%5Csum_r%20%5Cmu_r%20dn_r%20%5Ctag%7B2%7D%0A"></p>
+<p>We might recognize the left side of Equation 2 as the definition of the Helmholtz free energy (<img src="https://latex.codecogs.com/png.latex?A">):</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA%20%5Cequiv%20U%20-%20TS%20%5Ctag%7B3%7D%0A"></p>
+<p>If you haven’t encountered Helmholtz free energy before, do not worry; the key takeaway at this stage is recognizing that we have defined a new property (distinct from internal energy) that acts as a canonical function of temperature, volume, and composition (<img src="https://latex.codecogs.com/png.latex?%5Cbar%7Bn%7D">):</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AdA%20=%20-S%20dT%20-%20P%20dV%20+%20%5Csum_r%20%5Cmu_r%20dn_r%20%5Ctag%7B4%7D%0A"></p>
+<p>From a multivariable calculus perspective, this total differential allows us to extract the following partial derivatives:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%7D%7B%5Cpartial%20T%7D%20%5Cright)_%7BV,%20%5Cbar%7Bn%7D%7D%20=%20-S%20%5Ctag%7B5%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%7D%7B%5Cpartial%20V%7D%20%5Cright)_%7BT,%20%5Cbar%7Bn%7D%7D%20=%20-P%20%5Ctag%7B6%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%7D%7B%5Cpartial%20n_i%7D%20%5Cright)_%7BT,%20V,%20n_%7Bk%20%5Cneq%20i%7D%7D%20=%20%5Cmu_i%20%5Ctag%7B7%7D%0A"></p>
+<p>For our current purposes, Equation 6 is the most crucial. If we have a pressure-explicit equation of state—meaning we know pressure as a function of <img src="https://latex.codecogs.com/png.latex?T">, <img src="https://latex.codecogs.com/png.latex?V">, and <img src="https://latex.codecogs.com/png.latex?%5Cbar%7Bn%7D">—we can easily calculate differences in Helmholtz free energy by integrating:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA(T,%20V,%20%5Cbar%7Bn%7D)%20-%20A(T,%20V_R,%20%5Cbar%7Bn%7D)%20=%20%5Cint_%7BV_R%7D%5E%7BV%7D%20%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%7D%7B%5Cpartial%20V%7D%20%5Cright)_%7BT,%20%5Cbar%7Bn%7D%7D%20dV%20=%20-%5Cint_%7BV_R%7D%5E%7BV%7D%20P%20dV%20%5Ctag%7B8%7D%0A"></p>
+<p>An even more commonly recognized potential is the Gibbs free energy. We can derive it by applying another Legendre transformation to Equation 4, this time swapping out volume in favor of pressure as our independent variable:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AdA%20+%20d(PV)%20=%20-S%20dT%20-%20P%20dV%20+%20%5Csum_r%20%5Cmu_r%20dn_r%20+%20d(PV)%0A"></p>
+<p>Expanding this and substituting our previous enthalpy definitions yields the fundamental relation for Gibbs free energy (<img src="https://latex.codecogs.com/png.latex?G">):</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ad(U%20-%20TS%20+%20PV)%20%5Cequiv%20d(H%20-%20TS)%20%5Cequiv%20d(G)%20=%20-S%20dT%20+%20V%20dP%20+%20%5Csum_r%20%5Cmu_r%20dn_r%20%5Ctag%7B9%7D%0A"></p>
+<p>Although Gibbs energy is ideal for constant T and P problems, it is clumsy as an overarching computational framework. Most equations of state solve for P(T, V), not V(T, P), because volume is multi-valued across phase transitions—such as water at 100°C and 1atm, where liquid and vapor share identical pressures. Practical computational thermodynamics therefore depends on working with other potentials, notably Helmholtz energy, to avoid root-finding ambiguities.</p>
+<section id="summary-of-potentials-for-simple-systems" class="level2">
+<h2 class="anchored" data-anchor-id="summary-of-potentials-for-simple-systems">Summary of Potentials for Simple Systems</h2>
+<section id="helmholtz-free-energy-a" class="level3">
+<h3 class="anchored" data-anchor-id="helmholtz-free-energy-a">Helmholtz free energy, <img src="https://latex.codecogs.com/png.latex?A"></h3>
+<p><strong>Differential form</strong></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AdA%20=%20-S%20dT%20-%20P%20dV%20+%20%5Csum_r%20%5Cmu_r%20dn_r%0A"></p>
+<p><strong>Derivatives</strong></p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%7D%7B%5Cpartial%20T%7D%20%5Cright)_%7BV,%5Cbar%7Bn%7D%7D%20=%20-S"></li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%7D%7B%5Cpartial%20V%7D%20%5Cright)_%7BT,%5Cbar%7Bn%7D%7D%20=%20-P"></li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%7D%7B%5Cpartial%20n_i%7D%20%5Cright)_%7BT,V,n_%7Bk%20%5Cneq%20i%7D%7D%20=%20%5Cmu_i"></li>
+</ul>
+</section>
+<section id="gibbs-free-energy-g-a-pv" class="level3">
+<h3 class="anchored" data-anchor-id="gibbs-free-energy-g-a-pv">Gibbs free energy, <img src="https://latex.codecogs.com/png.latex?G%20=%20A%20+%20PV"></h3>
+<p><strong>Differential form</strong></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AdG%20=%20-S%20dT%20+%20V%20dP%20+%20%5Csum_r%20%5Cmu_r%20dn_r%0A"></p>
+<p><strong>Derivatives</strong></p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cleft(%20%5Cfrac%7B%5Cpartial%20G%7D%7B%5Cpartial%20T%7D%20%5Cright)_%7BP,%5Cbar%7Bn%7D%7D%20=%20-S"></li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cleft(%20%5Cfrac%7B%5Cpartial%20G%7D%7B%5Cpartial%20P%7D%20%5Cright)_%7BT,%5Cbar%7Bn%7D%7D%20=%20V"></li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cleft(%20%5Cfrac%7B%5Cpartial%20G%7D%7B%5Cpartial%20n_i%7D%20%5Cright)_%7BT,P,n_%7Bk%20%5Cneq%20i%7D%7D%20=%20%5Cmu_i"></li>
+</ul>
+</section>
+<section id="enthalpy-h-a-pv-ts" class="level3">
+<h3 class="anchored" data-anchor-id="enthalpy-h-a-pv-ts">Enthalpy, <img src="https://latex.codecogs.com/png.latex?H%20=%20A%20+%20PV%20+%20TS"></h3>
+<p><strong>Differential form</strong></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AdH%20=%20T%20dS%20+%20V%20dP%20+%20%5Csum_r%20%5Cmu_r%20dn_r%0A"></p>
+<p><strong>Derivatives</strong></p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cleft(%20%5Cfrac%7B%5Cpartial%20H%7D%7B%5Cpartial%20S%7D%20%5Cright)_%7BP,%5Cbar%7Bn%7D%7D%20=%20T"></li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cleft(%20%5Cfrac%7B%5Cpartial%20H%7D%7B%5Cpartial%20P%7D%20%5Cright)_%7BS,%5Cbar%7Bn%7D%7D%20=%20V"></li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cleft(%20%5Cfrac%7B%5Cpartial%20H%7D%7B%5Cpartial%20n_i%7D%20%5Cright)_%7BS,P,n_%7Bk%20%5Cneq%20i%7D%7D%20=%20%5Cmu_i"></li>
+</ul>
+</section>
+<section id="internal-energy-u-a-ts" class="level3">
+<h3 class="anchored" data-anchor-id="internal-energy-u-a-ts">Internal energy, <img src="https://latex.codecogs.com/png.latex?U%20=%20A%20+%20TS"></h3>
+<p><strong>Differential form</strong></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AdU%20=%20T%20dS%20-%20P%20dV%20+%20%5Csum_r%20%5Cmu_r%20dn_r%0A"></p>
+<p><strong>Derivatives</strong></p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cleft(%20%5Cfrac%7B%5Cpartial%20U%7D%7B%5Cpartial%20S%7D%20%5Cright)_%7BV,%5Cbar%7Bn%7D%7D%20=%20T"></li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cleft(%20%5Cfrac%7B%5Cpartial%20U%7D%7B%5Cpartial%20V%7D%20%5Cright)_%7BS,%5Cbar%7Bn%7D%7D%20=%20-P"></li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cleft(%20%5Cfrac%7B%5Cpartial%20U%7D%7B%5Cpartial%20n_i%7D%20%5Cright)_%7BS,V,n_%7Bk%20%5Cneq%20i%7D%7D%20=%20%5Cmu_i"></li>
+</ul>
+<p>Also, as mentioned above, the chemical potential can be written in terms of any of the potentials:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_i%20=%20%5Cleft(%20%5Cfrac%7B%5Cpartial%20A%7D%7B%5Cpartial%20n_i%7D%20%5Cright)_%7BT,V,n_%7Bk%20%5Cneq%20i%7D%7D%20=%20%5Cleft(%20%5Cfrac%7B%5Cpartial%20G%7D%7B%5Cpartial%20n_i%7D%20%5Cright)_%7BT,P,n_%7Bk%20%5Cneq%20i%7D%7D%20=%20%5Cleft(%20%5Cfrac%7B%5Cpartial%20H%7D%7B%5Cpartial%20n_i%7D%20%5Cright)_%7BS,P,n_%7Bk%20%5Cneq%20i%7D%7D%20=%20%5Cleft(%20%5Cfrac%7B%5Cpartial%20U%7D%7B%5Cpartial%20n_i%7D%20%5Cright)_%7BS,V,n_%7Bk%20%5Cneq%20i%7D%7D%20%5Ctag%7B10%7D%0A"></p>
+</section>
+</section>
+<section id="why-gibbs-energy-is-difficult-to-integrate-directly-from-an-eos" class="level2">
+<h2 class="anchored" data-anchor-id="why-gibbs-energy-is-difficult-to-integrate-directly-from-an-eos">Why Gibbs Energy Is Difficult to Integrate Directly from an EOS</h2>
+<p>While Gibbs free energy might feel more intuitive when dealing with constant temperature (<img src="https://latex.codecogs.com/png.latex?T">) and pressure (<img src="https://latex.codecogs.com/png.latex?P">) problems like phase equilibrium and reactions, directly calculating <img src="https://latex.codecogs.com/png.latex?G(T,%20P,%20n)"> by integrating an equation of state presents significant mathematical hurdles.</p>
+<p>The fundamental differential expression for <img src="https://latex.codecogs.com/png.latex?G"> requires us to integrate volume with respect to pressure:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5CDelta%20G%20=%20%5Cint%20V(T,%20P,%20n)%20dP%0A"></p>
+<p>The problem is that standard equations of state (like cubic EOS models) are fundamentally cubic in volume (<img src="https://latex.codecogs.com/png.latex?V">). This means it is impossible to algebraically rearrange them into a clean, single-valued explicit function of the form <img src="https://latex.codecogs.com/png.latex?V%20=%20f(T,%20P,%20n)">.</p>
+<p>Furthermore, if you are working within the two-phase region, the function <img src="https://latex.codecogs.com/png.latex?V(P)"> becomes multi-valued—it simultaneously yields roots for the liquid phase, the vapor phase, and a mechanically unstable state. This multi-valued nature makes integrating directly along the <img src="https://latex.codecogs.com/png.latex?dP"> path incredibly cumbersome.</p>
+<p>Helmholtz energy (<img src="https://latex.codecogs.com/png.latex?A">), however, offers a trivial workaround. Integrating the expression <img src="https://latex.codecogs.com/png.latex?-P(T,%20V,%20n)%20dV"> is straightforward because pressure (<img src="https://latex.codecogs.com/png.latex?P">) is explicitly and uniquely defined as an algebraic function of volume (<img src="https://latex.codecogs.com/png.latex?V">) across the entire thermodynamic domain. Once you have calculated <img src="https://latex.codecogs.com/png.latex?A(T,%20V,%20n)">, you can instantly recover the Gibbs energy simply by adding the <img src="https://latex.codecogs.com/png.latex?PV"> term.</p>
+<section id="volume-is-not-a-mathematical-function-of-pressure" class="level3">
+<h3 class="anchored" data-anchor-id="volume-is-not-a-mathematical-function-of-pressure">1. Volume Is Not a Mathematical Function of Pressure</h3>
+<p>Strictly speaking, for a mathematical relationship to be considered a true function (<img src="https://latex.codecogs.com/png.latex?y%20=%20f(x)">), every input must map to exactly one output.</p>
+<p>However, for fluids operating below their critical point, defining the temperature (<img src="https://latex.codecogs.com/png.latex?T">) and pressure (<img src="https://latex.codecogs.com/png.latex?P">) does not guarantee a unique volume:</p>
+<p>Phase Coexistence: Think about water boiling at 100°C and 1 atm. At those exact conditions, the system could be a purely saturated liquid (<img src="https://latex.codecogs.com/png.latex?V_L%20%5Capprox%200.00104%5Ctext%7B%20m%7D%5E3%5Ctext%7B/kg%7D">), a purely saturated vapor (<img src="https://latex.codecogs.com/png.latex?V_V%20%5Capprox%201.673%5Ctext%7B%20m%7D%5E3%5Ctext%7B/kg%7D">), or any two-phase mixture in between.</p>
+<p>Analytic Equations of State: When using models like Peng-Robinson or Soave-Redlich-Kwong, setting <img src="https://latex.codecogs.com/png.latex?T"> and <img src="https://latex.codecogs.com/png.latex?P"> within the two-phase envelope results in a cubic polynomial that produces three real roots:</p>
+<ol type="1">
+<li>A small root (representing the liquid-like volume).</li>
+<li>A large root (representing the vapor-like volume).</li>
+<li>An intermediate root that is mechanically unstable (where <img src="https://latex.codecogs.com/png.latex?(%5Cpartial%20P%20/%20%5Cpartial%20V)_T%20%3E%200">).</li>
+</ol>
+<p>Because <img src="https://latex.codecogs.com/png.latex?V(P)"> is multi-valued in these scenarios, it is impossible to express it as a clean, explicit, single-valued algebraic function of the form <img src="https://latex.codecogs.com/png.latex?V%20=%20f(T,%20P)">.</p>
+</section>
+<section id="the-computational-bottleneck-with-gibbs-energy" class="level3">
+<h3 class="anchored" data-anchor-id="the-computational-bottleneck-with-gibbs-energy">2. The Computational Bottleneck with Gibbs Energy</h3>
+<p>To compute changes in Gibbs energy directly from mechanical variables, the fundamental math requires us to integrate volume over pressure</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5CDelta%20G%20=%20%5Cint%20V(T,%20P)%20dP%0A"></p>
+<p>Because volume is multi-valued across phase transitions, trying to evaluate <img src="https://latex.codecogs.com/png.latex?%5Cint%20V%20dP"> forces us to trace theoretical paths through unstable van der Waals loops or manually enforce equal-area Maxwell constructions. This complexity makes direct path integration of Gibbs energy highly impractical for computational models.</p>
+</section>
+<section id="why-the-helmholtz-framework-resolves-this" class="level3">
+<h3 class="anchored" data-anchor-id="why-the-helmholtz-framework-resolves-this">3. Why the Helmholtz Framework Resolves This</h3>
+<p>While volume is not a single-valued function of pressure, the reverse is incredibly convenient: pressure is always a single-valued function of volume.</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AP%20=%20f(T,%20V,%20n)%0A"></p>
+<p>Because of this mathematical reality, if you specify the temperature (<img src="https://latex.codecogs.com/png.latex?T">) and volume (<img src="https://latex.codecogs.com/png.latex?V">), calculating the pressure requires only a single, straightforward evaluation of the equation of state (EOS). This leads to two major advantages in computational thermodynamics:</p>
+<p>Seamless Integration: The integral used to calculate the residual Helmholtz free energy is continuous, single-valued, and analytically integrable across the entire fluid domain (smoothly covering both liquid and vapor phases without unstable loops):</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA%5E%7Bres%7D(T,%20V)%20=%20-%5Cint_%7B%5Cinfty%7D%5E%7BV%7D%20%5Cleft(%20P%20-%20%5Cfrac%7BRT%7D%7BV%7D%20%5Cright)%20dV%0A"></p>
+<p>How Thermodynamics Engines Actually Work: Because of these mathematical advantages, modern computational thermodynamics engines compute all their core variables—including residual properties, fugacity coefficients (<img src="https://latex.codecogs.com/png.latex?%5Cln%20%5Cphi_i">), and chemical potentials—entirely within the <img src="https://latex.codecogs.com/png.latex?(T,%20V)"> Helmholtz domain. When a user actually requests a result at a specific constant temperature and pressure (<img src="https://latex.codecogs.com/png.latex?T,%20P">), the solver first finds the volumetric roots (<img src="https://latex.codecogs.com/png.latex?V">) at that given pressure, evaluates <img src="https://latex.codecogs.com/png.latex?A(T,%20V)">, and then simply recovers the Gibbs free energy algebraically at the very end:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AG%20=%20A%20+%20PV%0A"></p>
+
+
+</section>
+</section>
+
+ ]]></description>
+  <category>thermodynamics</category>
+  <category>helmholtz</category>
+  <category>gibbs</category>
+  <category>equations-of-state</category>
+  <guid>https://www.thermonerds.com/posts/thermodynamic-potentials/</guid>
+  <pubDate>Fri, 02 Oct 2026 05:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>From the First Law to the Fundamental Relation</title>
+  <link>https://www.thermonerds.com/posts/first-law/</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>First Law of Thermodynamics for a closed system, starting from the universal principle of conservation of energy.</p>
+<section id="total-energy-conservation" class="level2">
+<h2 class="anchored" data-anchor-id="total-energy-conservation">1. Total Energy Conservation</h2>
+<p>Because the universe is isolated, the sum of all energy changes must equal zero: energy cannot be created or destroyed:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%5CDelta(E_%7Bkin%7D%20+%20E_%7Bpot%7D%20+%20U)_%7BSys%7D%20+%20%5CDelta(E_%7Bkin%7D%20+%20E_%7Bpot%7D%20+%20U)_%7BSurr%7D%20=%200%5Ctag%7B1%7D"></p>
+<p>The universe is divided into two parts: the System (Sys, the region of interest) and the Surroundings (Surr, everything else).</p>
+<p>The total energy of any body or region consists of:</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?E_%7Bkin%7D">: macroscopic kinetic energy (movement of the center of mass)</li>
+<li><img src="https://latex.codecogs.com/png.latex?E_%7Bpot%7D">: macroscopic potential energy (position in external fields, like gravity).</li>
+<li><img src="https://latex.codecogs.com/png.latex?U">: microscopic internal energy (molecular vibrations, rotations, electronic states, intermolecular forces)</li>
+</ul>
+</section>
+<section id="practical-approximations-and-boundary-transfers" class="level2">
+<h2 class="anchored" data-anchor-id="practical-approximations-and-boundary-transfers">2. Practical Approximations and Boundary Transfers</h2>
+<p><img src="https://latex.codecogs.com/png.latex?%5CDelta(U)_%7BSys%7D%20=%20-%5CDelta(E_k%20+%20E_p%20+%20U)_%7BSurr%7D%20=%20Q%20+%20W%5Ctag%7B2%7D"></p>
+<p>Neglecting macroscopic motion of the system: In most chemical and physical systems (e.g., a beaker, reactor, or piston), the system as a whole does not undergo changes in bulk elevation or bulk velocity, meaning <img src="https://latex.codecogs.com/png.latex?%5CDelta%20E_%7Bkin%7D%20=%200"> and <img src="https://latex.codecogs.com/png.latex?%5CDelta%20E_%7Bpot%7D%20=%200">. Therefore, the only energy change occurring inside the system is internal energy: <img src="https://latex.codecogs.com/png.latex?%5CDelta%20U_%7B%5Ctext%7BSys%7D%7D">.</p>
+<p>Energy transfer across the boundary: Modeling the entire surrounding universe is practically impossible. Instead of tracking what happens inside the surroundings, thermodynamics tracks the energy crossing the boundary between the system and surroundings:</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?Q"> (Heat): Energy transferred due to a temperature difference.</li>
+<li><img src="https://latex.codecogs.com/png.latex?W"> (Work): Energy transferred through mechanical, electrical, or expansion forces.</li>
+</ul>
+<p>Under this sign convention (the standard IUPAC convention), heat added to the system (<img src="https://latex.codecogs.com/png.latex?Q%20%3E%200">) and work done on the system (<img src="https://latex.codecogs.com/png.latex?W%20%3E%200">) increase its internal energy.</p>
+</section>
+<section id="differential-form" class="level2">
+<h2 class="anchored" data-anchor-id="differential-form">3. Differential Form</h2>
+<p><img src="https://latex.codecogs.com/png.latex?dU%20=%20%5Cdelta%20Q%20+%20%5Cdelta%20W%5Ctag%7B3%7D"></p>
+<p>When focusing strictly on the system, the “<img src="https://latex.codecogs.com/png.latex?Sys">” subscript is dropped for simplicity.</p>
+<p>Expressed for an infinitesimal process:</p>
+<p><img src="https://latex.codecogs.com/png.latex?dU"> is an exact differential, indicating that internal energy <img src="https://latex.codecogs.com/png.latex?U"> is a state function (depends only on the current state, not the path taken).</p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Cdelta%20Q"> and <img src="https://latex.codecogs.com/png.latex?%5Cdelta%20W"> use the inexact differential symbol (<img src="https://latex.codecogs.com/png.latex?%5Cdelta"> or sometimes <img src="https://latex.codecogs.com/png.latex?d">), signifying that heat and work are path functions (they depend on the specific path taken between states.</p>
+<p>If we limit to boundary work:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cdelta%20W_%7BBound%7D%20=%20-P%20dV%20%5Ctag%7B4%7D%0A"></p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Physical meaning.</strong> Represents mechanical expansion or compression work exerted across a movable system boundary (such as a piston).</p>
+<p><strong>Sign convention.</strong></p>
+<ul>
+<li>When a system expands (<img src="https://latex.codecogs.com/png.latex?%5CDelta%20V%20%3E%200">), it does work on the surroundings, spending its own internal energy; hence <img src="https://latex.codecogs.com/png.latex?%5Cdelta%20W%20%3C%200">.</li>
+<li>When a system is compressed (<img src="https://latex.codecogs.com/png.latex?%5CDelta%20V%20%3C%200">), the surroundings do work on the system, adding energy; hence <img src="https://latex.codecogs.com/png.latex?%5Cdelta%20W%20%3E%200">.</li>
+<li>The negative sign ensures consistency with the standard IUPAC convention where energy entering the system is positive.</li>
+</ul>
+</div>
+</div>
+<p>Substitute (4) into (3):</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AdU%20=%20%5Cdelta%20Q%20-%20P%20dV%20%5Ctag%7B5%7D%0A"></p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Substituting <img src="https://latex.codecogs.com/png.latex?%5Cdelta%20W%20=%20-P%20dV"> into <img src="https://latex.codecogs.com/png.latex?dU%20=%20%5Cdelta%20Q%20+%20%5Cdelta%20W"> limits the mechanical interactions strictly to reversible boundary work, neglecting other forms like shaft work, electrical work, or surface tension.</p>
+<p>Internal energy therefore changes through two primary pathways: heat transfer (<img src="https://latex.codecogs.com/png.latex?%5Cdelta%20Q">) and mechanical volume changes (<img src="https://latex.codecogs.com/png.latex?-P%20dV">).</p>
+</div>
+</div>
+</section>
+<section id="extension-to-variable-composition-and-open-systems" class="level2">
+<h2 class="anchored" data-anchor-id="extension-to-variable-composition-and-open-systems">4. Extension to Variable Composition and Open Systems</h2>
+<section id="functional-dependence-of-internal-energy" class="level3">
+<h3 class="anchored" data-anchor-id="functional-dependence-of-internal-energy">4.1. Functional Dependence of Internal Energy</h3>
+<p>For a closed system of fixed composition, internal energy depends only on two independent extensive state variables—typically entropy <img src="https://latex.codecogs.com/png.latex?S"> and volume <img src="https://latex.codecogs.com/png.latex?V">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AU%20=%20U(S,%20V)%0A"></p>
+<p>If matter can cross the boundary, or if chemical reactions/phase changes alter the amounts of species present, <img src="https://latex.codecogs.com/png.latex?U"> must also depend explicitly on the mole numbers of each constituent species <img src="https://latex.codecogs.com/png.latex?n_1,%20n_2,%20%5Cdots,%20n_k">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AU%20=%20U(S,%20V,%20n_1,%20n_2,%20%5Cdots,%20n_k)%0A"></p>
+</section>
+<section id="total-differential-via-multivariable-calculus" class="level3">
+<h3 class="anchored" data-anchor-id="total-differential-via-multivariable-calculus">4.2. Total Differential via Multivariable Calculus</h3>
+<p>Taking the total differential of <img src="https://latex.codecogs.com/png.latex?U(S,%20V,%20%5C%7Bn_r%5C%7D)"> using the chain rule gives:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AdU%20=%20%5Cleft(%5Cfrac%7B%5Cpartial%20U%7D%7B%5Cpartial%20S%7D%5Cright)_%7BV,%20n%7D%20dS%20+%20%5Cleft(%5Cfrac%7B%5Cpartial%20U%7D%7B%5Cpartial%20V%7D%5Cright)_%7BS,%20n%7D%20dV%20+%20%5Csum_r%20%5Cleft(%5Cfrac%7B%5Cpartial%20U%7D%7B%5Cpartial%20n_r%7D%5Cright)_%7BS,%20V,%20n_%7Bj%20%5Cneq%20r%7D%7D%20dn_r%0A"></p>
+<p>From classical closed-system thermodynamics:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cleft(%5Cfrac%7B%5Cpartial%20U%7D%7B%5Cpartial%20S%7D%5Cright)_%7BV,%20n%7D%20=%20T%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cleft(%5Cfrac%7B%5Cpartial%20U%7D%7B%5Cpartial%20V%7D%5Cright)_%7BS,%20n%7D%20=%20-P%0A"></p>
+</section>
+<section id="definition-of-chemical-potential" class="level3">
+<h3 class="anchored" data-anchor-id="definition-of-chemical-potential">4.3. Definition of Chemical Potential</h3>
+<p>The partial derivative with respect to composition is defined as the chemical potential of species <img src="https://latex.codecogs.com/png.latex?r">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu_r%20%5Cequiv%20%5Cleft(%5Cfrac%7B%5Cpartial%20U%7D%7B%5Cpartial%20n_r%7D%5Cright)_%7BS,%20V,%20n_%7Bj%20%5Cneq%20r%7D%7D%0A"></p>
+<p>Substituting these definitions into the total differential yields:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AdU%20=%20T%20dS%20-%20P%20dV%20+%20%5Csum_r%20%5Cmu_r%20dn_r%20%5Ctag%7B6%7D%0A"></p>
+<p>For a reversible heat transfer where <img src="https://latex.codecogs.com/png.latex?%5Cdelta%20Q_%7Brev%7D%20=%20T%20dS">, this directly becomes:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AdU%20=%20%5Cdelta%20Q%20-%20P%20dV%20+%20%5Csum_r%20%5Cmu_r%20dn_r%0A"></p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Physical reason.</strong> If molecules are added to or removed from a system, they carry internal energy with them (chemical bond energies, rotational/vibrational modes, and intermolecular potential energy with neighboring molecules). Even if heat transfer is zero (<img src="https://latex.codecogs.com/png.latex?%5Cdelta%20Q%20=%200">) and the volume remains rigid (<img src="https://latex.codecogs.com/png.latex?dV%20=%200">), adding particles changes the total internal energy of the system. The summation term <img src="https://latex.codecogs.com/png.latex?%5Csum_r%20%5Cmu_r%20dn_r"> directly tracks that energetic change.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="the-second-law" class="level2">
+<h2 class="anchored" data-anchor-id="the-second-law">5. The Second Law</h2>
+<p>The Second Law of Thermodynamics is often more conceptually challenging for students than the First Law. At its core, the Second Law can be summarized simply: the total entropy of the universe can never decrease.</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5CDelta%20S_%7B%5Ctext%7BSys%7D%7D%20+%20%5CDelta%20S_%7B%5Ctext%7BSurr%7D%7D%20%5Cge%200%20%5Ctag%7B7%7D%0A"></p>
+<p>While the First Law focuses on the conservation of energy, the Second Law dictates the direction of natural processes. For example, the First Law alone doesn’t rule out liquid water spontaneously freezing above its melting temperature; it only dictates the energy balance if such a process occurred. By introducing an inequality, the Second Law expressly forbids certain processes, establishing what is physically possible.</p>
+<p>It is important to note that the Second Law does not prevent the entropy of a specific system or its surroundings from decreasing individually—it only requires that their combined total cannot decrease. Furthermore, to make this principle practical, we need a way to actually calculate entropy changes. This is where the concept of a reversible process is introduced. In a purely reversible process, the total entropy change of the universe (system plus surroundings) is exactly zero, turning the inequality of Eq. 7 into an equality. This allows us to define the differential change in entropy mathematically as:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AdS%20%5Cequiv%20%5Cleft(%20%5Cfrac%7B%5Cdelta%20Q%7D%7BT%7D%20%5Cright)_%7B%5Ctext%7Brev%7D%7D%20%5Ctag%7B8%7D%0A"></p>
+</section>
+<section id="why-state-functions-not-path-functions" class="level2">
+<h2 class="anchored" data-anchor-id="why-state-functions-not-path-functions">6. Why State Functions, Not Path Functions</h2>
+<p>By combining the First and Second Laws of Thermodynamics, we replace path functions (Q, W) with exact differentials (state functions: Internal Energy, Temperature, Entropy, Pressure, and Volume) to create the Fundamental Thermodynamic Relation (Equation 6).</p>
+<p>Path functions are not practically “bad”—in fact, heat and work are exactly what engineers care about because that is what we pay for in the real world (e.g., fuel for heat, electricity for work). However, from a mathematical and analytical standpoint, path functions are incredibly difficult to work with compared to state functions for three main reasons:</p>
+<section id="the-memory-problem" class="level3">
+<h3 class="anchored" data-anchor-id="the-memory-problem">6.1. The “Memory” Problem</h3>
+<p>To calculate a path function like work (<img src="https://latex.codecogs.com/png.latex?W%20=%20%5Cint%20P%20dV">), you cannot just look at the starting and ending volumes. You must know the exact history of how the expansion happened. Did the pressure drop linearly? Exponentially? Was there friction? Was it done infinitely slowly (reversible) or violently (irreversible)? If you do not know the exact mathematical function of the path taken, you cannot solve the integral.</p>
+<p>State functions, however, have no memory. To find the change in internal energy (<img src="https://latex.codecogs.com/png.latex?%5CDelta%20U">), you only need simple subtraction: <img src="https://latex.codecogs.com/png.latex?%5CDelta%20U%20=%20U_%7Bfinal%7D%20-%20U_%7Binitial%7D">. You do not need to know anything about the process itself.</p>
+</section>
+<section id="you-cannot-put-path-functions-in-a-table" class="level3">
+<h3 class="anchored" data-anchor-id="you-cannot-put-path-functions-in-a-table">6.2. You Cannot Put Path Functions in a Table</h3>
+<p>Because state functions (<img src="https://latex.codecogs.com/png.latex?P,%20V,%20T,%20U,%20S,%20H">) only depend on the current physical condition of the system, we can tabulate them. This is why we have Steam Tables and thermodynamic databases (like CoolProp or NIST). You can look up the exact internal energy or entropy of water at <img src="https://latex.codecogs.com/png.latex?100%5E%5Ccirc%5Ctext%7BC%7D"> and <img src="https://latex.codecogs.com/png.latex?1%5Ctext%7B%20atm%7D">.</p>
+<p>You can never create a table for “Heat” or “Work” because a system does not contain heat or work. They are actions, not properties.</p>
+</section>
+<section id="the-thermodynamic-cheat-code" class="level3">
+<h3 class="anchored" data-anchor-id="the-thermodynamic-cheat-code">6.3. The Thermodynamic “Cheat Code”</h3>
+<p>Real-world processes are almost always irreversible (they happen quickly, with friction, turbulence, and heat loss). Calculating <img src="https://latex.codecogs.com/png.latex?%5Cdelta%20Q"> or <img src="https://latex.codecogs.com/png.latex?%5Cdelta%20W"> for an irreversible process is mathematically messy, sometimes impossible.</p>
+<p>Because state functions only care about the endpoints, they unlock a massive analytical loophole: You can calculate the change for a chaotic, irreversible process by inventing an imaginary, perfectly reversible path between the same two states.</p>
+<ul>
+<li>If you want to know <img src="https://latex.codecogs.com/png.latex?%5CDelta%20U"> for a messy explosion in a cylinder, you don’t need to model the explosion’s path.</li>
+<li>You just look at the state before the explosion (<img src="https://latex.codecogs.com/png.latex?T_1,%20P_1">) and the state after the explosion (<img src="https://latex.codecogs.com/png.latex?T_2,%20P_2">).</li>
+<li>You use the fundamental relation (<img src="https://latex.codecogs.com/png.latex?dU%20=%20T%20dS%20-%20P%20dV">) over an easy, idealized path to find the difference between those two states.</li>
+<li>Because <img src="https://latex.codecogs.com/png.latex?U"> is a state function, the <img src="https://latex.codecogs.com/png.latex?%5CDelta%20U"> you calculate for the imaginary easy path is 100% identical to the <img src="https://latex.codecogs.com/png.latex?%5CDelta%20U"> of the messy real-world explosion.</li>
+</ul>
+
+
+</section>
+</section>
+
+ ]]></description>
+  <category>thermodynamics</category>
+  <category>first-law</category>
+  <category>second-law</category>
+  <guid>https://www.thermonerds.com/posts/first-law/</guid>
+  <pubDate>Thu, 01 Oct 2026 05:00:00 GMT</pubDate>
+</item>
+</channel>
+</rss>
