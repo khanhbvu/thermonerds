@@ -19,11 +19,15 @@
      element to the right edge. */
   .rm-wrap { position: relative; display: flex; }
   .rm-panel {
-    position: absolute; top: calc(100% + .45rem); right: 0; z-index: 2000;
-    width: 20rem; max-width: calc(100vw - 1.5rem); padding: .85rem .9rem;
-    /* a short window or a phone in landscape must not strand the lower
-       swatches off-screen with no way to reach them */
-    max-height: calc(100vh - 4.5rem); overflow-y: auto; overscroll-behavior: contain;
+    /* Rendered as a child of <body>, not of the navbar. Inside the navbar its
+       z-index is trapped in the navbar's stacking context, so page content can
+       paint over the panel's lower half and swallow taps there -- which on a
+       phone is exactly where the Reset button sits. Position and height are
+       set from JS against visualViewport. */
+    position: fixed; z-index: 2147483000;
+    width: 20rem; max-width: calc(100vw - 1rem); padding: .85rem .9rem;
+    overflow-y: auto; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     font-size: .82rem; line-height: 1.45; text-align: left;
     background: var(--rm-bg, #fff); color: var(--rm-text, inherit);
     border: 1px solid rgba(128,128,128,.45); border-radius: 4px;
@@ -43,6 +47,9 @@
     border: 1px solid transparent; border-radius: 3px; text-align: center;
   }
   .rm-theme:hover { border-color: rgba(128,128,128,.5); }
+  .rm-btn, .rm-theme, .rm-reset { touch-action: manipulation; }
+  .rm-reset { min-height: 2.4rem; }
+  .rm-theme { min-height: 2.9rem; }
   .rm-theme[aria-pressed="true"] { border-color: currentColor; font-weight: 700; }
   .rm-sw {
     display: flex; align-items: center; justify-content: center;
@@ -251,8 +258,8 @@
     panel.innerHTML = html;
 
     wrap.appendChild(btn);
-    wrap.appendChild(panel);
     bar.appendChild(wrap);
+    document.body.appendChild(panel);   // outside the navbar's stacking context
 
     var size = panel.querySelector('#rm-size');
     var sizeVal = panel.querySelector('#rm-sizeval');
@@ -277,30 +284,36 @@
       state.fontSize = +size.value; apply(); sync();
     });
 
-    // The button's position in the row changes with width (Quarto collapses
-    // the navbar below 992px), so a panel anchored to its right edge can hang
-    // off the left of the viewport. Rather than guess a breakpoint, let it lay
-    // out, measure, and re-anchor to the viewport only if it actually spills.
+    // Positioned from JS against visualViewport rather than vh: on Android
+    // Chrome 100vh is the URL-bar-hidden height, so a vh-sized panel runs below
+    // the visible area and its last control cannot be reached or tapped.
     function place() {
-      panel.style.position = ''; panel.style.top = ''; panel.style.left = '';
-      panel.style.right = ''; panel.style.maxHeight = '';
-      var r = panel.getBoundingClientRect();
-      if (r.left < 8 || r.right > window.innerWidth - 8) {
-        var nb = document.querySelector('.navbar');
-        var top = nb ? Math.round(nb.getBoundingClientRect().bottom + 6) : 56;
-        panel.style.position = 'fixed';
-        panel.style.top = top + 'px';
-        panel.style.right = '.75rem';
-        panel.style.left = 'auto';
-        panel.style.maxHeight = 'calc(100vh - ' + (top + 14) + 'px)';
-      }
+      var vp = window.visualViewport;
+      var vh = vp ? vp.height : window.innerHeight;
+      var vw = vp ? vp.width  : window.innerWidth;
+      var bb = btn.getBoundingClientRect();
+      var nb = document.querySelector('.navbar');
+      var nbb = nb ? nb.getBoundingClientRect().bottom : 0;
+      var top = Math.round(Math.max(bb.bottom, nbb, 0) + 6);
+      if (top > vh - 120) top = Math.max(6, vh - 120);   // always leave room
+      panel.style.top = top + 'px';
+      panel.style.maxHeight = Math.max(140, Math.round(vh - top - 10)) + 'px';
+      panel.style.left = 'auto';
+      panel.style.right = Math.round(Math.max(8, vw - bb.right)) + 'px';
+      if (panel.getBoundingClientRect().left < 8) panel.style.right = '8px';
     }
     function open(v) {
       panel.hidden = !v;
       if (v) place();                 // measured while visible, before paint
       btn.setAttribute('aria-expanded', v ? 'true' : 'false');
     }
-    window.addEventListener('resize', function () { if (!panel.hidden) place(); });
+    function replace() { if (!panel.hidden) place(); }
+    window.addEventListener('resize', replace);
+    window.addEventListener('scroll', replace, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', replace);
+      window.visualViewport.addEventListener('scroll', replace);
+    }
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
       open(panel.hidden);
