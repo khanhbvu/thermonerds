@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.20">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-10-31">
+<meta name="description" content="A perturbation test that catches a wrong derivative whether you derived it by hand or let a computer do it, worked through on SRK.">
+
+<title>Numerical Testing of an EOS Implementation – Thermo Nerds</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-377e3121009ebef51d36f79db9fbb96c.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-faa3a44cafbdc8abfe0a733d49ee4e53.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400">
+<script>
+  window.MathJax = {
+    loader: { load: ['[tex]/mhchem'] },
+    tex: {
+      packages: { '[+]': ['mhchem'] },
+      tags: 'ams',
+      tagSide: 'right',
+      macros: {
+        Vm:   "V_{m}",
+        kij:  "k_{ij}",
+        Rgas: "R"
+      }
+    }
+  };
+</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Thermo Nerds</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#where-e_1-and-e_2-come-from" id="toc-where-e_1-and-e_2-come-from" class="nav-link active" data-scroll-target="#where-e_1-and-e_2-come-from">Where <span class="math inline">\(E_1\)</span> and <span class="math inline">\(E_2\)</span> come from</a></li>
+  <li><a href="#why-the-slope-is-2" id="toc-why-the-slope-is-2" class="nav-link" data-scroll-target="#why-the-slope-is-2">Why the slope is 2</a>
+  <ul class="collapse">
+  <li><a href="#why-it-fails-loudly-when-the-derivative-is-wrong" id="toc-why-it-fails-loudly-when-the-derivative-is-wrong" class="nav-link" data-scroll-target="#why-it-fails-loudly-when-the-derivative-is-wrong">Why it fails loudly when the derivative is wrong</a></li>
+  <li><a href="#the-general-case" id="toc-the-general-case" class="nav-link" data-scroll-target="#the-general-case">The general case</a></li>
+  </ul></li>
+  <li><a href="#checking-it-on-functions-you-can-differentiate-by-hand" id="toc-checking-it-on-functions-you-can-differentiate-by-hand" class="nav-link" data-scroll-target="#checking-it-on-functions-you-can-differentiate-by-hand">Checking it on functions you can differentiate by hand</a>
+  <ul class="collapse">
+  <li><a href="#does-it-hold-generally" id="toc-does-it-hold-generally" class="nav-link" data-scroll-target="#does-it-hold-generally">Does it hold generally?</a></li>
+  </ul></li>
+  <li><a href="#measuring-the-slope-properly" id="toc-measuring-the-slope-properly" class="nav-link" data-scroll-target="#measuring-the-slope-properly">Measuring the slope properly</a>
+  <ul class="collapse">
+  <li><a href="#why-two-points-is-the-minimum" id="toc-why-two-points-is-the-minimum" class="nav-link" data-scroll-target="#why-two-points-is-the-minimum">Why two points is the minimum</a></li>
+  <li><a href="#fitting-all-of-them-at-once" id="toc-fitting-all-of-them-at-once" class="nav-link" data-scroll-target="#fitting-all-of-them-at-once">Fitting all of them at once</a></li>
+  <li><a href="#where-eq-ls-comes-from" id="toc-where-eq-ls-comes-from" class="nav-link" data-scroll-target="#where-eq-ls-comes-from">Where Equation&nbsp;14 comes from</a></li>
+  </ul></li>
+  <li><a href="#the-worked-example" id="toc-the-worked-example" class="nav-link" data-scroll-target="#the-worked-example">The worked example</a>
+  <ul class="collapse">
+  <li><a href="#perturbing-a-mole-number" id="toc-perturbing-a-mole-number" class="nav-link" data-scroll-target="#perturbing-a-mole-number">Perturbing a mole number</a></li>
+  </ul></li>
+  <li><a href="#where-it-stops-working" id="toc-where-it-stops-working" class="nav-link" data-scroll-target="#where-it-stops-working">Where it stops working</a>
+  <ul class="collapse">
+  <li><a href="#sidestepping-the-floor" id="toc-sidestepping-the-floor" class="nav-link" data-scroll-target="#sidestepping-the-floor">Sidestepping the floor</a></li>
+  </ul></li>
+  <li><a href="#what-a-failure-looks-like" id="toc-what-a-failure-looks-like" class="nav-link" data-scroll-target="#what-a-failure-looks-like">What a failure looks like</a></li>
+  <li><a href="#but-my-derivatives-come-from-a-computer" id="toc-but-my-derivatives-come-from-a-computer" class="nav-link" data-scroll-target="#but-my-derivatives-come-from-a-computer">“But my derivatives come from a computer”</a>
+  <ul class="collapse">
+  <li><a href="#where-autodiff-actually-breaks-on-eos-code" id="toc-where-autodiff-actually-breaks-on-eos-code" class="nav-link" data-scroll-target="#where-autodiff-actually-breaks-on-eos-code">Where autodiff actually breaks on EOS code</a></li>
+  <li><a href="#the-reason-that-never-goes-away" id="toc-the-reason-that-never-goes-away" class="nav-link" data-scroll-target="#the-reason-that-never-goes-away">The reason that never goes away</a></li>
+  <li><a href="#what-it-does-not-check" id="toc-what-it-does-not-check" class="nav-link" data-scroll-target="#what-it-does-not-check">What it does not check</a></li>
+  </ul></li>
+  <li><a href="#using-it-in-practice" id="toc-using-it-in-practice" class="nav-link" data-scroll-target="#using-it-in-practice">Using it in practice</a></li>
+  <li><a href="#reference" id="toc-reference" class="nav-link" data-scroll-target="#reference">Reference</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Numerical Testing of an EOS Implementation</h1>
+  <div class="quarto-categories">
+    <div class="quarto-category">thermodynamics</div>
+    <div class="quarto-category">equations-of-state</div>
+    <div class="quarto-category">srk</div>
+    <div class="quarto-category">numerics</div>
+    <div class="quarto-category">testing</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    <p>A perturbation test that catches a wrong derivative whether you derived it by hand or let a computer do it, worked through on SRK.</p>
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">October 31, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Working with an equation of state means differentiating it, repeatedly. You need pressure as a derivative of Helmholtz energy, chemical potentials as derivatives with respect to composition, fugacity coefficients built from those, and second derivatives on top for anything that solves by Newton’s method. The expressions are considerably worse than polynomials, and in most production code they are derived by hand and then coded — autodiff costs a factor of several per evaluation, and a flash calculation calls these functions millions of times.</p>
+<p>Both steps can go wrong, and the failure is quiet. A derivative that is wrong by half a percent produces numbers that look entirely plausible. Your flash calculation still converges — just more slowly, or to the wrong answer near a phase boundary, or not at all at the one state point you needed.</p>
+<p>What makes this tractable is that you do not need a second implementation to check against, and you do not need symbolic algebra. You can check a derivative against the only thing you are sure of: the function it claims to differentiate.</p>
+<section id="where-e_1-and-e_2-come-from" class="level2">
+<h2 class="anchored" data-anchor-id="where-e_1-and-e_2-come-from">Where <span class="math inline">\(E_1\)</span> and <span class="math inline">\(E_2\)</span> come from</h2>
+<p>Take any function <span class="math inline">\(F(x)\)</span> and perturb its argument to <span class="math inline">\(x_{pert} = x + \Delta x\)</span>. A Taylor expansion says exactly what happens:</p>
+<p><span id="eq-taylor"><span class="math display">\[
+F(x + \Delta x) = F(x) + \frac{dF}{dx}\Delta x
+  + \frac{1}{2}\frac{d^2F}{dx^2}(\Delta x)^2
+  + \frac{1}{6}\frac{d^3F}{dx^3}(\Delta x)^3 + \cdots
+\tag{1}\]</span></span></p>
+<p>Now truncate <a href="#eq-taylor" class="quarto-xref">Equation&nbsp;1</a> at successive orders and ask how wrong you are each time. That is the whole idea, and both <span class="math inline">\(E_1\)</span> and <span class="math inline">\(E_2\)</span> come straight out of it.</p>
+<p><strong>Truncate after the first term.</strong> Pretend <span class="math inline">\(F\)</span> does not change at all, so <span class="math inline">\(F(x_{pert}) \approx F(x)\)</span>. The error you make is everything you discarded:</p>
+<p><span id="eq-e1"><span class="math display">\[
+E_1 \equiv F(x_{pert}) - F(x)
+  = \frac{dF}{dx}\Delta x + \frac{1}{2}\frac{d^2F}{dx^2}(\Delta x)^2 + \cdots
+\tag{2}\]</span></span></p>
+<p><strong>Truncate after the second term.</strong> Now use the derivative you are testing. The error left over is:</p>
+<p><span id="eq-e2"><span class="math display">\[
+E_2 \equiv F(x_{pert}) - F(x) - \frac{dF}{dx}\Delta x
+  = E_1 - \frac{dF}{dx}\Delta x
+  = \frac{1}{2}\frac{d^2F}{dx^2}(\Delta x)^2 + \cdots
+\tag{3}\]</span></span></p>
+<p>So <span class="math inline">\(E_1\)</span> and <span class="math inline">\(E_2\)</span> are the same kind of object — truncation errors of the same series — measured one order apart. That is the entire construction.</p>
+<p>Two observations before going further.</p>
+<p>Neither is zero, and neither is supposed to be. Chasing a small <span class="math inline">\(E_2\)</span> is the wrong instinct; what carries the information is the <strong>rate</strong> at which each one vanishes as <span class="math inline">\(\Delta x\)</span> shrinks.</p>
+<p>And note the asymmetry. <span class="math inline">\(E_1\)</span> has a leading term plus corrections, so for small <span class="math inline">\(\Delta x\)</span> you can legitimately drop everything after <span class="math inline">\(\frac{dF}{dx}\Delta x\)</span>. <span class="math inline">\(E_2\)</span> cannot be simplified the same way — its leading term <em>is</em> the first surviving term, and there is nothing larger to compare it against.</p>
+<p>Only one of these quantities contains your derivative. <span class="math inline">\(E_1\)</span> is computed from two calls to <span class="math inline">\(F\)</span> and nothing else, so it cannot be wrong. <span class="math inline">\(E_2\)</span> is the only place your claim enters, which is why it is the one that tests it.</p>
+</section>
+<section id="why-the-slope-is-2" class="level2">
+<h2 class="anchored" data-anchor-id="why-the-slope-is-2">Why the slope is 2</h2>
+<p>Work it through on <span class="math inline">\(F = x^2\)</span>, where <span class="math inline">\(dF/dx = 2x\)</span> and everything is visible:</p>
+<p><span id="eq-e1sq"><span class="math display">\[
+E_1 = (x + \Delta x)^2 - x^2 = 2x\Delta x + (\Delta x)^2
+\tag{4}\]</span></span></p>
+<p><span id="eq-e2sq"><span class="math display">\[
+E_2 = E_1 - 2x\Delta x = (\Delta x)^2
+\tag{5}\]</span></span></p>
+<p>For small <span class="math inline">\(\Delta x\)</span> the quadratic term in <a href="#eq-e1sq" class="quarto-xref">Equation&nbsp;4</a> is negligible beside the linear one, so <span class="math inline">\(E_1 \approx 2x\Delta x\)</span>. Take logarithms of both:</p>
+<p><span id="eq-lne1"><span class="math display">\[
+\ln|E_1| = \ln(2x) + \ln(\Delta x)
+\tag{6}\]</span></span></p>
+<p><span id="eq-lne2"><span class="math display">\[
+\ln|E_2| = 2\ln(\Delta x)
+\tag{7}\]</span></span></p>
+<p>Here <span class="math inline">\(x\)</span> is held fixed and only <span class="math inline">\(\Delta x\)</span> varies, so <span class="math inline">\(\ln(2x)\)</span> is a constant. Eliminate <span class="math inline">\(\ln(\Delta x)\)</span> between <a href="#eq-lne1" class="quarto-xref">Equation&nbsp;6</a> and <a href="#eq-lne2" class="quarto-xref">Equation&nbsp;7</a>:</p>
+<p><span id="eq-slope"><span class="math display">\[
+\ln|E_2| = 2\ln|E_1| - 2\ln(2x)
+\tag{8}\]</span></span></p>
+<p>A straight line of <strong>slope 2</strong>. Not approximately, not asymptotically — this is what the algebra gives, for a correctly coded derivative.</p>
+<section id="why-it-fails-loudly-when-the-derivative-is-wrong" class="level3">
+<h3 class="anchored" data-anchor-id="why-it-fails-loudly-when-the-derivative-is-wrong">Why it fails loudly when the derivative is wrong</h3>
+<p>Suppose your code returns <span class="math inline">\(\frac{dF}{dx} + \delta\)</span> instead of the true value. Then <a href="#eq-e2" class="quarto-xref">Equation&nbsp;3</a> becomes</p>
+<p><span class="math display">\[
+E_2 = -\delta\,\Delta x + \frac{1}{2}\frac{d^2F}{dx^2}(\Delta x)^2 + \cdots
+\]</span></p>
+<p>The leading term is now <strong>first order</strong> in <span class="math inline">\(\Delta x\)</span>, exactly like <span class="math inline">\(E_1\)</span>. So <span class="math inline">\(\ln|E_2| = \ln|E_1| + \text{constant}\)</span> and the slope collapses to <strong>1</strong>.</p>
+<p>This is why the test is sharp. However small <span class="math inline">\(\delta\)</span> is, <span class="math inline">\(\Delta x\)</span> eventually beats <span class="math inline">\((\Delta x)^2\)</span>, so the wrong first-order term always wins in the limit. A tiny error does not produce a slope of 1.99 — it produces a slope of 1. You are reading a rate, not a magnitude, and there is no tolerance to tune.</p>
+</section>
+<section id="the-general-case" class="level3">
+<h3 class="anchored" data-anchor-id="the-general-case">The general case</h3>
+<p>Nothing above needed <span class="math inline">\(F = x^2\)</span>. Dividing <a href="#eq-e2" class="quarto-xref">Equation&nbsp;3</a> by the square of <a href="#eq-e1" class="quarto-xref">Equation&nbsp;2</a>, the <span class="math inline">\(\Delta x\)</span> factors cancel:</p>
+<p><span id="eq-ratio"><span class="math display">\[
+\frac{E_2}{E_1^{\,2}} \;\longrightarrow\;
+  \frac{F''(x)}{2\,F'(x)^2} \qquad \text{as } \Delta x \to 0
+\tag{9}\]</span></span></p>
+<p>so for any twice-differentiable <span class="math inline">\(F\)</span>,</p>
+<p><span id="eq-general"><span class="math display">\[
+\ln|E_2| = 2\ln|E_1| + \ln\left|\frac{F''(x)}{2F'(x)^2}\right| + O(\Delta x)
+\tag{10}\]</span></span></p>
+<p>Slope 2 always; the intercept depends on the function and on where you evaluate it. For <span class="math inline">\(F = x^2\)</span> that intercept is <span class="math inline">\(\ln\left|2 / (2 \cdot 4x^2)\right| = -2\ln(2x)\)</span>, which is <a href="#eq-slope" class="quarto-xref">Equation&nbsp;8</a> again.</p>
+<p>The split matters: the intercept is what you would need to know the function to predict, and the slope is not. That is why the test is built on the slope.</p>
+</section>
+</section>
+<section id="checking-it-on-functions-you-can-differentiate-by-hand" class="level2">
+<h2 class="anchored" data-anchor-id="checking-it-on-functions-you-can-differentiate-by-hand">Checking it on functions you can differentiate by hand</h2>
+<p>Two functions first, including one wrong derivative for contrast. For <span class="math inline">\(F = \ln x\)</span> the series does not terminate — <span class="math inline">\(E_2 = \ln(1 + \Delta x/x) - \Delta x/x = -\tfrac{1}{2}(\Delta x/x)^2 + \cdots\)</span> — so the <span class="math inline">\(O(\Delta x)\)</span> correction in <a href="#eq-general" class="quarto-xref">Equation&nbsp;10</a> is visible at large steps and fades as the step shrinks.</p>
+<div id="tbl-simple" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="1">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-simple-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1
+</figcaption>
+<div aria-describedby="tbl-simple-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>x   <span class="op">=</span> <span class="fl">3.0</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>dxs <span class="op">=</span> [<span class="fl">1e-2</span>, <span class="fl">1e-3</span>, <span class="fl">1e-4</span>, <span class="fl">1e-5</span>, <span class="fl">1e-6</span>]</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pair(kind, dx):</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> kind <span class="op">==</span> <span class="st">"sq"</span>:                                   <span class="co"># F = x^2, correct</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        E1 <span class="op">=</span> (x <span class="op">+</span> dx)<span class="op">**</span><span class="dv">2</span> <span class="op">-</span> x<span class="op">**</span><span class="dv">2</span><span class="op">;</span>        <span class="cf">return</span> E1, E1 <span class="op">-</span> <span class="fl">2.0</span> <span class="op">*</span> x <span class="op">*</span> dx</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> kind <span class="op">==</span> <span class="st">"ln"</span>:                                   <span class="co"># F = ln x, correct</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        E1 <span class="op">=</span> math.log(x <span class="op">+</span> dx) <span class="op">-</span> math.log(x)<span class="op">;</span> <span class="cf">return</span> E1, E1 <span class="op">-</span> dx <span class="op">/</span> x</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    E1 <span class="op">=</span> (x <span class="op">+</span> dx)<span class="op">**</span><span class="dv">2</span> <span class="op">-</span> x<span class="op">**</span><span class="dv">2</span><span class="op">;</span>            <span class="cf">return</span> E1, E1 <span class="op">-</span> <span class="fl">2.1</span> <span class="op">*</span> x <span class="op">*</span> dx   <span class="co"># 5% wrong</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"| $</span><span class="ch">\\</span><span class="st">Delta x$ range | $x^2$ | $</span><span class="ch">\\</span><span class="st">ln x$ | $x^2$, derivative 5% wrong |"</span>)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"| --- | --- | --- | --- |"</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(dxs) <span class="op">-</span> <span class="dv">1</span>):</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    cells <span class="op">=</span> []</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> kind <span class="kw">in</span> (<span class="st">"sq"</span>, <span class="st">"ln"</span>, <span class="st">"bad"</span>):</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>        (a1, a2), (b1, b2) <span class="op">=</span> pair(kind, dxs[k]), pair(kind, dxs[k <span class="op">+</span> <span class="dv">1</span>])</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>        cells.append(math.log(<span class="bu">abs</span>(a2 <span class="op">/</span> b2)) <span class="op">/</span> math.log(<span class="bu">abs</span>(a1 <span class="op">/</span> b1)))</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"| </span><span class="sc">{</span>dxs[k]<span class="sc">:.0e}</span><span class="ss"> to </span><span class="sc">{</span>dxs[k<span class="op">+</span><span class="dv">1</span>]<span class="sc">:.0e}</span><span class="ss"> | "</span> <span class="op">+</span> <span class="st">" | "</span>.join(<span class="ss">f"</span><span class="sc">{</span>c<span class="sc">:.4f}</span><span class="ss">"</span> <span class="cf">for</span> c <span class="kw">in</span> cells) <span class="op">+</span> <span class="st">" |"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th><span class="math inline">\(\Delta x\)</span> range</th>
+<th><span class="math inline">\(x^2\)</span></th>
+<th><span class="math inline">\(\ln x\)</span></th>
+<th><span class="math inline">\(x^2\)</span>, derivative 5% wrong</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1e-02 to 1e-03</td>
+<td>1.9987</td>
+<td>2.0004</td>
+<td>0.9861</td>
+</tr>
+<tr class="even">
+<td>1e-03 to 1e-04</td>
+<td>1.9999</td>
+<td>2.0000</td>
+<td>0.9986</td>
+</tr>
+<tr class="odd">
+<td>1e-04 to 1e-05</td>
+<td>2.0000</td>
+<td>2.0000</td>
+<td>0.9999</td>
+</tr>
+<tr class="even">
+<td>1e-05 to 1e-06</td>
+<td>1.9996</td>
+<td>1.9990</td>
+<td>1.0000</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Two correct derivatives give 2. A five percent error gives 1. Nothing lands in between, and the gap widens as the step shrinks rather than narrowing.</p>
+<section id="does-it-hold-generally" class="level3">
+<h3 class="anchored" data-anchor-id="does-it-hold-generally">Does it hold generally?</h3>
+<p>Two cases prove little, and <a href="#eq-general" class="quarto-xref">Equation&nbsp;10</a> claims something about every twice-differentiable function — including the intercept. A wider sweep:</p>
+<div id="tbl-sweep" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="2">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-sweep-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2
+</figcaption>
+<div aria-describedby="tbl-sweep-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>cases <span class="op">=</span> {</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"$x^2$"</span>:       (<span class="kw">lambda</span> t: t<span class="op">**</span><span class="dv">2</span>,            <span class="kw">lambda</span> t: <span class="dv">2</span><span class="op">*</span>t,               <span class="kw">lambda</span> t: <span class="fl">2.0</span>),</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"$</span><span class="ch">\\</span><span class="st">ln x$"</span>:    (math.log,                  <span class="kw">lambda</span> t: <span class="dv">1</span><span class="op">/</span>t,               <span class="kw">lambda</span> t: <span class="op">-</span><span class="dv">1</span><span class="op">/</span>t<span class="op">**</span><span class="dv">2</span>),</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"$1/x$"</span>:       (<span class="kw">lambda</span> t: <span class="dv">1</span><span class="op">/</span>t,             <span class="kw">lambda</span> t: <span class="op">-</span><span class="dv">1</span><span class="op">/</span>t<span class="op">**</span><span class="dv">2</span>,           <span class="kw">lambda</span> t: <span class="dv">2</span><span class="op">/</span>t<span class="op">**</span><span class="dv">3</span>),</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"$e^x$"</span>:       (math.exp,                  math.exp,                    math.exp),</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"$</span><span class="ch">\\</span><span class="st">sqrt</span><span class="sc">{x}</span><span class="st">$"</span>: (math.sqrt,                 <span class="kw">lambda</span> t: <span class="fl">0.5</span><span class="op">/</span>math.sqrt(t),  <span class="kw">lambda</span> t: <span class="op">-</span><span class="fl">0.25</span><span class="op">*</span>t<span class="op">**-</span><span class="fl">1.5</span>),</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"$</span><span class="ch">\\</span><span class="st">sin x$"</span>:   (math.sin,                  math.cos,                    <span class="kw">lambda</span> t: <span class="op">-</span>math.sin(t)),</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"$x^2</span><span class="ch">\\</span><span class="st">ln x$"</span>: (<span class="kw">lambda</span> t: t<span class="op">*</span>t<span class="op">*</span>math.log(t), <span class="kw">lambda</span> t: <span class="dv">2</span><span class="op">*</span>t<span class="op">*</span>math.log(t)<span class="op">+</span>t, <span class="kw">lambda</span> t: <span class="dv">2</span><span class="op">*</span>math.log(t)<span class="op">+</span><span class="dv">3</span>),</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"| $F(x)$ | slope | intercept | predicted |"</span>)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"| --- | --- | --- | --- |"</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, (F, d1, d2) <span class="kw">in</span> cases.items():</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    pts <span class="op">=</span> []</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> dx <span class="kw">in</span> [<span class="fl">1e-3</span>, <span class="fl">1e-4</span>, <span class="fl">1e-5</span>]:</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        E1 <span class="op">=</span> F(x <span class="op">+</span> dx) <span class="op">-</span> F(x)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        pts.append((math.log(<span class="bu">abs</span>(E1)), math.log(<span class="bu">abs</span>(E1 <span class="op">-</span> d1(x) <span class="op">*</span> dx))))</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    slope     <span class="op">=</span> (pts[<span class="dv">0</span>][<span class="dv">1</span>] <span class="op">-</span> pts[<span class="dv">2</span>][<span class="dv">1</span>]) <span class="op">/</span> (pts[<span class="dv">0</span>][<span class="dv">0</span>] <span class="op">-</span> pts[<span class="dv">2</span>][<span class="dv">0</span>])</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    intercept <span class="op">=</span> pts[<span class="dv">1</span>][<span class="dv">1</span>] <span class="op">-</span> <span class="dv">2</span> <span class="op">*</span> pts[<span class="dv">1</span>][<span class="dv">0</span>]</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"| </span><span class="sc">{</span>name<span class="sc">}</span><span class="ss"> | </span><span class="sc">{</span>slope<span class="sc">:.5f}</span><span class="ss"> | </span><span class="sc">{</span>intercept<span class="sc">:.6f}</span><span class="ss"> "</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"| </span><span class="sc">{</span>math<span class="sc">.</span>log(<span class="bu">abs</span>(d2(x) <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> d1(x)<span class="op">**</span><span class="dv">2</span>)))<span class="sc">:.6f}</span><span class="ss"> |"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th><span class="math inline">\(F(x)\)</span></th>
+<th>slope</th>
+<th>intercept</th>
+<th>predicted</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(x^2\)</span></td>
+<td>1.99993</td>
+<td>-3.583552</td>
+<td>-3.583519</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\ln x\)</span></td>
+<td>2.00002</td>
+<td>-0.693136</td>
+<td>-0.693147</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(1/x\)</span></td>
+<td>2.00007</td>
+<td>1.098646</td>
+<td>1.098612</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(e^x\)</span></td>
+<td>1.99986</td>
+<td>-3.693214</td>
+<td>-3.693147</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\sqrt{x}\)</span></td>
+<td>2.00002</td>
+<td>-1.242454</td>
+<td>-1.242453</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\sin x\)</span></td>
+<td>1.99946</td>
+<td>-2.631424</td>
+<td>-2.631176</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(x^2\ln x\)</span></td>
+<td>1.99989</td>
+<td>-3.566863</td>
+<td>-3.566813</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Growth rates from <span class="math inline">\(1/x\)</span> to <span class="math inline">\(e^x\)</span>, a sign-changing second derivative, a product needing the chain rule. Every slope is 2 to four decimals and every intercept matches <a href="#eq-general" class="quarto-xref">Equation&nbsp;10</a> to five. That is the case for trusting the method on something you cannot differentiate by hand.</p>
+</section>
+</section>
+<section id="measuring-the-slope-properly" class="level2">
+<h2 class="anchored" data-anchor-id="measuring-the-slope-properly">Measuring the slope properly</h2>
+<p>Each perturbation produces exactly one <span class="math inline">\(E_1\)</span> and one <span class="math inline">\(E_2\)</span>, so a <em>series</em> of step sizes produces a series of points — one point per step. Writing</p>
+<p><span id="eq-f1f2"><span class="math display">\[
+F_1 = \ln|E_1|, \qquad F_2 = \ln|E_2|
+\tag{11}\]</span></span></p>
+<p>a run over five values of <span class="math inline">\(\Delta x\)</span> gives five pairs <span class="math inline">\((F_1, F_2)\)</span>, and the slope you are testing is the slope of the line through them.</p>
+<section id="why-two-points-is-the-minimum" class="level3">
+<h3 class="anchored" data-anchor-id="why-two-points-is-the-minimum">Why two points is the minimum</h3>
+<p>A single perturbation gives a single point, and a single point has no slope — infinitely many lines pass through it.</p>
+<p>It is tempting to think the ratio <span class="math inline">\(F_2/F_1\)</span> would do. It would, if the line passed through the origin. It does not: <a href="#eq-general" class="quarto-xref">Equation&nbsp;10</a> puts the intercept at <span class="math inline">\(\ln\left|F''/2F'^{\,2}\right|\)</span>, which for the worked example below is about 4.01. Taking the ratio anyway, on that same data:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th><span class="math inline">\(p\)</span></th>
+<th><span class="math inline">\(F_1\)</span></th>
+<th><span class="math inline">\(F_2\)</span></th>
+<th><span class="math inline">\(F_2/F_1\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1e-02</td>
+<td>1.1717</td>
+<td>−5.1997</td>
+<td>−4.4377</td>
+</tr>
+<tr class="even">
+<td>1e-03</td>
+<td>−1.1324</td>
+<td>−9.8044</td>
+<td>8.6580</td>
+</tr>
+<tr class="odd">
+<td>1e-04</td>
+<td>−3.4351</td>
+<td>−14.4095</td>
+<td>4.1947</td>
+</tr>
+<tr class="even">
+<td>1e-05</td>
+<td>−5.7377</td>
+<td>−19.0149</td>
+<td>3.3140</td>
+</tr>
+</tbody>
+</table>
+<p>Not one of them is near 2, and they do not even agree with each other. The intercept is responsible for the whole mess, and it is not optional — it carries real information, since <a href="#eq-general" class="quarto-xref">Equation&nbsp;10</a> predicts it in closed form.</p>
+<p><strong>Two points remove the problem, because the unknown intercept cancels.</strong></p>
+<p>Do not assume the slope — it is the thing being measured. Call it <span class="math inline">\(m\)</span>, leave the intercept as <span class="math inline">\(c\)</span>, and write the relation at two step sizes <span class="math inline">\(k\)</span> and <span class="math inline">\(k+1\)</span>:</p>
+<p><span id="eq-twopt"><span class="math display">\[
+F_{2,k} = m F_{1,k} + c, \qquad F_{2,k+1} = m F_{1,k+1} + c
+\tag{12}\]</span></span></p>
+<p>Two equations, two unknowns. Subtracting eliminates <span class="math inline">\(c\)</span> whatever its value and leaves <span class="math inline">\(m\)</span> on its own:</p>
+<p><span id="eq-secant"><span class="math display">\[
+m = \frac{F_{2,k} - F_{2,k+1}}{F_{1,k} - F_{1,k+1}}
+  = \frac{\ln\left|E_{2,k} / E_{2,k+1}\right|}{\ln\left|E_{1,k} / E_{1,k+1}\right|}
+\tag{13}\]</span></span></p>
+<p>This matters for the logic of the test. <a href="#eq-secant" class="quarto-xref">Equation&nbsp;13</a> <em>measures</em> <span class="math inline">\(m\)</span> from the data without assuming anything about it. Theory then predicts what it should be: <span class="math inline">\(m = 2\)</span> if the derivative is correct, <span class="math inline">\(m = 1\)</span> if it is not. Comparing the two is the test. Had we written <span class="math inline">\(2\)</span> in <a href="#eq-twopt" class="quarto-xref">Equation&nbsp;12</a> we would have assumed the answer and learned nothing.</p>
+<p><a href="#eq-secant" class="quarto-xref">Equation&nbsp;13</a> is what the slope columns in every table here compute. Each value belongs to a <strong>pair</strong> of rows, not to a single row — which is why those columns are labelled by an interval and why the last row has no entry.</p>
+<p>So two points is the minimum. They determine a unique line, so they fix <span class="math inline">\(c\)</span> as well as <span class="math inline">\(m\)</span> — back-substituting <span class="math inline">\(c = F_{2,k} - m F_{1,k}\)</span> recovers it. <a href="#eq-secant" class="quarto-xref">Equation&nbsp;13</a> simply avoids needing it. That is a convenience, not a limitation.</p>
+<p>What two points cannot give you is any evidence that the relation is linear in the first place. A line through two points fits them exactly, with zero residual, so there is nothing left over to tell you whether the slope is <em>stable</em>. Five perturbations give you that, and stability across the range is what locates the round-off floor.</p>
+</section>
+<section id="fitting-all-of-them-at-once" class="level3">
+<h3 class="anchored" data-anchor-id="fitting-all-of-them-at-once">Fitting all of them at once</h3>
+<p>Reading the slope a pair at a time is fine for seeing the trend, but each value uses only two of your points and depends on which pair you picked. Least squares uses all of them:</p>
+<p><span id="eq-ls"><span class="math display">\[
+\text{slope} = \frac{\sum_r F_{1,r}\left(F_{2,r} - \overline{F_2}\right)}
+                     {\sum_r F_{1,r}\left(F_{1,r} - \overline{F_1}\right)}
+\tag{14}\]</span></span></p>
+<p>The subscript <span class="math inline">\(r\)</span> indexes the perturbations — one term per step size — and the overbars are means over that series.</p>
+</section>
+<section id="where-eq-ls-comes-from" class="level3">
+<h3 class="anchored" data-anchor-id="where-eq-ls-comes-from">Where <a href="#eq-ls" class="quarto-xref">Equation&nbsp;14</a> comes from</h3>
+<p>It is ordinary linear least squares, and it is worth seeing that this form is not a rearrangement of the familiar one — it is what the normal equations give directly. Fitting <span class="math inline">\(F_2 = a + b F_1\)</span> means choosing <span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span> to minimise</p>
+<p><span id="eq-sse"><span class="math display">\[
+S(a, b) = \sum_r \left(F_{2,r} - a - b F_{1,r}\right)^2
+\tag{15}\]</span></span></p>
+<p>Differentiating with respect to the intercept and setting it to zero,</p>
+<p><span id="eq-normal-a"><span class="math display">\[
+\frac{\partial S}{\partial a} = -2\sum_r \left(F_{2,r} - a - b F_{1,r}\right) = 0
+\quad\Longrightarrow\quad a = \overline{F_2} - b\,\overline{F_1}
+\tag{16}\]</span></span></p>
+<p>so the fitted line passes through the centroid of the data. Differentiating with respect to the slope,</p>
+<p><span id="eq-normal-b"><span class="math display">\[
+\frac{\partial S}{\partial b} = -2\sum_r F_{1,r}\left(F_{2,r} - a - b F_{1,r}\right) = 0
+\tag{17}\]</span></span></p>
+<p>and substituting <a href="#eq-normal-a" class="quarto-xref">Equation&nbsp;16</a> into <a href="#eq-normal-b" class="quarto-xref">Equation&nbsp;17</a> gives</p>
+<p><span class="math display">\[
+\sum_r F_{1,r}\left(F_{2,r} - \overline{F_2}\right)
+  = b \sum_r F_{1,r}\left(F_{1,r} - \overline{F_1}\right)
+\]</span></p>
+<p>which is <a href="#eq-ls" class="quarto-xref">Equation&nbsp;14</a> solved for <span class="math inline">\(b\)</span>. The more commonly quoted <span class="math inline">\(\sum(F_1 - \overline{F_1})(F_2 - \overline{F_2}) \big/ \sum(F_1 - \overline{F_1})^2\)</span> is the same number, obtained by adding and subtracting terms that vanish because deviations from a mean sum to zero.</p>
+<p>One detail worth noticing: the intercept <span class="math inline">\(a\)</span> is free here, not pinned to zero. That is deliberate — <a href="#eq-general" class="quarto-xref">Equation&nbsp;10</a> predicts a non-zero intercept, and forcing the line through the origin would bias the slope.</p>
+</section>
+</section>
+<section id="the-worked-example" class="level2">
+<h2 class="anchored" data-anchor-id="the-worked-example">The worked example</h2>
+<p>SRK for a methane–ethane binary, as a residual Helmholtz function. With</p>
+<p><span class="math display">\[
+B = \sum_i n_i b_i, \qquad D = \sum_i\sum_j n_i n_j a_{ij}, \qquad
+g = \ln\left(1 - \frac{B}{V}\right), \qquad f = \frac{1}{B}\ln\left(1 + \frac{B}{V}\right)
+\]</span></p>
+<p>the residual Helmholtz energy and the composition derivative under test are</p>
+<p><span id="eq-ares"><span class="math display">\[
+A^{res} = -n_{tot} R T\, g - D f
+\tag{18}\]</span></span></p>
+<p><span id="eq-ani"><span class="math display">\[
+A_{n_i} = -RT g - n_{tot} R T g_B b_i - D_i f - D f_B b_i
+\tag{19}\]</span></span></p>
+<p>where <span class="math inline">\(g_B = -1/(V-B)\)</span>, <span class="math inline">\(f_V = -1/[V(V+B)]\)</span>, <span class="math inline">\(f_B = -(f + V f_V)/B\)</span> and <span class="math inline">\(D_i = 2\sum_j a_{ij} n_j\)</span>.</p>
+<p><a href="#eq-ani" class="quarto-xref">Equation&nbsp;19</a> is the reason this post exists. Four terms, each arriving by a different path through the chain rule, and no way to tell by looking whether it is right.</p>
+<div id="model" class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>R, T, V <span class="op">=</span> <span class="fl">8.314462618</span>, <span class="fl">300.0</span>, <span class="fl">500.0</span>      <span class="co"># J/mol/K, K, cm3</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Tc  <span class="op">=</span> [<span class="fl">190.56</span>, <span class="fl">305.32</span>]                    <span class="co"># K</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>Pc  <span class="op">=</span> [<span class="fl">4.599e6</span>, <span class="fl">4.872e6</span>]                  <span class="co"># Pa</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>w   <span class="op">=</span> [<span class="fl">0.011</span>, <span class="fl">0.099</span>]</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>n   <span class="op">=</span> [<span class="fl">0.6</span>, <span class="fl">0.4</span>]                          <span class="co"># mol</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>k12 <span class="op">=</span> <span class="fl">0.01</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>b  <span class="op">=</span> [<span class="fl">8.664e4</span> <span class="op">*</span> (tc <span class="op">*</span> R) <span class="op">/</span> pc <span class="cf">for</span> tc, pc <span class="kw">in</span> <span class="bu">zip</span>(Tc, Pc)]</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>ac <span class="op">=</span> [<span class="fl">4.2747e5</span> <span class="op">*</span> ((R <span class="op">*</span> tc) <span class="op">**</span> <span class="dv">2</span>) <span class="op">/</span> pc <span class="cf">for</span> tc, pc <span class="kw">in</span> <span class="bu">zip</span>(Tc, Pc)]</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>m  <span class="op">=</span> [<span class="fl">0.48</span> <span class="op">+</span> <span class="fl">1.574</span> <span class="op">*</span> z <span class="op">-</span> <span class="fl">0.175</span> <span class="op">*</span> z <span class="op">*</span> z <span class="cf">for</span> z <span class="kw">in</span> w]</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>al <span class="op">=</span> [(<span class="dv">1</span> <span class="op">+</span> mi <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> math.sqrt(T <span class="op">/</span> tc))) <span class="op">**</span> <span class="dv">2</span> <span class="cf">for</span> mi, tc <span class="kw">in</span> <span class="bu">zip</span>(m, Tc)]</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>a  <span class="op">=</span> [aci <span class="op">*</span> ali <span class="cf">for</span> aci, ali <span class="kw">in</span> <span class="bu">zip</span>(ac, al)]</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>aij <span class="op">=</span> [[a[<span class="dv">0</span>], math.sqrt(a[<span class="dv">0</span>] <span class="op">*</span> a[<span class="dv">1</span>]) <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> k12)],</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>       [math.sqrt(a[<span class="dv">0</span>] <span class="op">*</span> a[<span class="dv">1</span>]) <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> k12), a[<span class="dv">1</span>]]]</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> A_res(nv):</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    B <span class="op">=</span> <span class="bu">sum</span>(ni <span class="op">*</span> bi <span class="cf">for</span> ni, bi <span class="kw">in</span> <span class="bu">zip</span>(nv, b))</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> <span class="bu">sum</span>(nv[i] <span class="op">*</span> nv[j] <span class="op">*</span> aij[i][j] <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>) <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>))</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">-</span><span class="bu">sum</span>(nv) <span class="op">*</span> R <span class="op">*</span> T <span class="op">*</span> math.log(<span class="dv">1</span> <span class="op">-</span> B <span class="op">/</span> V) <span class="op">-</span> D <span class="op">*</span> math.log(<span class="dv">1</span> <span class="op">+</span> B <span class="op">/</span> V) <span class="op">/</span> B</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>B <span class="op">=</span> <span class="bu">sum</span>(ni <span class="op">*</span> bi <span class="cf">for</span> ni, bi <span class="kw">in</span> <span class="bu">zip</span>(n, b))</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>D <span class="op">=</span> <span class="bu">sum</span>(n[i] <span class="op">*</span> n[j] <span class="op">*</span> aij[i][j] <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>) <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>))</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>g, f <span class="op">=</span> math.log(<span class="dv">1</span> <span class="op">-</span> B <span class="op">/</span> V), math.log(<span class="dv">1</span> <span class="op">+</span> B <span class="op">/</span> V) <span class="op">/</span> B</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>g_B  <span class="op">=</span> <span class="op">-</span><span class="dv">1</span> <span class="op">/</span> (V <span class="op">-</span> B)</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>f_V  <span class="op">=</span> <span class="op">-</span><span class="dv">1</span> <span class="op">/</span> (V <span class="op">*</span> (V <span class="op">+</span> B))</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>f_B  <span class="op">=</span> <span class="op">-</span>(f <span class="op">+</span> V <span class="op">*</span> f_V) <span class="op">/</span> B</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>D1   <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> (aij[<span class="dv">0</span>][<span class="dv">0</span>] <span class="op">*</span> n[<span class="dv">0</span>] <span class="op">+</span> aij[<span class="dv">0</span>][<span class="dv">1</span>] <span class="op">*</span> n[<span class="dv">1</span>])</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>A_n1 <span class="op">=</span> <span class="op">-</span>R <span class="op">*</span> T <span class="op">*</span> g <span class="op">-</span> <span class="bu">sum</span>(n) <span class="op">*</span> R <span class="op">*</span> T <span class="op">*</span> g_B <span class="op">*</span> b[<span class="dv">0</span>] <span class="op">-</span> D1 <span class="op">*</span> f <span class="op">-</span> D <span class="op">*</span> f_B <span class="op">*</span> b[<span class="dv">0</span>]</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"A_res = </span><span class="sc">{</span>A_res(n)<span class="sc">:.6f}</span><span class="ss"> J"</span>)</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"A_n1  = </span><span class="sc">{</span>A_n1<span class="sc">:.6f}</span><span class="ss"> J/mol"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>A_res = -406.946593 J
+A_n1  = -537.005260 J/mol</code></pre>
+</div>
+</div>
+<section id="perturbing-a-mole-number" class="level3">
+<h3 class="anchored" data-anchor-id="perturbing-a-mole-number">Perturbing a mole number</h3>
+<p>One practical change from the theory above. Rather than a fixed <span class="math inline">\(\Delta x\)</span>, perturb <em>relatively</em>: <span class="math inline">\(\Delta n_1 = n_1 p\)</span>, so <span class="math inline">\(n_1 \to n_1(1+p)\)</span>. Nothing in the derivation cares — <span class="math inline">\(\Delta x\)</span> was arbitrary — but it means <span class="math inline">\(p\)</span> carries the same meaning whether a variable is of order <span class="math inline">\(10^{-3}\)</span> or <span class="math inline">\(10^{5}\)</span>, which matters once you start testing across the phase diagram.</p>
+<div id="tbl-test" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="4">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-test-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3
+</figcaption>
+<div aria-describedby="tbl-test-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>A0, rows <span class="op">=</span> A_res(n), []</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> p <span class="kw">in</span> [<span class="fl">1e-2</span>, <span class="fl">1e-3</span>, <span class="fl">1e-4</span>, <span class="fl">1e-5</span>, <span class="fl">1e-6</span>]:</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    E1 <span class="op">=</span> A_res([n[<span class="dv">0</span>] <span class="op">*</span> (<span class="dv">1</span> <span class="op">+</span> p), n[<span class="dv">1</span>]]) <span class="op">-</span> A0</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    rows.append((p, E1, E1 <span class="op">-</span> A_n1 <span class="op">*</span> n[<span class="dv">0</span>] <span class="op">*</span> p))</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"| $p$ | $E_1$ | $E_2$ | slope (this row to next) |"</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"| --- | --- | --- | --- |"</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, (p, E1, E2) <span class="kw">in</span> <span class="bu">enumerate</span>(rows):</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> k <span class="op">+</span> <span class="dv">1</span> <span class="op">&lt;</span> <span class="bu">len</span>(rows):</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        sl <span class="op">=</span> math.log(<span class="bu">abs</span>(E2 <span class="op">/</span> rows[k<span class="op">+</span><span class="dv">1</span>][<span class="dv">2</span>])) <span class="op">/</span> math.log(<span class="bu">abs</span>(E1 <span class="op">/</span> rows[k<span class="op">+</span><span class="dv">1</span>][<span class="dv">1</span>]))</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"| </span><span class="sc">{</span>p<span class="sc">:.0e}</span><span class="ss"> | </span><span class="sc">{</span>E1<span class="sc">:.6e}</span><span class="ss"> | </span><span class="sc">{</span>E2<span class="sc">:.6e}</span><span class="ss"> | </span><span class="sc">{</span>sl<span class="sc">:.4f}</span><span class="ss"> |"</span>)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"| </span><span class="sc">{</span>p<span class="sc">:.0e}</span><span class="ss"> | </span><span class="sc">{</span>E1<span class="sc">:.6e}</span><span class="ss"> | </span><span class="sc">{</span>E2<span class="sc">:.6e}</span><span class="ss"> | — |"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th><span class="math inline">\(p\)</span></th>
+<th><span class="math inline">\(E_1\)</span></th>
+<th><span class="math inline">\(E_2\)</span></th>
+<th>slope (this row to next)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1e-02</td>
+<td>-3.227550e+00</td>
+<td>-5.518160e-03</td>
+<td>1.9984</td>
+</tr>
+<tr class="even">
+<td>1e-03</td>
+<td>-3.222584e-01</td>
+<td>-5.520909e-05</td>
+<td>1.9998</td>
+</tr>
+<tr class="odd">
+<td>1e-04</td>
+<td>-3.222087e-02</td>
+<td>-5.521168e-07</td>
+<td>2.0001</td>
+</tr>
+<tr class="even">
+<td>1e-05</td>
+<td>-3.222037e-03</td>
+<td>-5.520174e-09</td>
+<td>2.0049</td>
+</tr>
+<tr class="odd">
+<td>1e-06</td>
+<td>-3.222032e-04</td>
+<td>-5.458630e-11</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p><span class="math inline">\(E_1\)</span> falls by ten per row; <span class="math inline">\(E_2\)</span> by one hundred. The slope column reads 2. <a href="#eq-ani" class="quarto-xref">Equation&nbsp;19</a> is correct.</p>
+<div id="least-squares" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>F1 <span class="op">=</span> [math.log(<span class="bu">abs</span>(r[<span class="dv">1</span>])) <span class="cf">for</span> r <span class="kw">in</span> rows]</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>F2 <span class="op">=</span> [math.log(<span class="bu">abs</span>(r[<span class="dv">2</span>])) <span class="cf">for</span> r <span class="kw">in</span> rows]</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ls_slope(f1, f2):</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    m1, m2 <span class="op">=</span> <span class="bu">sum</span>(f1) <span class="op">/</span> <span class="bu">len</span>(f1), <span class="bu">sum</span>(f2) <span class="op">/</span> <span class="bu">len</span>(f2)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (<span class="bu">sum</span>(a <span class="op">*</span> (b_ <span class="op">-</span> m2) <span class="cf">for</span> a, b_ <span class="kw">in</span> <span class="bu">zip</span>(f1, f2))</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>            <span class="op">/</span> <span class="bu">sum</span>(a <span class="op">*</span> (a <span class="op">-</span> m1) <span class="cf">for</span> a <span class="kw">in</span> f1))</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"all five points    slope = </span><span class="sc">{</span>ls_slope(F1, F2)<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"drop p = 1e-6      slope = </span><span class="sc">{</span>ls_slope(F1[:<span class="dv">4</span>], F2[:<span class="dv">4</span>])<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"p = 1e-2 to 1e-4   slope = </span><span class="sc">{</span>ls_slope(F1[:<span class="dv">3</span>], F2[:<span class="dv">3</span>])<span class="sc">:.6f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>all five points    slope = 2.000636
+drop p = 1e-6      slope = 1.999492
+p = 1e-2 to 1e-4   slope = 1.999146</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="where-it-stops-working" class="level2">
+<h2 class="anchored" data-anchor-id="where-it-stops-working">Where it stops working</h2>
+<p>Look at the last row of the table. The slope column drifts, and the least-squares fit over all five points sits slightly <em>above</em> 2 while the fit over the clean range sits just below.</p>
+<p>That is round-off, not a wrong derivative. At <span class="math inline">\(p = 10^{-6}\)</span> we extract a quantity of order <span class="math inline">\(10^{-11}\)</span> from a difference of numbers of order <span class="math inline">\(10^{2}\)</span> — thirteen significant figures, against the sixteen or so double precision carries. Most of the precision is consumed by cancellation before <a href="#eq-e2" class="quarto-xref">Equation&nbsp;3</a> even subtracts.</p>
+<p>This is the finite-difference tradeoff, and the consequence is worth stating plainly: <strong>shrinking <span class="math inline">\(\Delta x\)</span> does not sharpen the test indefinitely.</strong> Truncation error falls as the step shrinks; round-off error rises. The usable window here runs from about <span class="math inline">\(10^{-2}\)</span> to <span class="math inline">\(10^{-4}\)</span>, and you find it by looking for where the slope is flat rather than by assuming smaller is better.</p>
+<section id="sidestepping-the-floor" class="level3">
+<h3 class="anchored" data-anchor-id="sidestepping-the-floor">Sidestepping the floor</h3>
+<p>The floor exists because <a href="#eq-e2" class="quarto-xref">Equation&nbsp;3</a> subtracts two nearly equal numbers. If your function is analytic and your code tolerates complex arithmetic, there is a way around it entirely — the complex-step derivative:</p>
+<p><span id="eq-cstep"><span class="math display">\[
+\frac{dF}{dx} \approx \frac{\operatorname{Im}\left[F(x + ih)\right]}{h}
+\tag{20}\]</span></span></p>
+<p>There is no subtraction of nearly equal reals here, so no cancellation and no floor: take <span class="math inline">\(h = 10^{-200}\)</span> and the agreement is at machine precision. The catch is that <span class="math inline">\(F\)</span> must be genuinely analytic. Absolute values, comparisons, branches and anything that discards an imaginary part will break it — and equation-of-state code is full of all four. When it applies it is sharper than anything above; when it fails, the failure itself tells you something about your function.</p>
+</section>
+</section>
+<section id="what-a-failure-looks-like" class="level2">
+<h2 class="anchored" data-anchor-id="what-a-failure-looks-like">What a failure looks like</h2>
+<p>Suppose the last term of <a href="#eq-ani" class="quarto-xref">Equation&nbsp;19</a>, <span class="math inline">\(D f_B b_i\)</span>, were wrong by one percent.</p>
+<div id="broken" class="cell" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>A_n1_bad <span class="op">=</span> A_n1 <span class="op">-</span> <span class="fl">0.01</span> <span class="op">*</span> (D <span class="op">*</span> f_B <span class="op">*</span> b[<span class="dv">0</span>])</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>bad <span class="op">=</span> [(p, E1, E1 <span class="op">-</span> A_n1_bad <span class="op">*</span> n[<span class="dv">0</span>] <span class="op">*</span> p) <span class="cf">for</span> p, E1, _ <span class="kw">in</span> rows]</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"| $p$ range | slope, correct | slope, 1</span><span class="sc">% e</span><span class="st">rror |"</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"| --- | --- | --- |"</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(rows) <span class="op">-</span> <span class="dv">1</span>):</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    good <span class="op">=</span> (math.log(<span class="bu">abs</span>(rows[k][<span class="dv">2</span>] <span class="op">/</span> rows[k<span class="op">+</span><span class="dv">1</span>][<span class="dv">2</span>]))</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>            <span class="op">/</span> math.log(<span class="bu">abs</span>(rows[k][<span class="dv">1</span>] <span class="op">/</span> rows[k<span class="op">+</span><span class="dv">1</span>][<span class="dv">1</span>])))</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    poor <span class="op">=</span> (math.log(<span class="bu">abs</span>(bad[k][<span class="dv">2</span>] <span class="op">/</span> bad[k<span class="op">+</span><span class="dv">1</span>][<span class="dv">2</span>]))</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>            <span class="op">/</span> math.log(<span class="bu">abs</span>(bad[k][<span class="dv">1</span>] <span class="op">/</span> bad[k<span class="op">+</span><span class="dv">1</span>][<span class="dv">1</span>])))</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"| </span><span class="sc">{</span>rows[k][<span class="dv">0</span>]<span class="sc">:.0e}</span><span class="ss"> to </span><span class="sc">{</span>rows[k<span class="op">+</span><span class="dv">1</span>][<span class="dv">0</span>]<span class="sc">:.0e}</span><span class="ss"> | </span><span class="sc">{</span>good<span class="sc">:.4f}</span><span class="ss"> | </span><span class="sc">{</span>poor<span class="sc">:.4f}</span><span class="ss"> |"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th><span class="math inline">\(p\)</span> range</th>
+<th>slope, correct</th>
+<th>slope, 1% error</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1e-02 to 1e-03</td>
+<td>1.9984</td>
+<td>1.6216</td>
+</tr>
+<tr class="even">
+<td>1e-03 to 1e-04</td>
+<td>1.9998</td>
+<td>1.1672</td>
+</tr>
+<tr class="odd">
+<td>1e-04 to 1e-05</td>
+<td>2.0001</td>
+<td>1.0209</td>
+</tr>
+<tr class="even">
+<td>1e-05 to 1e-06</td>
+<td>2.0049</td>
+<td>1.0021</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The correct column holds at 2; the broken one collapses toward 1 as the step shrinks, exactly as the five percent error on <span class="math inline">\(x^2\)</span> did. One wrong term out of four, under one percent of the total value, and the test reads it off unambiguously.</p>
+<p>You would not have caught that by checking the number looked reasonable.</p>
+</section>
+<section id="but-my-derivatives-come-from-a-computer" class="level2">
+<h2 class="anchored" data-anchor-id="but-my-derivatives-come-from-a-computer">“But my derivatives come from a computer”</h2>
+<p>Worth answering before you build any of this into a test suite.</p>
+<p>If you differentiate with autodiff — dual numbers, JAX, reverse mode — the derivative is generated from the function’s own code and is correct to machine precision by construction. The algebra-slip risk genuinely disappears. So is the test pointless?</p>
+<p>No, and the clearest evidence is that the autodiff ecosystem ships this exact test. PyTorch’s <code>torch.autograd.gradcheck</code> validates analytical gradients against finite differences, and is the documented way to verify a custom <code>autograd.Function</code>. JAX has <code>check_grads</code>. Both exist <em>because</em> the computer did the differentiation and somebody still wanted proof.</p>
+<p>The reason is that the test never asks where the derivative came from. It asks whether your derivative code is consistent with your function code, and that is the same question however the derivative was produced. What changes is what a slope of 1 tells you:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Derivative from</th>
+<th>What slope 1 means</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Hand derivation</td>
+<td>An algebra slip, or a typo in the code</td>
+</tr>
+<tr class="even">
+<td>Symbolic algebra, retyped</td>
+<td>A transcription error</td>
+</tr>
+<tr class="odd">
+<td>Autodiff</td>
+<td>A branch, an internal solver, a custom rule, or the wrong variable</td>
+</tr>
+<tr class="even">
+<td>Any of them, months later</td>
+<td>The function changed and the derivative did not</td>
+</tr>
+</tbody>
+</table>
+<section id="where-autodiff-actually-breaks-on-eos-code" class="level3">
+<h3 class="anchored" data-anchor-id="where-autodiff-actually-breaks-on-eos-code">Where autodiff actually breaks on EOS code</h3>
+<p>The interesting failures are not in the differentiation. They are in the assumptions around it, and equation-of-state code is unusually rich in them.</p>
+<p><strong>Branches.</strong> Which cubic root is the liquid? That is an <code>if</code>. Autodiff differentiates the branch taken and tells you nothing about the switch — and near a phase boundary the switch is exactly where you need the derivative to be right.</p>
+<p><strong>Internal iterative solves.</strong> If the function solves for volume by Newton iteration, naive autodiff differentiates <em>through the iterations</em> instead of applying the implicit function theorem. That is correct only if the iteration converged tightly, and silently wrong otherwise.</p>
+<p><strong>Custom derivative rules.</strong> The moment you hand-write one for speed you are back to hand-derivation, with less scrutiny, because it looks like autodiff.</p>
+<p><strong>Splines and lookup tables.</strong> You get the interpolant’s derivative, which is not the property’s derivative.</p>
+<p>A symbolic package has a different weakness. It hands you a correct expression, and then a human retypes it as code, splits it across intermediate variables, and reuses a term computed earlier. The derivation was right; the implementation is not.</p>
+</section>
+<section id="the-reason-that-never-goes-away" class="level3">
+<h3 class="anchored" data-anchor-id="the-reason-that-never-goes-away">The reason that never goes away</h3>
+<p>Someone swaps the <span class="math inline">\(\alpha\)</span> correlation, or makes <span class="math inline">\(k_{ij}\)</span> temperature dependent, updates <a href="#eq-ares" class="quarto-xref">Equation&nbsp;18</a> and forgets <a href="#eq-ani" class="quarto-xref">Equation&nbsp;19</a>. However the derivative was produced originally, the two code paths have now drifted apart, and this test is what notices.</p>
+<p>That makes it a regression test, and regression tests do not care how correct the code was on the day it was written.</p>
+</section>
+<section id="what-it-does-not-check" class="level3">
+<h3 class="anchored" data-anchor-id="what-it-does-not-check">What it does not check</h3>
+<p>It verifies your derivative against your function, not against your intent. Ask for <span class="math inline">\(\partial/\partial n_i\)</span> when you wanted <span class="math inline">\(\partial/\partial x_i\)</span>, test the same wrong thing, and it passes with slope 2 — consistently differentiating the wrong quantity. The test tells you the two code paths agree. Whether they are the pair you meant is still yours to get right.</p>
+</section>
+</section>
+<section id="using-it-in-practice" class="level2">
+<h2 class="anchored" data-anchor-id="using-it-in-practice">Using it in practice</h2>
+<ul>
+<li><strong>Test at several states.</strong> A derivative can be right in the vapour region and wrong near the critical point, where <span class="math inline">\(\alpha(T_r)\)</span> behaves differently.</li>
+<li><strong>Work outwards.</strong> Verify first derivatives before second. A second derivative checked against a wrong first derivative tells you nothing.</li>
+<li><strong>Perturb relatively</strong>, so one <span class="math inline">\(p\)</span> means the same thing for every variable.</li>
+<li><strong>Find the flat window</strong> before trusting a number, rather than assuming the smallest step is best.</li>
+<li><strong>Use the free checks too.</strong> Mixed second derivatives should be symmetric, <span class="math inline">\(A_{n_i n_j} = A_{n_j n_i}\)</span>, which costs one comparison and no perturbation at all. Euler’s theorem gives another: <span class="math inline">\(\sum_i n_i A_{n_i}\)</span> should reproduce a quantity you can compute directly.</li>
+<li><strong>Assert the slope, not the table.</strong> Check that the fitted slope from <a href="#eq-ls" class="quarto-xref">Equation&nbsp;14</a> is within tolerance of 2 across the clean window, and the whole thing runs in CI with nobody reading anything.</li>
+</ul>
+<p>The idea generalises past equations of state. Any time you differentiate something by hand and then implement it, you have made two independent claims and verified neither. This checks both against the one thing you are sure of.</p>
+</section>
+<section id="reference" class="level2">
+<h2 class="anchored" data-anchor-id="reference">Reference</h2>
+<!-- TODO: fill in the source. Section 2.3, "Numerical Testing of an EOS
+     Implementation", which is where the E1/E2 construction and the
+     slope-2 criterion are taken from. -->
+<p>The <span class="math inline">\(E_1\)</span> / <span class="math inline">\(E_2\)</span> construction and the slope-2 criterion are a standard technique for verifying hand-derived analytical derivatives against finite differences. The SRK Helmholtz formulation in terms of <span class="math inline">\(B\)</span>, <span class="math inline">\(D\)</span>, <span class="math inline">\(g\)</span> and <span class="math inline">\(f\)</span> is standard; the worked binary, the multi-function sweep and the round-off analysis are my own.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/www\.thermonerds\.com");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

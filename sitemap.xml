@@ -2,26 +2,30 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.thermonerds.com/posts/thermodynamic-potentials/index.html</loc>
-    <lastmod>2026-10-31T03:52:42.177Z</lastmod>
+    <lastmod>2026-11-01T04:18:52.718Z</lastmod>
   </url>
   <url>
-    <loc>https://www.thermonerds.com/posts/first-law/index.html</loc>
-    <lastmod>2026-10-31T03:52:42.173Z</lastmod>
+    <loc>https://www.thermonerds.com/posts/numerical-testing-EOS/index.html</loc>
+    <lastmod>2026-11-01T04:28:42.161Z</lastmod>
   </url>
   <url>
-    <loc>https://www.thermonerds.com/index.html</loc>
-    <lastmod>2026-10-31T03:52:42.167Z</lastmod>
+    <loc>https://www.thermonerds.com/posts/ai-math-into-word/index.html</loc>
+    <lastmod>2026-11-01T04:09:31.063Z</lastmod>
   </url>
   <url>
     <loc>https://www.thermonerds.com/about.html</loc>
     <lastmod>2026-10-31T03:52:42.167Z</lastmod>
   </url>
   <url>
-    <loc>https://www.thermonerds.com/posts/ai-math-into-word/index.html</loc>
+    <loc>https://www.thermonerds.com/index.html</loc>
     <lastmod>2026-10-31T03:52:42.167Z</lastmod>
   </url>
   <url>
+    <loc>https://www.thermonerds.com/posts/first-law/index.html</loc>
+    <lastmod>2026-11-01T04:09:30.181Z</lastmod>
+  </url>
+  <url>
     <loc>https://www.thermonerds.com/posts/potentials-for-eos/index.html</loc>
-    <lastmod>2026-10-31T03:52:42.173Z</lastmod>
+    <lastmod>2026-11-01T04:09:30.747Z</lastmod>
   </url>
 </urlset>

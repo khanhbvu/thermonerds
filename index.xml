@@ -10,7 +10,1899 @@
 <atom:link href="https://www.thermonerds.com/index.xml" rel="self" type="application/rss+xml"/>
 <description>Phase behaviour, equations of state, and the numerics behind them</description>
 <generator>quarto-1.10.20</generator>
-<lastBuildDate>Fri, 30 Oct 2026 05:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sat, 31 Oct 2026 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>Numerical Testing of an EOS Implementation</title>
+  <link>https://www.thermonerds.com/posts/numerical-testing-EOS/</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>Working with an equation of state means differentiating it, repeatedly. You need pressure as a derivative of Helmholtz energy, chemical potentials as derivatives with respect to composition, fugacity coefficients built from those, and second derivatives on top for anything that solves by Newton’s method. The expressions are considerably worse than polynomials, and in most production code they are derived by hand and then coded — autodiff costs a factor of several per evaluation, and a flash calculation calls these functions millions of times.</p>
+<p>Both steps can go wrong, and the failure is quiet. A derivative that is wrong by half a percent produces numbers that look entirely plausible. Your flash calculation still converges — just more slowly, or to the wrong answer near a phase boundary, or not at all at the one state point you needed.</p>
+<p>What makes this tractable is that you do not need a second implementation to check against, and you do not need symbolic algebra. You can check a derivative against the only thing you are sure of: the function it claims to differentiate.</p>
+<section id="where-e_1-and-e_2-come-from" class="level2">
+<h2 class="anchored" data-anchor-id="where-e_1-and-e_2-come-from">Where <img src="https://latex.codecogs.com/png.latex?E_1"> and <img src="https://latex.codecogs.com/png.latex?E_2"> come from</h2>
+<p>Take any function <img src="https://latex.codecogs.com/png.latex?F(x)"> and perturb its argument to <img src="https://latex.codecogs.com/png.latex?x_%7Bpert%7D%20=%20x%20+%20%5CDelta%20x">. A Taylor expansion says exactly what happens:</p>
+<p><span id="eq-taylor"><img src="https://latex.codecogs.com/png.latex?%0AF(x%20+%20%5CDelta%20x)%20=%20F(x)%20+%20%5Cfrac%7BdF%7D%7Bdx%7D%5CDelta%20x%0A%20%20+%20%5Cfrac%7B1%7D%7B2%7D%5Cfrac%7Bd%5E2F%7D%7Bdx%5E2%7D(%5CDelta%20x)%5E2%0A%20%20+%20%5Cfrac%7B1%7D%7B6%7D%5Cfrac%7Bd%5E3F%7D%7Bdx%5E3%7D(%5CDelta%20x)%5E3%20+%20%5Ccdots%0A%5Ctag%7B1%7D"></span></p>
+<p>Now truncate Equation&nbsp;1 at successive orders and ask how wrong you are each time. That is the whole idea, and both <img src="https://latex.codecogs.com/png.latex?E_1"> and <img src="https://latex.codecogs.com/png.latex?E_2"> come straight out of it.</p>
+<p><strong>Truncate after the first term.</strong> Pretend <img src="https://latex.codecogs.com/png.latex?F"> does not change at all, so <img src="https://latex.codecogs.com/png.latex?F(x_%7Bpert%7D)%20%5Capprox%20F(x)">. The error you make is everything you discarded:</p>
+<p><span id="eq-e1"><img src="https://latex.codecogs.com/png.latex?%0AE_1%20%5Cequiv%20F(x_%7Bpert%7D)%20-%20F(x)%0A%20%20=%20%5Cfrac%7BdF%7D%7Bdx%7D%5CDelta%20x%20+%20%5Cfrac%7B1%7D%7B2%7D%5Cfrac%7Bd%5E2F%7D%7Bdx%5E2%7D(%5CDelta%20x)%5E2%20+%20%5Ccdots%0A%5Ctag%7B2%7D"></span></p>
+<p><strong>Truncate after the second term.</strong> Now use the derivative you are testing. The error left over is:</p>
+<p><span id="eq-e2"><img src="https://latex.codecogs.com/png.latex?%0AE_2%20%5Cequiv%20F(x_%7Bpert%7D)%20-%20F(x)%20-%20%5Cfrac%7BdF%7D%7Bdx%7D%5CDelta%20x%0A%20%20=%20E_1%20-%20%5Cfrac%7BdF%7D%7Bdx%7D%5CDelta%20x%0A%20%20=%20%5Cfrac%7B1%7D%7B2%7D%5Cfrac%7Bd%5E2F%7D%7Bdx%5E2%7D(%5CDelta%20x)%5E2%20+%20%5Ccdots%0A%5Ctag%7B3%7D"></span></p>
+<p>So <img src="https://latex.codecogs.com/png.latex?E_1"> and <img src="https://latex.codecogs.com/png.latex?E_2"> are the same kind of object — truncation errors of the same series — measured one order apart. That is the entire construction.</p>
+<p>Two observations before going further.</p>
+<p>Neither is zero, and neither is supposed to be. Chasing a small <img src="https://latex.codecogs.com/png.latex?E_2"> is the wrong instinct; what carries the information is the <strong>rate</strong> at which each one vanishes as <img src="https://latex.codecogs.com/png.latex?%5CDelta%20x"> shrinks.</p>
+<p>And note the asymmetry. <img src="https://latex.codecogs.com/png.latex?E_1"> has a leading term plus corrections, so for small <img src="https://latex.codecogs.com/png.latex?%5CDelta%20x"> you can legitimately drop everything after <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7BdF%7D%7Bdx%7D%5CDelta%20x">. <img src="https://latex.codecogs.com/png.latex?E_2"> cannot be simplified the same way — its leading term <em>is</em> the first surviving term, and there is nothing larger to compare it against.</p>
+<p>Only one of these quantities contains your derivative. <img src="https://latex.codecogs.com/png.latex?E_1"> is computed from two calls to <img src="https://latex.codecogs.com/png.latex?F"> and nothing else, so it cannot be wrong. <img src="https://latex.codecogs.com/png.latex?E_2"> is the only place your claim enters, which is why it is the one that tests it.</p>
+</section>
+<section id="why-the-slope-is-2" class="level2">
+<h2 class="anchored" data-anchor-id="why-the-slope-is-2">Why the slope is 2</h2>
+<p>Work it through on <img src="https://latex.codecogs.com/png.latex?F%20=%20x%5E2">, where <img src="https://latex.codecogs.com/png.latex?dF/dx%20=%202x"> and everything is visible:</p>
+<p><span id="eq-e1sq"><img src="https://latex.codecogs.com/png.latex?%0AE_1%20=%20(x%20+%20%5CDelta%20x)%5E2%20-%20x%5E2%20=%202x%5CDelta%20x%20+%20(%5CDelta%20x)%5E2%0A%5Ctag%7B4%7D"></span></p>
+<p><span id="eq-e2sq"><img src="https://latex.codecogs.com/png.latex?%0AE_2%20=%20E_1%20-%202x%5CDelta%20x%20=%20(%5CDelta%20x)%5E2%0A%5Ctag%7B5%7D"></span></p>
+<p>For small <img src="https://latex.codecogs.com/png.latex?%5CDelta%20x"> the quadratic term in Equation&nbsp;4 is negligible beside the linear one, so <img src="https://latex.codecogs.com/png.latex?E_1%20%5Capprox%202x%5CDelta%20x">. Take logarithms of both:</p>
+<p><span id="eq-lne1"><img src="https://latex.codecogs.com/png.latex?%0A%5Cln%7CE_1%7C%20=%20%5Cln(2x)%20+%20%5Cln(%5CDelta%20x)%0A%5Ctag%7B6%7D"></span></p>
+<p><span id="eq-lne2"><img src="https://latex.codecogs.com/png.latex?%0A%5Cln%7CE_2%7C%20=%202%5Cln(%5CDelta%20x)%0A%5Ctag%7B7%7D"></span></p>
+<p>Here <img src="https://latex.codecogs.com/png.latex?x"> is held fixed and only <img src="https://latex.codecogs.com/png.latex?%5CDelta%20x"> varies, so <img src="https://latex.codecogs.com/png.latex?%5Cln(2x)"> is a constant. Eliminate <img src="https://latex.codecogs.com/png.latex?%5Cln(%5CDelta%20x)"> between Equation&nbsp;6 and Equation&nbsp;7:</p>
+<p><span id="eq-slope"><img src="https://latex.codecogs.com/png.latex?%0A%5Cln%7CE_2%7C%20=%202%5Cln%7CE_1%7C%20-%202%5Cln(2x)%0A%5Ctag%7B8%7D"></span></p>
+<p>A straight line of <strong>slope 2</strong>. Not approximately, not asymptotically — this is what the algebra gives, for a correctly coded derivative.</p>
+<section id="why-it-fails-loudly-when-the-derivative-is-wrong" class="level3">
+<h3 class="anchored" data-anchor-id="why-it-fails-loudly-when-the-derivative-is-wrong">Why it fails loudly when the derivative is wrong</h3>
+<p>Suppose your code returns <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7BdF%7D%7Bdx%7D%20+%20%5Cdelta"> instead of the true value. Then Equation&nbsp;3 becomes</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AE_2%20=%20-%5Cdelta%5C,%5CDelta%20x%20+%20%5Cfrac%7B1%7D%7B2%7D%5Cfrac%7Bd%5E2F%7D%7Bdx%5E2%7D(%5CDelta%20x)%5E2%20+%20%5Ccdots%0A"></p>
+<p>The leading term is now <strong>first order</strong> in <img src="https://latex.codecogs.com/png.latex?%5CDelta%20x">, exactly like <img src="https://latex.codecogs.com/png.latex?E_1">. So <img src="https://latex.codecogs.com/png.latex?%5Cln%7CE_2%7C%20=%20%5Cln%7CE_1%7C%20+%20%5Ctext%7Bconstant%7D"> and the slope collapses to <strong>1</strong>.</p>
+<p>This is why the test is sharp. However small <img src="https://latex.codecogs.com/png.latex?%5Cdelta"> is, <img src="https://latex.codecogs.com/png.latex?%5CDelta%20x"> eventually beats <img src="https://latex.codecogs.com/png.latex?(%5CDelta%20x)%5E2">, so the wrong first-order term always wins in the limit. A tiny error does not produce a slope of 1.99 — it produces a slope of 1. You are reading a rate, not a magnitude, and there is no tolerance to tune.</p>
+</section>
+<section id="the-general-case" class="level3">
+<h3 class="anchored" data-anchor-id="the-general-case">The general case</h3>
+<p>Nothing above needed <img src="https://latex.codecogs.com/png.latex?F%20=%20x%5E2">. Dividing Equation&nbsp;3 by the square of Equation&nbsp;2, the <img src="https://latex.codecogs.com/png.latex?%5CDelta%20x"> factors cancel:</p>
+<p><span id="eq-ratio"><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7BE_2%7D%7BE_1%5E%7B%5C,2%7D%7D%20%5C;%5Clongrightarrow%5C;%0A%20%20%5Cfrac%7BF''(x)%7D%7B2%5C,F'(x)%5E2%7D%20%5Cqquad%20%5Ctext%7Bas%20%7D%20%5CDelta%20x%20%5Cto%200%0A%5Ctag%7B9%7D"></span></p>
+<p>so for any twice-differentiable <img src="https://latex.codecogs.com/png.latex?F">,</p>
+<p><span id="eq-general"><img src="https://latex.codecogs.com/png.latex?%0A%5Cln%7CE_2%7C%20=%202%5Cln%7CE_1%7C%20+%20%5Cln%5Cleft%7C%5Cfrac%7BF''(x)%7D%7B2F'(x)%5E2%7D%5Cright%7C%20+%20O(%5CDelta%20x)%0A%5Ctag%7B10%7D"></span></p>
+<p>Slope 2 always; the intercept depends on the function and on where you evaluate it. For <img src="https://latex.codecogs.com/png.latex?F%20=%20x%5E2"> that intercept is <img src="https://latex.codecogs.com/png.latex?%5Cln%5Cleft%7C2%20/%20(2%20%5Ccdot%204x%5E2)%5Cright%7C%20=%20-2%5Cln(2x)">, which is Equation&nbsp;8 again.</p>
+<p>The split matters: the intercept is what you would need to know the function to predict, and the slope is not. That is why the test is built on the slope.</p>
+</section>
+</section>
+<section id="checking-it-on-functions-you-can-differentiate-by-hand" class="level2">
+<h2 class="anchored" data-anchor-id="checking-it-on-functions-you-can-differentiate-by-hand">Checking it on functions you can differentiate by hand</h2>
+<p>Two functions first, including one wrong derivative for contrast. For <img src="https://latex.codecogs.com/png.latex?F%20=%20%5Cln%20x"> the series does not terminate — <img src="https://latex.codecogs.com/png.latex?E_2%20=%20%5Cln(1%20+%20%5CDelta%20x/x)%20-%20%5CDelta%20x/x%20=%20-%5Ctfrac%7B1%7D%7B2%7D(%5CDelta%20x/x)%5E2%20+%20%5Ccdots"> — so the <img src="https://latex.codecogs.com/png.latex?O(%5CDelta%20x)"> correction in Equation&nbsp;10 is visible at large steps and fades as the step shrinks.</p>
+<div id="tbl-simple" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="1">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-simple-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1
+</figcaption>
+<div aria-describedby="tbl-simple-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> math</span>
+<span id="cb1-2"></span>
+<span id="cb1-3">x   <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.0</span></span>
+<span id="cb1-4">dxs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-2</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-3</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-4</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-5</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-6</span>]</span>
+<span id="cb1-5"></span>
+<span id="cb1-6"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> pair(kind, dx):</span>
+<span id="cb1-7">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> kind <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sq"</span>:                                   <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># F = x^2, correct</span></span>
+<span id="cb1-8">        E1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (x <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> dx)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> x<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span>        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> E1, E1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.0</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> x <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> dx</span>
+<span id="cb1-9">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> kind <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ln"</span>:                                   <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># F = ln x, correct</span></span>
+<span id="cb1-10">        E1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> math.log(x <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> dx) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> math.log(x)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> E1, E1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> dx <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> x</span>
+<span id="cb1-11">    E1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (x <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> dx)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> x<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span>            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> E1, E1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> x <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> dx   <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 5% wrong</span></span>
+<span id="cb1-12"></span>
+<span id="cb1-13"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"| $</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\\</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Delta x$ range | $x^2$ | $</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\\</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">ln x$ | $x^2$, derivative 5% wrong |"</span>)</span>
+<span id="cb1-14"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"| --- | --- | --- | --- |"</span>)</span>
+<span id="cb1-15"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> k <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(dxs) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>):</span>
+<span id="cb1-16">    cells <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> []</span>
+<span id="cb1-17">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> kind <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> (<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sq"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ln"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bad"</span>):</span>
+<span id="cb1-18">        (a1, a2), (b1, b2) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pair(kind, dxs[k]), pair(kind, dxs[k <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>])</span>
+<span id="cb1-19">        cells.append(math.log(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(a2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> b2)) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> math.log(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(a1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> b1)))</span>
+<span id="cb1-20">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"| </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>dxs[k]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.0e}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> to </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>dxs[k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.0e}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> | "</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">" | "</span>.join(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>c<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.4f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> c <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> cells) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">" |"</span>)</span></code></pre></div></div>
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th><img src="https://latex.codecogs.com/png.latex?%5CDelta%20x"> range</th>
+<th><img src="https://latex.codecogs.com/png.latex?x%5E2"></th>
+<th><img src="https://latex.codecogs.com/png.latex?%5Cln%20x"></th>
+<th><img src="https://latex.codecogs.com/png.latex?x%5E2">, derivative 5% wrong</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1e-02 to 1e-03</td>
+<td>1.9987</td>
+<td>2.0004</td>
+<td>0.9861</td>
+</tr>
+<tr class="even">
+<td>1e-03 to 1e-04</td>
+<td>1.9999</td>
+<td>2.0000</td>
+<td>0.9986</td>
+</tr>
+<tr class="odd">
+<td>1e-04 to 1e-05</td>
+<td>2.0000</td>
+<td>2.0000</td>
+<td>0.9999</td>
+</tr>
+<tr class="even">
+<td>1e-05 to 1e-06</td>
+<td>1.9996</td>
+<td>1.9990</td>
+<td>1.0000</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Two correct derivatives give 2. A five percent error gives 1. Nothing lands in between, and the gap widens as the step shrinks rather than narrowing.</p>
+<section id="does-it-hold-generally" class="level3">
+<h3 class="anchored" data-anchor-id="does-it-hold-generally">Does it hold generally?</h3>
+<p>Two cases prove little, and Equation&nbsp;10 claims something about every twice-differentiable function — including the intercept. A wider sweep:</p>
+<div id="tbl-sweep" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="2">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-sweep-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2
+</figcaption>
+<div aria-describedby="tbl-sweep-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1">cases <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> {</span>
+<span id="cb2-2">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"$x^2$"</span>:       (<span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: t<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>,            <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>t,               <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.0</span>),</span>
+<span id="cb2-3">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"$</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\\</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">ln x$"</span>:    (math.log,                  <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>t,               <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>t<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>),</span>
+<span id="cb2-4">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"$1/x$"</span>:       (<span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>t,             <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>t<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>,           <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>t<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>),</span>
+<span id="cb2-5">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"$e^x$"</span>:       (math.exp,                  math.exp,                    math.exp),</span>
+<span id="cb2-6">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"$</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\\</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">sqrt</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{x}</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">$"</span>: (math.sqrt,                 <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.5</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>math.sqrt(t),  <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.25</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>t<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.5</span>),</span>
+<span id="cb2-7">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"$</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\\</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">sin x$"</span>:   (math.sin,                  math.cos,                    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>math.sin(t)),</span>
+<span id="cb2-8">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"$x^2</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\\</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">ln x$"</span>: (<span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: t<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>t<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>math.log(t), <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>t<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>math.log(t)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span>t, <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> t: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>math.log(t)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>),</span>
+<span id="cb2-9">}</span>
+<span id="cb2-10"></span>
+<span id="cb2-11"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"| $F(x)$ | slope | intercept | predicted |"</span>)</span>
+<span id="cb2-12"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"| --- | --- | --- | --- |"</span>)</span>
+<span id="cb2-13"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> name, (F, d1, d2) <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> cases.items():</span>
+<span id="cb2-14">    pts <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> []</span>
+<span id="cb2-15">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> dx <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-3</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-4</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-5</span>]:</span>
+<span id="cb2-16">        E1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> F(x <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> dx) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> F(x)</span>
+<span id="cb2-17">        pts.append((math.log(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(E1)), math.log(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(E1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> d1(x) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> dx))))</span>
+<span id="cb2-18">    slope     <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (pts[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> pts[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (pts[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> pts[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>])</span>
+<span id="cb2-19">    intercept <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pts[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> pts[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb2-20">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"| </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>name<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> | </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>slope<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.5f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> | </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>intercept<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> "</span></span>
+<span id="cb2-21">          <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"| </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>math<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>log(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(d2(x) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> d1(x)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)))<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> |"</span>)</span></code></pre></div></div>
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th><img src="https://latex.codecogs.com/png.latex?F(x)"></th>
+<th>slope</th>
+<th>intercept</th>
+<th>predicted</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><img src="https://latex.codecogs.com/png.latex?x%5E2"></td>
+<td>1.99993</td>
+<td>-3.583552</td>
+<td>-3.583519</td>
+</tr>
+<tr class="even">
+<td><img src="https://latex.codecogs.com/png.latex?%5Cln%20x"></td>
+<td>2.00002</td>
+<td>-0.693136</td>
+<td>-0.693147</td>
+</tr>
+<tr class="odd">
+<td><img src="https://latex.codecogs.com/png.latex?1/x"></td>
+<td>2.00007</td>
+<td>1.098646</td>
+<td>1.098612</td>
+</tr>
+<tr class="even">
+<td><img src="https://latex.codecogs.com/png.latex?e%5Ex"></td>
+<td>1.99986</td>
+<td>-3.693214</td>
+<td>-3.693147</td>
+</tr>
+<tr class="odd">
+<td><img src="https://latex.codecogs.com/png.latex?%5Csqrt%7Bx%7D"></td>
+<td>2.00002</td>
+<td>-1.242454</td>
+<td>-1.242453</td>
+</tr>
+<tr class="even">
+<td><img src="https://latex.codecogs.com/png.latex?%5Csin%20x"></td>
+<td>1.99946</td>
+<td>-2.631424</td>
+<td>-2.631176</td>
+</tr>
+<tr class="odd">
+<td><img src="https://latex.codecogs.com/png.latex?x%5E2%5Cln%20x"></td>
+<td>1.99989</td>
+<td>-3.566863</td>
+<td>-3.566813</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Growth rates from <img src="https://latex.codecogs.com/png.latex?1/x"> to <img src="https://latex.codecogs.com/png.latex?e%5Ex">, a sign-changing second derivative, a product needing the chain rule. Every slope is 2 to four decimals and every intercept matches Equation&nbsp;10 to five. That is the case for trusting the method on something you cannot differentiate by hand.</p>
+</section>
+</section>
+<section id="measuring-the-slope-properly" class="level2">
+<h2 class="anchored" data-anchor-id="measuring-the-slope-properly">Measuring the slope properly</h2>
+<p>Each perturbation produces exactly one <img src="https://latex.codecogs.com/png.latex?E_1"> and one <img src="https://latex.codecogs.com/png.latex?E_2">, so a <em>series</em> of step sizes produces a series of points — one point per step. Writing</p>
+<p><span id="eq-f1f2"><img src="https://latex.codecogs.com/png.latex?%0AF_1%20=%20%5Cln%7CE_1%7C,%20%5Cqquad%20F_2%20=%20%5Cln%7CE_2%7C%0A%5Ctag%7B11%7D"></span></p>
+<p>a run over five values of <img src="https://latex.codecogs.com/png.latex?%5CDelta%20x"> gives five pairs <img src="https://latex.codecogs.com/png.latex?(F_1,%20F_2)">, and the slope you are testing is the slope of the line through them.</p>
+<section id="why-two-points-is-the-minimum" class="level3">
+<h3 class="anchored" data-anchor-id="why-two-points-is-the-minimum">Why two points is the minimum</h3>
+<p>A single perturbation gives a single point, and a single point has no slope — infinitely many lines pass through it.</p>
+<p>It is tempting to think the ratio <img src="https://latex.codecogs.com/png.latex?F_2/F_1"> would do. It would, if the line passed through the origin. It does not: Equation&nbsp;10 puts the intercept at <img src="https://latex.codecogs.com/png.latex?%5Cln%5Cleft%7CF''/2F'%5E%7B%5C,2%7D%5Cright%7C">, which for the worked example below is about 4.01. Taking the ratio anyway, on that same data:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th><img src="https://latex.codecogs.com/png.latex?p"></th>
+<th><img src="https://latex.codecogs.com/png.latex?F_1"></th>
+<th><img src="https://latex.codecogs.com/png.latex?F_2"></th>
+<th><img src="https://latex.codecogs.com/png.latex?F_2/F_1"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1e-02</td>
+<td>1.1717</td>
+<td>−5.1997</td>
+<td>−4.4377</td>
+</tr>
+<tr class="even">
+<td>1e-03</td>
+<td>−1.1324</td>
+<td>−9.8044</td>
+<td>8.6580</td>
+</tr>
+<tr class="odd">
+<td>1e-04</td>
+<td>−3.4351</td>
+<td>−14.4095</td>
+<td>4.1947</td>
+</tr>
+<tr class="even">
+<td>1e-05</td>
+<td>−5.7377</td>
+<td>−19.0149</td>
+<td>3.3140</td>
+</tr>
+</tbody>
+</table>
+<p>Not one of them is near 2, and they do not even agree with each other. The intercept is responsible for the whole mess, and it is not optional — it carries real information, since Equation&nbsp;10 predicts it in closed form.</p>
+<p><strong>Two points remove the problem, because the unknown intercept cancels.</strong></p>
+<p>Do not assume the slope — it is the thing being measured. Call it <img src="https://latex.codecogs.com/png.latex?m">, leave the intercept as <img src="https://latex.codecogs.com/png.latex?c">, and write the relation at two step sizes <img src="https://latex.codecogs.com/png.latex?k"> and <img src="https://latex.codecogs.com/png.latex?k+1">:</p>
+<p><span id="eq-twopt"><img src="https://latex.codecogs.com/png.latex?%0AF_%7B2,k%7D%20=%20m%20F_%7B1,k%7D%20+%20c,%20%5Cqquad%20F_%7B2,k+1%7D%20=%20m%20F_%7B1,k+1%7D%20+%20c%0A%5Ctag%7B12%7D"></span></p>
+<p>Two equations, two unknowns. Subtracting eliminates <img src="https://latex.codecogs.com/png.latex?c"> whatever its value and leaves <img src="https://latex.codecogs.com/png.latex?m"> on its own:</p>
+<p><span id="eq-secant"><img src="https://latex.codecogs.com/png.latex?%0Am%20=%20%5Cfrac%7BF_%7B2,k%7D%20-%20F_%7B2,k+1%7D%7D%7BF_%7B1,k%7D%20-%20F_%7B1,k+1%7D%7D%0A%20%20=%20%5Cfrac%7B%5Cln%5Cleft%7CE_%7B2,k%7D%20/%20E_%7B2,k+1%7D%5Cright%7C%7D%7B%5Cln%5Cleft%7CE_%7B1,k%7D%20/%20E_%7B1,k+1%7D%5Cright%7C%7D%0A%5Ctag%7B13%7D"></span></p>
+<p>This matters for the logic of the test. Equation&nbsp;13 <em>measures</em> <img src="https://latex.codecogs.com/png.latex?m"> from the data without assuming anything about it. Theory then predicts what it should be: <img src="https://latex.codecogs.com/png.latex?m%20=%202"> if the derivative is correct, <img src="https://latex.codecogs.com/png.latex?m%20=%201"> if it is not. Comparing the two is the test. Had we written <img src="https://latex.codecogs.com/png.latex?2"> in Equation&nbsp;12 we would have assumed the answer and learned nothing.</p>
+<p>Equation&nbsp;13 is what the slope columns in every table here compute. Each value belongs to a <strong>pair</strong> of rows, not to a single row — which is why those columns are labelled by an interval and why the last row has no entry.</p>
+<p>So two points is the minimum. They determine a unique line, so they fix <img src="https://latex.codecogs.com/png.latex?c"> as well as <img src="https://latex.codecogs.com/png.latex?m"> — back-substituting <img src="https://latex.codecogs.com/png.latex?c%20=%20F_%7B2,k%7D%20-%20m%20F_%7B1,k%7D"> recovers it. Equation&nbsp;13 simply avoids needing it. That is a convenience, not a limitation.</p>
+<p>What two points cannot give you is any evidence that the relation is linear in the first place. A line through two points fits them exactly, with zero residual, so there is nothing left over to tell you whether the slope is <em>stable</em>. Five perturbations give you that, and stability across the range is what locates the round-off floor.</p>
+</section>
+<section id="fitting-all-of-them-at-once" class="level3">
+<h3 class="anchored" data-anchor-id="fitting-all-of-them-at-once">Fitting all of them at once</h3>
+<p>Reading the slope a pair at a time is fine for seeing the trend, but each value uses only two of your points and depends on which pair you picked. Least squares uses all of them:</p>
+<p><span id="eq-ls"><img src="https://latex.codecogs.com/png.latex?%0A%5Ctext%7Bslope%7D%20=%20%5Cfrac%7B%5Csum_r%20F_%7B1,r%7D%5Cleft(F_%7B2,r%7D%20-%20%5Coverline%7BF_2%7D%5Cright)%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%5Csum_r%20F_%7B1,r%7D%5Cleft(F_%7B1,r%7D%20-%20%5Coverline%7BF_1%7D%5Cright)%7D%0A%5Ctag%7B14%7D"></span></p>
+<p>The subscript <img src="https://latex.codecogs.com/png.latex?r"> indexes the perturbations — one term per step size — and the overbars are means over that series.</p>
+</section>
+<section id="where-eq-ls-comes-from" class="level3">
+<h3 class="anchored" data-anchor-id="where-eq-ls-comes-from">Where Equation&nbsp;14 comes from</h3>
+<p>It is ordinary linear least squares, and it is worth seeing that this form is not a rearrangement of the familiar one — it is what the normal equations give directly. Fitting <img src="https://latex.codecogs.com/png.latex?F_2%20=%20a%20+%20b%20F_1"> means choosing <img src="https://latex.codecogs.com/png.latex?a"> and <img src="https://latex.codecogs.com/png.latex?b"> to minimise</p>
+<p><span id="eq-sse"><img src="https://latex.codecogs.com/png.latex?%0AS(a,%20b)%20=%20%5Csum_r%20%5Cleft(F_%7B2,r%7D%20-%20a%20-%20b%20F_%7B1,r%7D%5Cright)%5E2%0A%5Ctag%7B15%7D"></span></p>
+<p>Differentiating with respect to the intercept and setting it to zero,</p>
+<p><span id="eq-normal-a"><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20S%7D%7B%5Cpartial%20a%7D%20=%20-2%5Csum_r%20%5Cleft(F_%7B2,r%7D%20-%20a%20-%20b%20F_%7B1,r%7D%5Cright)%20=%200%0A%5Cquad%5CLongrightarrow%5Cquad%20a%20=%20%5Coverline%7BF_2%7D%20-%20b%5C,%5Coverline%7BF_1%7D%0A%5Ctag%7B16%7D"></span></p>
+<p>so the fitted line passes through the centroid of the data. Differentiating with respect to the slope,</p>
+<p><span id="eq-normal-b"><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20S%7D%7B%5Cpartial%20b%7D%20=%20-2%5Csum_r%20F_%7B1,r%7D%5Cleft(F_%7B2,r%7D%20-%20a%20-%20b%20F_%7B1,r%7D%5Cright)%20=%200%0A%5Ctag%7B17%7D"></span></p>
+<p>and substituting Equation&nbsp;16 into Equation&nbsp;17 gives</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Csum_r%20F_%7B1,r%7D%5Cleft(F_%7B2,r%7D%20-%20%5Coverline%7BF_2%7D%5Cright)%0A%20%20=%20b%20%5Csum_r%20F_%7B1,r%7D%5Cleft(F_%7B1,r%7D%20-%20%5Coverline%7BF_1%7D%5Cright)%0A"></p>
+<p>which is Equation&nbsp;14 solved for <img src="https://latex.codecogs.com/png.latex?b">. The more commonly quoted <img src="https://latex.codecogs.com/png.latex?%5Csum(F_1%20-%20%5Coverline%7BF_1%7D)(F_2%20-%20%5Coverline%7BF_2%7D)%20%5Cbig/%20%5Csum(F_1%20-%20%5Coverline%7BF_1%7D)%5E2"> is the same number, obtained by adding and subtracting terms that vanish because deviations from a mean sum to zero.</p>
+<p>One detail worth noticing: the intercept <img src="https://latex.codecogs.com/png.latex?a"> is free here, not pinned to zero. That is deliberate — Equation&nbsp;10 predicts a non-zero intercept, and forcing the line through the origin would bias the slope.</p>
+</section>
+</section>
+<section id="the-worked-example" class="level2">
+<h2 class="anchored" data-anchor-id="the-worked-example">The worked example</h2>
+<p>SRK for a methane–ethane binary, as a residual Helmholtz function. With</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AB%20=%20%5Csum_i%20n_i%20b_i,%20%5Cqquad%20D%20=%20%5Csum_i%5Csum_j%20n_i%20n_j%20a_%7Bij%7D,%20%5Cqquad%0Ag%20=%20%5Cln%5Cleft(1%20-%20%5Cfrac%7BB%7D%7BV%7D%5Cright),%20%5Cqquad%20f%20=%20%5Cfrac%7B1%7D%7BB%7D%5Cln%5Cleft(1%20+%20%5Cfrac%7BB%7D%7BV%7D%5Cright)%0A"></p>
+<p>the residual Helmholtz energy and the composition derivative under test are</p>
+<p><span id="eq-ares"><img src="https://latex.codecogs.com/png.latex?%0AA%5E%7Bres%7D%20=%20-n_%7Btot%7D%20R%20T%5C,%20g%20-%20D%20f%0A%5Ctag%7B18%7D"></span></p>
+<p><span id="eq-ani"><img src="https://latex.codecogs.com/png.latex?%0AA_%7Bn_i%7D%20=%20-RT%20g%20-%20n_%7Btot%7D%20R%20T%20g_B%20b_i%20-%20D_i%20f%20-%20D%20f_B%20b_i%0A%5Ctag%7B19%7D"></span></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?g_B%20=%20-1/(V-B)">, <img src="https://latex.codecogs.com/png.latex?f_V%20=%20-1/%5BV(V+B)%5D">, <img src="https://latex.codecogs.com/png.latex?f_B%20=%20-(f%20+%20V%20f_V)/B"> and <img src="https://latex.codecogs.com/png.latex?D_i%20=%202%5Csum_j%20a_%7Bij%7D%20n_j">.</p>
+<p>Equation&nbsp;19 is the reason this post exists. Four terms, each arriving by a different path through the chain rule, and no way to tell by looking whether it is right.</p>
+<div id="model" class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1">R, T, V <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8.314462618</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">300.0</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">500.0</span>      <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># J/mol/K, K, cm3</span></span>
+<span id="cb3-2">Tc  <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">190.56</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">305.32</span>]                    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># K</span></span>
+<span id="cb3-3">Pc  <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4.599e6</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4.872e6</span>]                  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Pa</span></span>
+<span id="cb3-4">w   <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.011</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.099</span>]</span>
+<span id="cb3-5">n   <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.6</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.4</span>]                          <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># mol</span></span>
+<span id="cb3-6">k12 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.01</span></span>
+<span id="cb3-7"></span>
+<span id="cb3-8">b  <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8.664e4</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (tc <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> R) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> pc <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> tc, pc <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(Tc, Pc)]</span>
+<span id="cb3-9">ac <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4.2747e5</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> ((R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> tc) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> pc <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> tc, pc <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(Tc, Pc)]</span>
+<span id="cb3-10">m  <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.48</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.574</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> z <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.175</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> z <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> z <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> z <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> w]</span>
+<span id="cb3-11">al <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> mi <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> math.sqrt(T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> tc))) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> mi, tc <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(m, Tc)]</span>
+<span id="cb3-12">a  <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [aci <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> ali <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> aci, ali <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(ac, al)]</span>
+<span id="cb3-13">aij <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [[a[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], math.sqrt(a[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> a[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> k12)],</span>
+<span id="cb3-14">       [math.sqrt(a[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> a[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> k12), a[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]]]</span>
+<span id="cb3-15"></span>
+<span id="cb3-16"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> A_res(nv):</span>
+<span id="cb3-17">    B <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(ni <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> bi <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> ni, bi <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(nv, b))</span>
+<span id="cb3-18">    D <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(nv[i] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> nv[j] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> aij[i][j] <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> j <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>))</span>
+<span id="cb3-19">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(nv) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> math.log(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> B <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> V) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> D <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> math.log(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> B <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> V) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> B</span>
+<span id="cb3-20"></span>
+<span id="cb3-21">B <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(ni <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> bi <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> ni, bi <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(n, b))</span>
+<span id="cb3-22">D <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(n[i] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> n[j] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> aij[i][j] <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> j <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>))</span>
+<span id="cb3-23">g, f <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> math.log(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> B <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> V), math.log(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> B <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> V) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> B</span>
+<span id="cb3-24">g_B  <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (V <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> B)</span>
+<span id="cb3-25">f_V  <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (V <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (V <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> B))</span>
+<span id="cb3-26">f_B  <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>(f <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> V <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> f_V) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> B</span>
+<span id="cb3-27">D1   <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (aij[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> n[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> aij[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> n[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>])</span>
+<span id="cb3-28"></span>
+<span id="cb3-29">A_n1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> g <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(n) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> g_B <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> b[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> D1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> f <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> D <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> f_B <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> b[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb3-30"></span>
+<span id="cb3-31"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"A_res = </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>A_res(n)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> J"</span>)</span>
+<span id="cb3-32"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"A_n1  = </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>A_n1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> J/mol"</span>)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>A_res = -406.946593 J
+A_n1  = -537.005260 J/mol</code></pre>
+</div>
+</div>
+<section id="perturbing-a-mole-number" class="level3">
+<h3 class="anchored" data-anchor-id="perturbing-a-mole-number">Perturbing a mole number</h3>
+<p>One practical change from the theory above. Rather than a fixed <img src="https://latex.codecogs.com/png.latex?%5CDelta%20x">, perturb <em>relatively</em>: <img src="https://latex.codecogs.com/png.latex?%5CDelta%20n_1%20=%20n_1%20p">, so <img src="https://latex.codecogs.com/png.latex?n_1%20%5Cto%20n_1(1+p)">. Nothing in the derivation cares — <img src="https://latex.codecogs.com/png.latex?%5CDelta%20x"> was arbitrary — but it means <img src="https://latex.codecogs.com/png.latex?p"> carries the same meaning whether a variable is of order <img src="https://latex.codecogs.com/png.latex?10%5E%7B-3%7D"> or <img src="https://latex.codecogs.com/png.latex?10%5E%7B5%7D">, which matters once you start testing across the phase diagram.</p>
+<div id="tbl-test" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="4">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-test-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3
+</figcaption>
+<div aria-describedby="tbl-test-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1">A0, rows <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> A_res(n), []</span>
+<span id="cb5-2"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> p <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-2</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-3</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-4</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-5</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-6</span>]:</span>
+<span id="cb5-3">    E1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> A_res([n[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> p), n[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]]) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> A0</span>
+<span id="cb5-4">    rows.append((p, E1, E1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> A_n1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> n[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> p))</span>
+<span id="cb5-5"></span>
+<span id="cb5-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"| $p$ | $E_1$ | $E_2$ | slope (this row to next) |"</span>)</span>
+<span id="cb5-7"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"| --- | --- | --- | --- |"</span>)</span>
+<span id="cb5-8"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> k, (p, E1, E2) <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(rows):</span>
+<span id="cb5-9">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> k <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(rows):</span>
+<span id="cb5-10">        sl <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> math.log(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(E2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> rows[k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>])) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> math.log(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(E1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> rows[k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]))</span>
+<span id="cb5-11">        <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"| </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>p<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.0e}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> | </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>E1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6e}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> | </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>E2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6e}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> | </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>sl<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.4f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> |"</span>)</span>
+<span id="cb5-12">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span>:</span>
+<span id="cb5-13">        <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"| </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>p<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.0e}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> | </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>E1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6e}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> | </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>E2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6e}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> | — |"</span>)</span></code></pre></div></div>
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th><img src="https://latex.codecogs.com/png.latex?p"></th>
+<th><img src="https://latex.codecogs.com/png.latex?E_1"></th>
+<th><img src="https://latex.codecogs.com/png.latex?E_2"></th>
+<th>slope (this row to next)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1e-02</td>
+<td>-3.227550e+00</td>
+<td>-5.518160e-03</td>
+<td>1.9984</td>
+</tr>
+<tr class="even">
+<td>1e-03</td>
+<td>-3.222584e-01</td>
+<td>-5.520909e-05</td>
+<td>1.9998</td>
+</tr>
+<tr class="odd">
+<td>1e-04</td>
+<td>-3.222087e-02</td>
+<td>-5.521168e-07</td>
+<td>2.0001</td>
+</tr>
+<tr class="even">
+<td>1e-05</td>
+<td>-3.222037e-03</td>
+<td>-5.520174e-09</td>
+<td>2.0049</td>
+</tr>
+<tr class="odd">
+<td>1e-06</td>
+<td>-3.222032e-04</td>
+<td>-5.458630e-11</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p><img src="https://latex.codecogs.com/png.latex?E_1"> falls by ten per row; <img src="https://latex.codecogs.com/png.latex?E_2"> by one hundred. The slope column reads 2. Equation&nbsp;19 is correct.</p>
+<div id="least-squares" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1">F1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [math.log(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(r[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>])) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> r <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> rows]</span>
+<span id="cb6-2">F2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [math.log(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(r[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>])) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> r <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> rows]</span>
+<span id="cb6-3"></span>
+<span id="cb6-4"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> ls_slope(f1, f2):</span>
+<span id="cb6-5">    m1, m2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(f1) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(f1), <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(f2) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(f2)</span>
+<span id="cb6-6">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> (<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (b_ <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> m2) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> a, b_ <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(f1, f2))</span>
+<span id="cb6-7">            <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> m1) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> a <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> f1))</span>
+<span id="cb6-8"></span>
+<span id="cb6-9"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"all five points    slope = </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>ls_slope(F1, F2)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb6-10"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"drop p = 1e-6      slope = </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>ls_slope(F1[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>], F2[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>])<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb6-11"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"p = 1e-2 to 1e-4   slope = </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>ls_slope(F1[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>], F2[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>])<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>all five points    slope = 2.000636
+drop p = 1e-6      slope = 1.999492
+p = 1e-2 to 1e-4   slope = 1.999146</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="where-it-stops-working" class="level2">
+<h2 class="anchored" data-anchor-id="where-it-stops-working">Where it stops working</h2>
+<p>Look at the last row of the table. The slope column drifts, and the least-squares fit over all five points sits slightly <em>above</em> 2 while the fit over the clean range sits just below.</p>
+<p>That is round-off, not a wrong derivative. At <img src="https://latex.codecogs.com/png.latex?p%20=%2010%5E%7B-6%7D"> we extract a quantity of order <img src="https://latex.codecogs.com/png.latex?10%5E%7B-11%7D"> from a difference of numbers of order <img src="https://latex.codecogs.com/png.latex?10%5E%7B2%7D"> — thirteen significant figures, against the sixteen or so double precision carries. Most of the precision is consumed by cancellation before Equation&nbsp;3 even subtracts.</p>
+<p>This is the finite-difference tradeoff, and the consequence is worth stating plainly: <strong>shrinking <img src="https://latex.codecogs.com/png.latex?%5CDelta%20x"> does not sharpen the test indefinitely.</strong> Truncation error falls as the step shrinks; round-off error rises. The usable window here runs from about <img src="https://latex.codecogs.com/png.latex?10%5E%7B-2%7D"> to <img src="https://latex.codecogs.com/png.latex?10%5E%7B-4%7D">, and you find it by looking for where the slope is flat rather than by assuming smaller is better.</p>
+<section id="sidestepping-the-floor" class="level3">
+<h3 class="anchored" data-anchor-id="sidestepping-the-floor">Sidestepping the floor</h3>
+<p>The floor exists because Equation&nbsp;3 subtracts two nearly equal numbers. If your function is analytic and your code tolerates complex arithmetic, there is a way around it entirely — the complex-step derivative:</p>
+<p><span id="eq-cstep"><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7BdF%7D%7Bdx%7D%20%5Capprox%20%5Cfrac%7B%5Coperatorname%7BIm%7D%5Cleft%5BF(x%20+%20ih)%5Cright%5D%7D%7Bh%7D%0A%5Ctag%7B20%7D"></span></p>
+<p>There is no subtraction of nearly equal reals here, so no cancellation and no floor: take <img src="https://latex.codecogs.com/png.latex?h%20=%2010%5E%7B-200%7D"> and the agreement is at machine precision. The catch is that <img src="https://latex.codecogs.com/png.latex?F"> must be genuinely analytic. Absolute values, comparisons, branches and anything that discards an imaginary part will break it — and equation-of-state code is full of all four. When it applies it is sharper than anything above; when it fails, the failure itself tells you something about your function.</p>
+</section>
+</section>
+<section id="what-a-failure-looks-like" class="level2">
+<h2 class="anchored" data-anchor-id="what-a-failure-looks-like">What a failure looks like</h2>
+<p>Suppose the last term of Equation&nbsp;19, <img src="https://latex.codecogs.com/png.latex?D%20f_B%20b_i">, were wrong by one percent.</p>
+<div id="broken" class="cell" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1">A_n1_bad <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> A_n1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.01</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (D <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> f_B <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> b[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>])</span>
+<span id="cb8-2">bad <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [(p, E1, E1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> A_n1_bad <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> n[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> p) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> p, E1, _ <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> rows]</span>
+<span id="cb8-3"></span>
+<span id="cb8-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"| $p$ range | slope, correct | slope, 1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">% e</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">rror |"</span>)</span>
+<span id="cb8-5"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"| --- | --- | --- |"</span>)</span>
+<span id="cb8-6"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> k <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(rows) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>):</span>
+<span id="cb8-7">    good <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (math.log(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(rows[k][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> rows[k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>]))</span>
+<span id="cb8-8">            <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> math.log(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(rows[k][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> rows[k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>])))</span>
+<span id="cb8-9">    poor <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (math.log(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(bad[k][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> bad[k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>]))</span>
+<span id="cb8-10">            <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> math.log(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(bad[k][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> bad[k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>])))</span>
+<span id="cb8-11">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"| </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>rows[k][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.0e}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> to </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>rows[k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.0e}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> | </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>good<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.4f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> | </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>poor<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.4f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> |"</span>)</span></code></pre></div></div>
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th><img src="https://latex.codecogs.com/png.latex?p"> range</th>
+<th>slope, correct</th>
+<th>slope, 1% error</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1e-02 to 1e-03</td>
+<td>1.9984</td>
+<td>1.6216</td>
+</tr>
+<tr class="even">
+<td>1e-03 to 1e-04</td>
+<td>1.9998</td>
+<td>1.1672</td>
+</tr>
+<tr class="odd">
+<td>1e-04 to 1e-05</td>
+<td>2.0001</td>
+<td>1.0209</td>
+</tr>
+<tr class="even">
+<td>1e-05 to 1e-06</td>
+<td>2.0049</td>
+<td>1.0021</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The correct column holds at 2; the broken one collapses toward 1 as the step shrinks, exactly as the five percent error on <img src="https://latex.codecogs.com/png.latex?x%5E2"> did. One wrong term out of four, under one percent of the total value, and the test reads it off unambiguously.</p>
+<p>You would not have caught that by checking the number looked reasonable.</p>
+</section>
+<section id="but-my-derivatives-come-from-a-computer" class="level2">
+<h2 class="anchored" data-anchor-id="but-my-derivatives-come-from-a-computer">“But my derivatives come from a computer”</h2>
+<p>Worth answering before you build any of this into a test suite.</p>
+<p>If you differentiate with autodiff — dual numbers, JAX, reverse mode — the derivative is generated from the function’s own code and is correct to machine precision by construction. The algebra-slip risk genuinely disappears. So is the test pointless?</p>
+<p>No, and the clearest evidence is that the autodiff ecosystem ships this exact test. PyTorch’s <code>torch.autograd.gradcheck</code> validates analytical gradients against finite differences, and is the documented way to verify a custom <code>autograd.Function</code>. JAX has <code>check_grads</code>. Both exist <em>because</em> the computer did the differentiation and somebody still wanted proof.</p>
+<p>The reason is that the test never asks where the derivative came from. It asks whether your derivative code is consistent with your function code, and that is the same question however the derivative was produced. What changes is what a slope of 1 tells you:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Derivative from</th>
+<th>What slope 1 means</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Hand derivation</td>
+<td>An algebra slip, or a typo in the code</td>
+</tr>
+<tr class="even">
+<td>Symbolic algebra, retyped</td>
+<td>A transcription error</td>
+</tr>
+<tr class="odd">
+<td>Autodiff</td>
+<td>A branch, an internal solver, a custom rule, or the wrong variable</td>
+</tr>
+<tr class="even">
+<td>Any of them, months later</td>
+<td>The function changed and the derivative did not</td>
+</tr>
+</tbody>
+</table>
+<section id="where-autodiff-actually-breaks-on-eos-code" class="level3">
+<h3 class="anchored" data-anchor-id="where-autodiff-actually-breaks-on-eos-code">Where autodiff actually breaks on EOS code</h3>
+<p>The interesting failures are not in the differentiation. They are in the assumptions around it, and equation-of-state code is unusually rich in them.</p>
+<p><strong>Branches.</strong> Which cubic root is the liquid? That is an <code>if</code>. Autodiff differentiates the branch taken and tells you nothing about the switch — and near a phase boundary the switch is exactly where you need the derivative to be right.</p>
+<p><strong>Internal iterative solves.</strong> If the function solves for volume by Newton iteration, naive autodiff differentiates <em>through the iterations</em> instead of applying the implicit function theorem. That is correct only if the iteration converged tightly, and silently wrong otherwise.</p>
+<p><strong>Custom derivative rules.</strong> The moment you hand-write one for speed you are back to hand-derivation, with less scrutiny, because it looks like autodiff.</p>
+<p><strong>Splines and lookup tables.</strong> You get the interpolant’s derivative, which is not the property’s derivative.</p>
+<p>A symbolic package has a different weakness. It hands you a correct expression, and then a human retypes it as code, splits it across intermediate variables, and reuses a term computed earlier. The derivation was right; the implementation is not.</p>
+</section>
+<section id="the-reason-that-never-goes-away" class="level3">
+<h3 class="anchored" data-anchor-id="the-reason-that-never-goes-away">The reason that never goes away</h3>
+<p>Someone swaps the <img src="https://latex.codecogs.com/png.latex?%5Calpha"> correlation, or makes <img src="https://latex.codecogs.com/png.latex?k_%7Bij%7D"> temperature dependent, updates Equation&nbsp;18 and forgets Equation&nbsp;19. However the derivative was produced originally, the two code paths have now drifted apart, and this test is what notices.</p>
+<p>That makes it a regression test, and regression tests do not care how correct the code was on the day it was written.</p>
+</section>
+<section id="what-it-does-not-check" class="level3">
+<h3 class="anchored" data-anchor-id="what-it-does-not-check">What it does not check</h3>
+<p>It verifies your derivative against your function, not against your intent. Ask for <img src="https://latex.codecogs.com/png.latex?%5Cpartial/%5Cpartial%20n_i"> when you wanted <img src="https://latex.codecogs.com/png.latex?%5Cpartial/%5Cpartial%20x_i">, test the same wrong thing, and it passes with slope 2 — consistently differentiating the wrong quantity. The test tells you the two code paths agree. Whether they are the pair you meant is still yours to get right.</p>
+</section>
+</section>
+<section id="using-it-in-practice" class="level2">
+<h2 class="anchored" data-anchor-id="using-it-in-practice">Using it in practice</h2>
+<ul>
+<li><strong>Test at several states.</strong> A derivative can be right in the vapour region and wrong near the critical point, where <img src="https://latex.codecogs.com/png.latex?%5Calpha(T_r)"> behaves differently.</li>
+<li><strong>Work outwards.</strong> Verify first derivatives before second. A second derivative checked against a wrong first derivative tells you nothing.</li>
+<li><strong>Perturb relatively</strong>, so one <img src="https://latex.codecogs.com/png.latex?p"> means the same thing for every variable.</li>
+<li><strong>Find the flat window</strong> before trusting a number, rather than assuming the smallest step is best.</li>
+<li><strong>Use the free checks too.</strong> Mixed second derivatives should be symmetric, <img src="https://latex.codecogs.com/png.latex?A_%7Bn_i%20n_j%7D%20=%20A_%7Bn_j%20n_i%7D">, which costs one comparison and no perturbation at all. Euler’s theorem gives another: <img src="https://latex.codecogs.com/png.latex?%5Csum_i%20n_i%20A_%7Bn_i%7D"> should reproduce a quantity you can compute directly.</li>
+<li><strong>Assert the slope, not the table.</strong> Check that the fitted slope from Equation&nbsp;14 is within tolerance of 2 across the clean window, and the whole thing runs in CI with nobody reading anything.</li>
+</ul>
+<p>The idea generalises past equations of state. Any time you differentiate something by hand and then implement it, you have made two independent claims and verified neither. This checks both against the one thing you are sure of.</p>
+</section>
+<section id="reference" class="level2">
+<h2 class="anchored" data-anchor-id="reference">Reference</h2>
+<!-- TODO: fill in the source. Section 2.3, "Numerical Testing of an EOS
+     Implementation", which is where the E1/E2 construction and the
+     slope-2 criterion are taken from. -->
+<p>The <img src="https://latex.codecogs.com/png.latex?E_1"> / <img src="https://latex.codecogs.com/png.latex?E_2"> construction and the slope-2 criterion are a standard technique for verifying hand-derived analytical derivatives against finite differences. The SRK Helmholtz formulation in terms of <img src="https://latex.codecogs.com/png.latex?B">, <img src="https://latex.codecogs.com/png.latex?D">, <img src="https://latex.codecogs.com/png.latex?g"> and <img src="https://latex.codecogs.com/png.latex?f"> is standard; the worked binary, the multi-function sweep and the round-off analysis are my own.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>thermodynamics</category>
+  <category>equations-of-state</category>
+  <category>srk</category>
+  <category>numerics</category>
+  <category>testing</category>
+  <guid>https://www.thermonerds.com/posts/numerical-testing-EOS/</guid>
+  <pubDate>Sat, 31 Oct 2026 05:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Why AI Chat Math Won’t Paste Into Word, and What Actually Travels on the Clipboard</title>
   <link>https://www.thermonerds.com/posts/ai-math-into-word/</link>
@@ -155,7 +2047,7 @@ font-style: inherit;">&gt;</span></span></code></pre></div></div>
   <category>word</category>
   <category>texbridge</category>
   <guid>https://www.thermonerds.com/posts/ai-math-into-word/</guid>
-  <pubDate>Fri, 30 Oct 2026 05:00:00 GMT</pubDate>
+  <pubDate>Thu, 15 Oct 2026 05:00:00 GMT</pubDate>
 </item>
 <item>
   <title>Thermodynamic Potentials Applied for Equations of State</title>
@@ -543,7 +2435,7 @@ Note
   <category>gibbs</category>
   <category>equations-of-state</category>
   <guid>https://www.thermonerds.com/posts/thermodynamic-potentials/</guid>
-  <pubDate>Fri, 02 Oct 2026 05:00:00 GMT</pubDate>
+  <pubDate>Tue, 15 Sep 2026 05:00:00 GMT</pubDate>
 </item>
 <item>
   <title>From the First Law to the Fundamental Relation</title>
@@ -704,7 +2596,7 @@ Note
   <category>first-law</category>
   <category>second-law</category>
   <guid>https://www.thermonerds.com/posts/first-law/</guid>
-  <pubDate>Thu, 01 Oct 2026 05:00:00 GMT</pubDate>
+  <pubDate>Tue, 01 Sep 2026 05:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>
