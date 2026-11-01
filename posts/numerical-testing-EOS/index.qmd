@@ -187,6 +187,34 @@ for k in range(len(dxs) - 1):
 Two correct derivatives give 2. A five percent error gives 1. Nothing lands in
 between, and the gap widens as the step shrinks rather than narrowing.
 
+Five percent is an arbitrary choice, so the obvious question is whether the
+slope also reports *how* wrong the derivative is. It does not.
+
+```{python}
+#| label: tbl-pct
+#| echo: true
+#| output: asis
+
+print("| $\\Delta x$ range | 1% | 2% | 5% | 10% | 50% |")
+print("| --- | --- | --- | --- | --- | --- |")
+for k in range(len(dxs) - 1):
+    cells = []
+    for p in (0.01, 0.02, 0.05, 0.10, 0.50):
+        def E(dx):
+            E1 = (x + dx)**2 - x**2
+            return E1, E1 - (1 + p) * 2.0 * x * dx
+        (a1, a2), (b1, b2) = E(dxs[k]), E(dxs[k + 1])
+        cells.append(math.log(abs(a2 / b2)) / math.log(abs(a1 / b1)))
+    print(f"| {dxs[k]:.0e} to {dxs[k+1]:.0e} | " + " | ".join(f"{c:.4f}" for c in cells) + " |")
+```
+
+Every column converges on 1, and the larger errors arrive sooner — at the
+coarsest step a 50% error already reads 0.9980 while a 1% error is still at
+0.9275. So the slope answers whether the derivative is wrong, not by how much.
+That is the useful behaviour for a test: a one percent error is as detectable
+as a catastrophic one, and you do not need to guess the size of the bug in
+advance to choose a step size.
+
 ### Does it hold generally?
 
 Two cases prove little, and @eq-general claims something about every
@@ -479,24 +507,6 @@ Truncation error falls as the step shrinks; round-off error rises. The usable
 window here runs from about $10^{-2}$ to $10^{-4}$, and you find it by looking
 for where the slope is flat rather than by assuming smaller is better.
 
-### Sidestepping the floor
-
-The floor exists because @eq-e2 subtracts two nearly equal numbers. If your
-function is analytic and your code tolerates complex arithmetic, there is a
-way around it entirely — the complex-step derivative:
-
-$$
-\frac{dF}{dx} \approx \frac{\operatorname{Im}\left[F(x + ih)\right]}{h}
-$$ {#eq-cstep}
-
-There is no subtraction of nearly equal reals here, so no cancellation and no
-floor: take $h = 10^{-200}$ and the agreement is at machine precision. The
-catch is that $F$ must be genuinely analytic. Absolute values, comparisons,
-branches and anything that discards an imaginary part will break it — and
-equation-of-state code is full of all four. When it applies it is sharper than
-anything above; when it fails, the failure itself tells you something about
-your function.
-
 ## What a failure looks like
 
 Suppose the last term of @eq-ani, $D f_B b_i$, were wrong by one percent.
@@ -525,6 +535,38 @@ four, under one percent of the total value, and the test reads it off
 unambiguously.
 
 You would not have caught that by checking the number looked reasonable.
+
+### When slope 1 is not a bug
+
+One case breaks that reading. If the derivative you are testing happens to be
+*zero* at your test point, $\frac{dF}{dx}\Delta x$ vanishes, @eq-e2 collapses
+to $E_2 = E_1$, and the slope is 1 however good your code is:
+
+```{python}
+#| label: tbl-stationary
+#| echo: true
+#| output: asis
+
+print("| $\\Delta x$ | $E_1$ | $E_2$ | $E_2/E_1$ |")
+print("| --- | --- | --- | --- |")
+for dx in [1e-2, 1e-3, 1e-4]:
+    E1 = (0.0 + dx)**2 - 0.0**2      # F = x^2 at x = 0, where dF/dx = 0
+    E2 = E1 - 2.0 * 0.0 * dx         # derivative is correct, and it is zero
+    print(f"| {dx:.0e} | {E1:.4e} | {E2:.4e} | {E2/E1:.6f} |")
+```
+
+$E_1$ and $E_2$ are not zero here — they are *equal*, both of order
+$(\Delta x)^2$, because $F$ still changes quadratically even where its slope
+does not. Plotting $\ln|E_2|$ against $\ln|E_1|$ is then plotting a quantity
+against itself, so the slope is 1 for a trivial reason and the derivative was
+never tested at all.
+
+This is not contrived for an equation of state: $(\partial P/\partial V)_T$
+vanishes on the spinodal, and residual properties vanish in the ideal-gas
+limit. The tell is the ratio. $E_2/E_1$ pinned at exactly 1 means the
+derivative returned zero, where a genuine relative error $p$ gives a constant
+$-p$ instead. Report the ratio beside the slope, and move the test point when
+it reads 1.
 
 ## "But my derivatives come from a computer"
 

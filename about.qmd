@@ -3,12 +3,16 @@ title: "About"
 image: profile.jpg
 about:
   template: jolla
-  # Add links back once the accounts exist; the scaffold's placeholders
-  # pointed at bare domains, which render as broken links.
-  # links:
-  #   - icon: github
-  #     text: GitHub
-  #     href: https://github.com/<username>
+  links:
+    - icon: envelope
+      text: Email
+      href: mailto:vubkhanh@gmail.com
+    - icon: mortarboard
+      text: Google Scholar
+      href: https://scholar.google.com/citations?user=-Na01GYAAAAJ&hl=en
+    - icon: linkedin
+      text: LinkedIn
+      href: https://www.linkedin.com/in/vu-bao-khanh-3a2297b/
 ---
 
 Notes on phase behaviour, equations of state, and the numerics underneath
