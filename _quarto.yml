@@ -29,7 +29,7 @@ format:
     #   themes/theme-eink.scss       e-reader panel: warm paper, greyscale, Literata
     theme:
       - cosmo
-      - themes/theme-ledger.scss
+      - themes/theme-preprint.scss
     css: styles.css
     grid:
       # This site has no left sidebar, but Quarto reserves a column for one
