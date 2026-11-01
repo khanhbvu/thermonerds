@@ -72,6 +72,329 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
+<!-- Reader controls: colour themes and text size, in the navbar beside the site
+     title. Palettes, the mix() helper and the font-size scaling are taken from
+     the ReadMode extension (readmode/content.js, readmode/popup.js); the
+     storage layer is localStorage rather than chrome.storage, and the CSS
+     targets this site's own elements instead of ReadMode's blanket override,
+     which would fight MathJax and the in-post calculator. -->
+<style>
+  .rm-btn {
+    margin-left: auto; display: inline-flex; align-items: center; gap: .35rem;
+    padding: .2rem .55rem; font: inherit; font-size: .82rem; line-height: 1.2;
+    cursor: pointer; color: inherit; background: transparent;
+    border: 1px solid currentColor; border-radius: 3px; opacity: .72;
+  }
+  .rm-btn:hover, .rm-btn[aria-expanded="true"] { opacity: 1; }
+  .rm-btn .rm-aa { font-size: .95rem; font-weight: 600; }
+  /* no margin-left:auto here: Quarto's brand container carries mx-auto, and a
+     second auto margin would split the free space three ways and pull the
+     title off centre. The brand's own margin-right:auto already pushes this
+     element to the right edge. */
+  .rm-wrap { position: relative; display: flex; }
+  .rm-panel {
+    position: absolute; top: calc(100% + .45rem); right: 0; z-index: 2000;
+    width: 20rem; max-width: calc(100vw - 1.5rem); padding: .85rem .9rem;
+    /* a short window or a phone in landscape must not strand the lower
+       swatches off-screen with no way to reach them */
+    max-height: calc(100vh - 4.5rem); overflow-y: auto; overscroll-behavior: contain;
+    font-size: .82rem; line-height: 1.45; text-align: left;
+    background: var(--rm-bg, #fff); color: var(--rm-text, inherit);
+    border: 1px solid rgba(128,128,128,.45); border-radius: 4px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.14);
+  }
+  .rm-panel[hidden] { display: none; }
+  .rm-grouplabel {
+    margin: .55rem 0 .3rem; font-size: .68rem; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; opacity: .6;
+  }
+  .rm-grouplabel:first-child { margin-top: 0; }
+  .rm-themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: .3rem; }
+  .rm-theme {
+    display: flex; flex-direction: column; align-items: center; gap: .18rem;
+    padding: .25rem .1rem; font: inherit; font-size: .62rem; line-height: 1.1;
+    cursor: pointer; color: inherit; background: transparent;
+    border: 1px solid transparent; border-radius: 3px; text-align: center;
+  }
+  .rm-theme:hover { border-color: rgba(128,128,128,.5); }
+  .rm-theme[aria-pressed="true"] { border-color: currentColor; font-weight: 700; }
+  .rm-sw {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 1.75rem; font-size: .78rem; font-weight: 600;
+    border: 1px solid rgba(128,128,128,.45); border-radius: 2px;
+  }
+  .rm-row {
+    display: flex; align-items: center; gap: .5rem;
+    margin-top: .8rem; padding-top: .7rem; border-top: 1px solid rgba(128,128,128,.3);
+  }
+  .rm-row label { flex: 0 0 auto; font-size: .72rem; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase; opacity: .7; }
+  .rm-row input[type=range] { flex: 1 1 auto; min-width: 0; }
+  .rm-val { flex: 0 0 2.6rem; text-align: right; font-variant-numeric: tabular-nums; }
+  .rm-reset {
+    margin-top: .6rem; padding: .22rem .6rem; font: inherit; font-size: .72rem;
+    cursor: pointer; color: inherit; background: transparent;
+    border: 1px solid rgba(128,128,128,.5); border-radius: 3px;
+  }
+  .rm-reset:hover { border-color: currentColor; }
+  @media (max-width: 420px) { .rm-panel { width: calc(100vw - 1.5rem); } }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- palettes, verbatim from readmode/content.js ----
+  var THEMES = {
+    dark:     { bg: '#1b1c1f', text: '#dcdcdc', link: '#8ab4f8', dark: true },
+    dim:      { bg: '#2b2d31', text: '#c9cbd0', link: '#9cc0ff', dark: true },
+    warm:     { bg: '#1f1a14', text: '#e8d5b5', link: '#f0a95b', dark: true },
+    sepia:    { bg: '#f4ecd8', text: '#433422', link: '#8a4b0f' },
+    ivory:    { bg: '#f6f1e7', text: '#292820', link: '#8a4b0f' },
+    beige:    { bg: '#f2eee8', text: '#2e2a25', link: '#7a4519' },
+    sage:     { bg: '#eaf0e8', text: '#263329', link: '#1f6640' },
+    bluegray: { bg: '#edf2f7', text: '#1f2933', link: '#1d4ed8' },
+    charcoal: { bg: '#24272b', text: '#e0e0e0', link: '#8ab4f8', dark: true },
+    cream:    { bg: '#fbf7ee', text: '#2a2722', link: '#1a5bb8' },
+    light:    { bg: '#ffffff', text: '#1f1f1f', link: '#0b57d0' },
+    mint:     { bg: '#e6f2e8', text: '#1d2b20', link: '#0a6640' },
+    contrast:         { bg: '#000000', text: '#ffff00', link: '#00ff7f', dark: true, strong: true },
+    'contrast-white': { bg: '#000000', text: '#ffffff', link: '#7fd4ff', dark: true, strong: true },
+    'contrast-light': { bg: '#ffffff', text: '#000000', link: '#0000ee', strong: true }
+  };
+  var GROUPS = [
+    ['Light', [['ivory','Ivory'],['beige','Beige'],['sepia','Sepia'],['cream','Cream'],
+               ['sage','Sage'],['mint','Mint'],['bluegray','Blue-gray'],['light','White']]],
+    ['Dark', [['charcoal','Charcoal'],['dark','Dark'],['dim','Dim'],['warm','Warm night']]],
+    ['High contrast', [['contrast','Yellow'],['contrast-white','White'],['contrast-light','Black']]]
+  ];
+
+  // blend two hex colours, for borders and code panels (readmode/content.js)
+  function mix(hex, toward, amount) {
+    var a = parseInt(hex.slice(1), 16), b = parseInt(toward.slice(1), 16);
+    var ch = function (n, s) { return (n >> s) & 255; };
+    var m = function (s) { return Math.round(ch(a, s) + (ch(b, s) - ch(a, s)) * amount); };
+    return '#' + ((1 << 24) | (m(16) << 16) | (m(8) << 8) | m(0)).toString(16).slice(1);
+  }
+
+  var KEY = 'thermonerds-reader';
+  var DEF = { theme: 'off', fontSize: 100 };
+
+  function load() {
+    try {
+      var v = JSON.parse(localStorage.getItem(KEY));
+      if (v && typeof v === 'object') {
+        return { theme: THEMES[v.theme] ? v.theme : 'off',
+                 fontSize: (v.fontSize >= 80 && v.fontSize <= 250) ? v.fontSize : 100 };
+      }
+    } catch (e) {}                     // private window, blocked storage, bad JSON
+    return { theme: DEF.theme, fontSize: DEF.fontSize };
+  }
+  function store(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+
+  var state = load();
+
+  // Every selector is prefixed with html[data-rm], which adds one class-level
+  // unit of specificity. The site themes style listing titles as
+  // `.quarto-listing .listing-title a { ... !important }` (two classes); an
+  // unprefixed `.listing-title a` loses that tie and a dark theme would leave
+  // black titles on a black page. The prefix wins regardless of source order.
+  function css(s) {
+    var out = '';
+    var t = THEMES[s.theme];
+    var H = 'html[data-rm] ';
+    if (t) {
+      var border = t.strong ? t.text : mix(t.bg, t.text, 0.22);
+      var panel  = mix(t.bg, t.text, t.strong ? 0.12 : 0.07);
+      var muted  = mix(t.bg, t.text, 0.62);
+      var TXT = 'color:' + t.text + ' !important';
+      out +=
+        'html[data-rm]{--rm-bg:' + t.bg + ';--rm-text:' + t.text + ';--rm-link:' + t.link +
+          ';--rm-panel:' + panel + ';--rm-border:' + border + ';--rm-muted:' + muted +
+          ';color-scheme:' + (t.dark ? 'dark' : 'light') + '}' +
+        'html[data-rm],html[data-rm] body{background:' + t.bg + ' !important;' + TXT + '}' +
+        H + ':is(main,.quarto-container,#quarto-content,#quarto-document-content,' +
+            '.page-columns,.quarto-title-block,footer,.footer,.sidebar,#quarto-margin-sidebar)' +
+            '{background:transparent !important;' + TXT + '}' +
+        H + ':is(h1,h2,h3,h4,h5,h6,p,li,dd,dt,td,th,figcaption,strong,em,blockquote,code,pre)' +
+            '{' + TXT + '}' +
+        // listing titles: matched at higher specificity than the themes' own rule
+        H + ':is(.quarto-listing,div.quarto-post) :is(.listing-title,.listing-title a)' +
+            '{' + TXT + '}' +
+        H + ':is(.listing-title,.listing-title a,.listing-subtitle){' + TXT + '}' +
+        H + ':is(.listing-date,.listing-category,.quarto-title-meta-heading,' +
+            '.quarto-category,nav[role="doc-toc"] a,#TOC a){color:' + muted + ' !important}' +
+        H + ':is(nav[role="doc-toc"],#TOC) a:is(:hover,.active){' + TXT + '}' +
+        H + 'main :is(a,a:visited){color:' + t.link + ' !important}' +
+        H + ':is(.quarto-listing,div.quarto-post) .listing-title a:hover{color:' + t.link + ' !important}' +
+        H + '.navbar{background:' + panel + ' !important;border-bottom:1px solid ' + border + ' !important}' +
+        H + '.navbar :is(.navbar-brand,.nav-link,.navbar-title,.menu-text){' + TXT + '}' +
+        H + 'main :is(pre,code,div.sourceCode,kbd,.cell-output){background:' + panel + ' !important;' + TXT + '}' +
+        H + 'main :is(pre,code,.sourceCode) span{color:inherit !important}' +
+        H + ':is(main table,main th,main td,main tr,hr,blockquote,div.quarto-post,' +
+            '.quarto-title-block,main pre,main div.sourceCode){border-color:' + border + ' !important}' +
+        H + 'blockquote{border-left-color:' + border + ' !important}' +
+        H + 'mjx-container{' + TXT + '}' +
+        // the in-post calculator draws itself from neutral greys, so only its
+        // editable cells need telling which surface they sit on
+        H + ':is(.xl-t td.in input,.xl-drive input[type=number]){' + TXT + '}' +
+        H + ':is(.xl-t td.ca,.xl-t tr.xl-h th,.xl-t td.fo){background:' + panel + ' !important}';
+    }
+    if (s.fontSize && s.fontSize !== 100) {
+      // Scales body text without zooming images; nested items reset so sizes
+      // don't compound. (readmode/content.js)
+      out +=
+        'html[data-rm-size] main :is(p,li,blockquote,dd,dt,td,th,figcaption,label)' +
+          '{font-size:' + s.fontSize + '% !important}' +
+        'html[data-rm-size] main :is(li p,li li,blockquote p,td p,li label,td label)' +
+          '{font-size:100% !important}';
+    }
+    return out;
+  }
+
+  // Applied from <head>, before first paint, so a remembered theme never flashes.
+  var tag = document.createElement('style');
+  tag.id = 'rm-style';
+  if (THEMES[state.theme]) document.documentElement.setAttribute('data-rm', state.theme);
+  if (state.fontSize !== 100) document.documentElement.setAttribute('data-rm-size', String(state.fontSize));
+  tag.textContent = css(state);
+  (document.head || document.documentElement).appendChild(tag);
+
+  function apply() {
+    var el = document.documentElement;
+    if (THEMES[state.theme]) el.setAttribute('data-rm', state.theme);
+    else el.removeAttribute('data-rm');
+    if (state.fontSize !== 100) el.setAttribute('data-rm-size', String(state.fontSize));
+    else el.removeAttribute('data-rm-size');
+    tag.textContent = css(state);
+    store(state);
+  }
+
+  // ---- controls, once the navbar exists ----
+  function build() {
+    // Prefer the existing nav list: adding an item there moves the brand no
+    // more than another nav link would. Appending to .navbar-container instead
+    // hands the brand's own mx-auto fresh free space to redistribute, which
+    // visibly shifts the title.
+    // .quarto-navbar-tools sits outside the collapsible menu, so the control
+    // stays reachable on a phone, where navbar-expand-lg hides .navbar-collapse
+    // behind the hamburger.
+    var tools = document.querySelector('.navbar .quarto-navbar-tools');
+    var list = tools ? null : document.querySelector('.navbar .navbar-nav');
+    var bar = tools || list ||
+              document.querySelector('.navbar .navbar-container') ||
+              document.querySelector('.navbar > .container-fluid') ||
+              document.querySelector('.navbar');
+    if (!bar) return;
+
+    var wrap = document.createElement(list ? 'li' : 'div');
+    wrap.className = list ? 'nav-item rm-wrap' : 'rm-wrap';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'rm-btn';
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-label', 'Reading options: colour theme and text size');
+    btn.innerHTML = '<span class="rm-aa">Aa</span><span>Reading</span>';
+
+    var panel = document.createElement('div');
+    panel.className = 'rm-panel';
+    panel.hidden = true;
+    panel.setAttribute('role', 'group');
+    panel.setAttribute('aria-label', 'Reading options');
+
+    var html = '';
+    for (var g = 0; g < GROUPS.length; g++) {
+      html += '<div class="rm-grouplabel">' + GROUPS[g][0] + '</div><div class="rm-themes">';
+      var list = GROUPS[g][1];
+      for (var i = 0; i < list.length; i++) {
+        var id = list[i][0], t = THEMES[id];
+        html += '<button type="button" class="rm-theme" data-v="' + id + '">' +
+                '<span class="rm-sw" style="background:' + t.bg + ';color:' + t.text + '">Aa</span>' +
+                list[i][1] + '</button>';
+      }
+      html += '</div>';
+    }
+    html += '<div class="rm-grouplabel">Site</div><div class="rm-themes">' +
+            '<button type="button" class="rm-theme" data-v="off">' +
+            '<span class="rm-sw" style="background:transparent">Aa</span>Default</button></div>' +
+            '<div class="rm-row"><label for="rm-size">Text size</label>' +
+            '<input type="range" id="rm-size" min="80" max="250" step="10">' +
+            '<span class="rm-val" id="rm-sizeval"></span></div>' +
+            '<button type="button" class="rm-reset">Reset to default</button>';
+    panel.innerHTML = html;
+
+    wrap.appendChild(btn);
+    wrap.appendChild(panel);
+    bar.appendChild(wrap);
+
+    var size = panel.querySelector('#rm-size');
+    var sizeVal = panel.querySelector('#rm-sizeval');
+
+    function sync() {
+      var all = panel.querySelectorAll('.rm-theme');
+      for (var i = 0; i < all.length; i++) {
+        all[i].setAttribute('aria-pressed', all[i].getAttribute('data-v') === state.theme ? 'true' : 'false');
+      }
+      size.value = state.fontSize;
+      sizeVal.textContent = state.fontSize + '%';
+    }
+
+    panel.addEventListener('click', function (e) {
+      var sw = e.target.closest('.rm-theme');
+      if (sw) { state.theme = sw.getAttribute('data-v'); apply(); sync(); return; }
+      if (e.target.closest('.rm-reset')) {
+        state.theme = DEF.theme; state.fontSize = DEF.fontSize; apply(); sync();
+      }
+    });
+    size.addEventListener('input', function () {
+      state.fontSize = +size.value; apply(); sync();
+    });
+
+    // The button's position in the row changes with width (Quarto collapses
+    // the navbar below 992px), so a panel anchored to its right edge can hang
+    // off the left of the viewport. Rather than guess a breakpoint, let it lay
+    // out, measure, and re-anchor to the viewport only if it actually spills.
+    function place() {
+      panel.style.position = ''; panel.style.top = ''; panel.style.left = '';
+      panel.style.right = ''; panel.style.maxHeight = '';
+      var r = panel.getBoundingClientRect();
+      if (r.left < 8 || r.right > window.innerWidth - 8) {
+        var nb = document.querySelector('.navbar');
+        var top = nb ? Math.round(nb.getBoundingClientRect().bottom + 6) : 56;
+        panel.style.position = 'fixed';
+        panel.style.top = top + 'px';
+        panel.style.right = '.75rem';
+        panel.style.left = 'auto';
+        panel.style.maxHeight = 'calc(100vh - ' + (top + 14) + 'px)';
+      }
+    }
+    function open(v) {
+      panel.hidden = !v;
+      if (v) place();                 // measured while visible, before paint
+      btn.setAttribute('aria-expanded', v ? 'true' : 'false');
+    }
+    window.addEventListener('resize', function () { if (!panel.hidden) place(); });
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      open(panel.hidden);
+    });
+    panel.addEventListener('click', function (e) { e.stopPropagation(); });
+    document.addEventListener('click', function () { open(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !panel.hidden) { open(false); btn.focus(); }
+    });
+
+    sync();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', build);
+  } else {
+    build();
+  }
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400">
@@ -82,6 +405,7 @@ ul.task-list li input[type="checkbox"] {
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400">
 <script>
   window.MathJax = {
     loader: { load: ['[tex]/mhchem'] },
