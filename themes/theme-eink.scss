@@ -1,0 +1,225 @@
+/*-- scss:defaults --*/
+$grid-sidebar-width: 0px;   // this site has no left sidebar; without this
+                            // Quarto reserves 250px for one and the body is
+                            // pushed right, leaving a wide blank left gutter
+
+// E-ink — a Paperwhite under warm light. Warm paper rather than white, soft
+// near-black rather than true black (real e-ink tops out near 15:1, not 21:1),
+// no saturated colour, no shadow, no gradient, no rounded corner. Literata is
+// the reading face: TypeTogether drew it for Google Play Books, so its weight
+// and spacing are tuned for long passages rather than for screens.
+$body-bg:                 #f3f1ec;
+$body-color:              #2b2824;
+$link-color:              #2b2824;   // greyscale display: links are underlined,
+$link-hover-color:        #000000;   // not coloured
+$border-color:            #d8d3c8;
+$font-family-serif:       Literata, "Iowan Old Style", Georgia, serif;
+$font-family-sans-serif:  Literata, Georgia, serif;  // e-readers never switch to sans
+$font-family-monospace:   "IBM Plex Mono", ui-monospace, Menlo, monospace;
+$font-family-base:        $font-family-serif;
+$headings-font-family:    $font-family-serif;
+$headings-font-weight:    700;
+$font-size-root:          19px;
+$line-height-base:        1.78;
+$code-bg:                 #e8e4da;
+$code-color:              #2b2824;
+$pre-bg:                  #eceae1;
+$blockquote-border-color: #b9b2a4;
+$toc-color:               #6d675d;
+$border-radius:           0;
+$border-radius-sm:        0;
+$border-radius-lg:        0;
+
+/*-- scss:rules --*/
+:root {
+  --tn-ink:   #2b2824;
+  --tn-muted: #6d675d;
+  --tn-rule:  #d8d3c8;
+  --tn-mark:  #e2ddd0;   // the pale block a Kindle highlight leaves behind
+}
+
+// ---------- the panel itself. E-ink is matte and perfectly flat.
+body { -webkit-font-smoothing: antialiased; }
+* { box-shadow: none !important; }
+
+// ---------- reading column. Justified with hyphens is how an e-reader sets a
+// page; if it opens up rivers on your screen width, change `justify` to `left`
+// and the rest of the theme is unaffected.
+main p {
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+main li, main figcaption, main .quarto-figure, main td, main th { hyphens: none; }
+main p + p { margin-top: 0; text-indent: 0; }
+
+// ---------- headings: modest hierarchy, the way a chapter opening is set.
+// No size jumps, no colour; weight and spacing carry the structure.
+h1, h2, h3, h4 { color: var(--tn-ink); text-wrap: balance; line-height: 1.25; }
+h1 { font-size: 1.95rem; font-weight: 700; letter-spacing: -.012em; }
+h2 {
+  font-size: 1.28rem; font-weight: 700; letter-spacing: .005em;
+  margin-top: 2.4em; padding-bottom: .35em; border-bottom: 1px solid var(--tn-rule);
+}
+h3 { font-size: 1.06rem; font-weight: 600; margin-top: 1.9em; }
+h4 { font-size: .97rem; font-weight: 600; font-style: italic; }
+
+// ---------- links. A greyscale panel cannot signal with hue, so an underline
+// does the work and hover leaves a highlighter block behind.
+main a, main a:visited {
+  color: var(--tn-ink);
+  text-decoration: underline;
+  text-decoration-thickness: .055em;
+  text-underline-offset: .17em;
+  text-decoration-color: #a8a195;
+}
+main a:hover {
+  color: #000;
+  background: var(--tn-mark);
+  text-decoration-color: var(--tn-ink);
+}
+
+main blockquote {
+  border-left-width: 3px;
+  padding-left: 1.15em;
+  font-style: italic;
+  color: #413b33;
+}
+
+// ---------- code. Hairline panel, no fill beyond a shade of the page, and
+// greyscale tokens: a real e-ink screen has no colour to spend on syntax.
+main pre, main div.sourceCode {
+  border: 1px solid var(--tn-rule);
+  background: $pre-bg;
+}
+main pre code { font-size: .82rem; line-height: 1.6; }
+main code:not(pre code) { padding: .08em .3em; font-size: .86em; }
+
+.sourceCode span.co, .sourceCode span.do, .sourceCode span.cv {
+  color: #8a8378; font-style: italic;
+}
+.sourceCode span.kw, .sourceCode span.cf, .sourceCode span.im {
+  color: #2b2824; font-weight: 700;
+}
+.sourceCode span.st, .sourceCode span.ch,
+.sourceCode span.vs, .sourceCode span.ss { color: #5f594e; }
+.sourceCode span.dv, .sourceCode span.bn,
+.sourceCode span.fl, .sourceCode span.cn { color: #413b33; }
+.sourceCode span.fu, .sourceCode span.bu { color: #2b2824; }
+.sourceCode span.va, .sourceCode span.at,
+.sourceCode span.dt, .sourceCode span.ot { color: #413b33; }
+.sourceCode span.op { color: #6d675d; }
+.sourceCode span.al, .sourceCode span.er,
+.sourceCode span.wa { color: #2b2824; font-weight: 700; }
+
+// ---------- equations: a wide derivation scrolls in its own box, never
+//            widening the page. Quarto's stock themes do not do this.
+mjx-container { line-height: normal; }
+mjx-container[display="true"] {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  padding: .45em .1em;
+}
+mjx-container[display="true"]::-webkit-scrollbar { height: 6px; }
+mjx-container[display="true"]::-webkit-scrollbar-thumb {
+  background: var(--tn-rule); border-radius: 0;
+}
+
+// ---------- tables: hairline rules only, the way a reference table prints.
+main table { font-variant-numeric: tabular-nums; font-size: .88rem; }
+main thead th {
+  // deliberately no text-transform: on a maths site uppercasing a header
+  // would render "Δx range" as "ΔX RANGE", and ΔX is a different symbol
+  font-size: .8rem; font-weight: 700; letter-spacing: .03em;
+  color: var(--tn-muted); white-space: nowrap;
+  border-bottom: 1px solid var(--tn-ink) !important;
+}
+main tbody tr { border-bottom: 1px solid var(--tn-rule); }
+
+// ---------- listing. Greyscale cannot tint a title apart from its summary,
+// so size and weight have to do it: the title is markedly larger and heavier
+// than the body text beneath it, and the date sits small and grey above.
+.quarto-listing .listing-title,
+.quarto-listing .listing-title a,
+div.quarto-post .listing-title,
+div.quarto-post .listing-title a {
+  color: var(--tn-ink) !important;
+  font-family: Literata, Georgia, serif;
+  font-size: 1.42rem;
+  font-weight: 700;
+  letter-spacing: -.012em;
+  line-height: 1.22;
+  text-decoration: none;
+  margin-top: 0;          // Quarto renders listing titles as h3, so without
+  margin-bottom: .35em;   // this the generic h3 top margin drops the title
+}                         // below its own date column
+.quarto-listing .listing-title a:hover { background: var(--tn-mark); }
+div.quarto-post { padding: 1.7em 0; border-top: 1px solid var(--tn-rule); }
+div.quarto-post:first-child { border-top: 2px solid var(--tn-ink); }
+.listing-date {
+  font-size: .72rem; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--tn-muted);
+}
+.listing-subtitle, div.quarto-post .body p { color: #4a443c; }
+.listing-category {
+  font-size: .68rem; font-weight: 600; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--tn-muted);
+  border: 1px solid var(--tn-rule); border-radius: 0; padding: 1px 5px;
+  background: transparent;
+}
+
+// ---------- chrome kept quiet, as an e-reader keeps its own furniture quiet
+.navbar {
+  background: $body-bg !important;
+  border-bottom: 1px solid var(--tn-rule);
+}
+.navbar .navbar-brand, .navbar .nav-link { color: var(--tn-ink) !important; }
+.navbar .nav-link:hover { background: var(--tn-mark); }
+#quarto-margin-sidebar .nav-link { font-size: .8rem; color: var(--tn-muted); }
+#quarto-margin-sidebar .nav-link.active { color: var(--tn-ink); font-weight: 600; }
+.footer, footer.footer { background: $body-bg; border-top: 1px solid var(--tn-rule); }
+
+// ---------- containment: stop any single wide element widening the page.
+// Grid and flex children default to min-width:auto, which means they refuse
+// to shrink below their content. One long heading, TOC entry or equation then
+// pushes the whole layout wider than the viewport, a horizontal scrollbar
+// appears, and the centred column looks shifted left relative to other pages.
+// Making those children shrinkable is the fix.
+.page-columns > *,
+#quarto-content,
+main.content,
+.column-body,
+#quarto-document-content,
+#quarto-margin-sidebar,
+.quarto-title-block { min-width: 0; }
+
+// long words with no break opportunity: chemical names, identifiers, URLs
+h1, h2, h3, h4, h5 { overflow-wrap: break-word; }
+#TOC, nav[role="doc-toc"], .sidebar nav { overflow-wrap: anywhere; }
+
+// anything that can legitimately be wider gets its own scroll box
+main table, main pre, main .cell-output-display { max-width: 100%; overflow-x: auto; }
+main img, main svg { max-width: 100%; height: auto; }
+
+// ---------- listing rows must line up with each other.
+// Quarto's default listing is a flex row: a date column and a body column
+// sized by flex-basis. A body child that demands width -- a display equation
+// in the preview is the usual culprit -- wins against that basis, because
+// flex children default to min-width:auto. The date column is squeezed, its
+// text wraps, and that row's title starts at a different x than its
+// neighbours. Pin the date column and let the body shrink instead.
+div.quarto-post { align-items: flex-start; }
+div.quarto-post .metadata { flex: 0 0 8rem; min-width: 8rem; }
+div.quarto-post .body { flex: 1 1 auto; min-width: 0; }
+div.quarto-post .thumbnail { min-width: 0; }
+
+// a preview should never render a full-size display equation
+div.quarto-post .body mjx-container { max-width: 100%; overflow-x: auto; }
+div.quarto-post .body mjx-container[display="true"] { margin: .5em 0 !important; }
+
+@media (max-width: 620px) {
+  div.quarto-post { flex-direction: column; }
+  div.quarto-post .metadata { flex: 0 0 auto; min-width: 0; }
+  main p { text-align: left; }   // justification needs width to work
+}

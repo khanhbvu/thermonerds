@@ -26,6 +26,7 @@ format:
     #   themes/theme-journal.scss    typeset paper: justified, indented, small caps
     #   themes/theme-lab.scss        engineering report: steel blue, boxed, striped
     #   themes/theme-monograph.scss  scholarly book: Spectral, airy, deep green
+    #   themes/theme-eink.scss       e-reader panel: warm paper, greyscale, Literata
     theme:
       - cosmo
       - themes/theme-ledger.scss
@@ -41,6 +42,10 @@ format:
       margin-width: 240px
       gutter-width: 1.5rem
     include-in-header:
+      # Reader controls (colour themes + text size) in the navbar, beside the
+      # site title. Palettes and the font-size scaling come from the ReadMode
+      # extension. Underscore-prefixed so Quarto does not publish it as a page.
+      - file: _reader.html
       - text: |
           <link rel="preconnect" href="https://fonts.googleapis.com">
           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,6 +57,7 @@ format:
           <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400">
           <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400">
           <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400">
+          <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400">
           <script>
             window.MathJax = {
               loader: { load: ['[tex]/mhchem'] },

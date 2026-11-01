@@ -1,6 +1,6 @@
 # Themes
 
-Four looks for thermonerds.com. Each is a self-contained Quarto SCSS theme:
+Eight looks for thermonerds.com. Each is a self-contained Quarto SCSS theme:
 Bootstrap variables in `scss:defaults`, everything else in `scss:rules`.
 
 ## Switching
@@ -26,6 +26,22 @@ Then `quarto preview`. No other file changes.
 | `theme-journal.scss` | A typeset paper. Crimson Pro at 21px on a 36em measure, justified with hyphenation, paragraphs indented rather than spaced, small-caps section heads. |
 | `theme-lab.scss` | Engineering report. Cool greys, one steel blue, the IBM Plex family throughout, equations in bordered boxes, striped tables, mono captions. |
 | `theme-monograph.scss` | Scholarly book. Spectral at 1.82 leading, deep green accent, small-caps heads, no boxes or cards anywhere. |
+| `theme-eink.scss` | An e-reader panel. Warm paper rather than white, soft near-black rather than true black, Literata, and no colour at all — links are underlined, code is greyscale, nothing is rounded or shadowed. |
+
+## On the e-ink one
+
+`theme-eink.scss` imitates a Paperwhite under warm light, which drives three
+choices. Contrast is deliberately held near 13:1 rather than pushed to 21:1,
+because a real e-ink panel tops out around 15:1 and true black on true white
+reads as a screen, not paper. **Nothing is coloured** — a greyscale display
+cannot signal with hue, so links carry an underline and a highlighter block on
+hover, and syntax highlighting is a range of greys. And text is **justified
+with automatic hyphenation**, the way an e-reader sets a page; if that opens
+rivers at your window width, change the single `text-align: justify` to `left`.
+
+Table headers in this theme are deliberately *not* uppercased, unlike the other
+seven. On a maths site `text-transform: uppercase` renders a header reading
+"Δx range" as "ΔX RANGE", and ΔX is a different symbol from Δx.
 
 ## On the paper-like ones
 
@@ -46,14 +62,16 @@ change `text-align: justify` to `left`.
 - **Display equations scroll in their own box** rather than widening the page
   on a phone. Quarto's stock themes do not do this, and with derivations the
   width of `A_res` it matters.
-- Tabular figures in tables, uppercase small-caps headers.
+- Tabular figures in tables, and small-caps headers (uppercased in every
+  theme but `theme-eink.scss`, for the reason given above).
 
 ## Fonts
 
-`_quarto.yml` loads all five families the four themes draw on: Source Serif 4,
-IBM Plex Sans, IBM Plex Mono, Inter and JetBrains Mono. Once you have picked a
-theme, delete the `<link>` lines for the families it does not use — each is a
-separate request on every page load.
+`_quarto.yml` loads every family the eight themes draw on: Source Serif 4,
+IBM Plex Sans, IBM Plex Serif, IBM Plex Mono, Inter, JetBrains Mono, Crimson
+Pro, Spectral and Literata. Once you have picked a theme, delete the `<link>`
+lines for the families it does not use — each is a separate request on every
+page load. `theme-eink.scss` needs only Literata and IBM Plex Mono.
 
 ## Keeping one
 
