@@ -491,69 +491,138 @@ print(f"p = 1e-2 to 1e-4   slope = {ls_slope(F1[:3], F2[:3]):.6f}")
 
 ### Try it yourself
 
-The same calculation, live. Change the state or the composition and the whole
-chain recomputes; the **derivative error** slider injects a deliberate relative
-error into $\partial A_{res}/\partial n_1$ before the test sees it, which is
-the quickest way to watch the slope fall from 2 to 1.
+The same calculation as a live sheet. White cells are yours to edit; shaded
+cells recompute from them. The **derivative error [%]** cell injects a
+deliberate relative error into $\partial A_{res}/\partial n_1$ before the test
+sees it — set it to 1 and watch the slope column fall from 2 to 1.
 
 ```{=html}
-<div id="eos-lab" class="eos-lab">
-  <div class="eos-controls">
-    <label>T [K]<input type="number" id="eT" step="5" value="300"></label>
-    <label>V [cm³]<input type="number" id="eV" step="25" value="500"></label>
-    <label>n₁ methane [mol]<input type="number" id="en1" step="0.05" value="0.6"></label>
-    <label>n₂ ethane [mol]<input type="number" id="en2" step="0.05" value="0.4"></label>
-    <label>k₁₂<input type="number" id="ek" step="0.005" value="0.01"></label>
-    <label class="eos-err"><span>derivative error [%] <output id="eEout">0</output></span>
-      <input type="range" id="eE" min="-5" max="5" step="0.1" value="0">
-    </label>
-    <button type="button" id="eReset">Reset</button>
+<div class="xl" id="xl">
+  <p class="xl-legend"><span class="xl-k xl-k-in"></span> editable &nbsp; <span class="xl-k xl-k-ca"></span> computed &nbsp;
+    <button type="button" id="xReset">Reset</button></p>
+  <p class="xl-msg" id="xMsg" hidden></p>
+
+  <div class="xl-scroll">
+  <table class="xl-t">
+    <tbody>
+      <tr class="xl-h"><th>Input</th><th>Methane</th><th>Ethane</th></tr>
+      <tr><th>Tc [K]</th>
+        <td class="in"><input id="xTc1" type="number" step="any"></td>
+        <td class="in"><input id="xTc2" type="number" step="any"></td></tr>
+      <tr><th>Pc [MPa]</th>
+        <td class="in"><input id="xPc1" type="number" step="any"></td>
+        <td class="in"><input id="xPc2" type="number" step="any"></td></tr>
+      <tr><th>&omega;</th>
+        <td class="in"><input id="xw1" type="number" step="any"></td>
+        <td class="in"><input id="xw2" type="number" step="any"></td></tr>
+      <tr><th>n&#7522; [mol]</th>
+        <td class="in"><input id="xn1" type="number" step="any"></td>
+        <td class="in"><input id="xn2" type="number" step="any"></td></tr>
+      <tr><th>T [K]</th><td class="in"><input id="xT" type="number" step="any"></td><td class="na"></td></tr>
+      <tr><th>V [cm&sup3;]</th><td class="in"><input id="xV" type="number" step="any"></td><td class="na"></td></tr>
+      <tr><th>K&#8321;&#8322;</th><td class="in"><input id="xk" type="number" step="any"></td><td class="na"></td></tr>
+      <tr><th>derivative error [%]</th><td class="in"><input id="xerr" type="number" step="any"></td><td class="na"></td></tr>
+      <tr><th>R&#8336; [J/mol/K]</th><td class="ca" id="xR"></td><td class="na"></td></tr>
+
+      <tr class="xl-h"><th>EOS parameters</th><th>Methane</th><th>Ethane</th></tr>
+      <tr><th>m = 0.480 + 1.574&omega; &minus; 0.175&omega;&sup2;</th><td class="ca" id="xm1"></td><td class="ca" id="xm2"></td></tr>
+      <tr><th>&alpha; = [1 + m(1 &minus; &radic;(T/Tc))]&sup2;</th><td class="ca" id="xa1"></td><td class="ca" id="xa2"></td></tr>
+      <tr><th>a&#8320; = 4.2747&times;10&#8309;&middot;(R&middot;Tc)&sup2;/Pc</th><td class="ca" id="xac1"></td><td class="ca" id="xac2"></td></tr>
+      <tr><th>a&#7522; = a&#8320;&middot;&alpha; [J&middot;cm&sup3;/mol&sup2;]</th><td class="ca" id="xaa1"></td><td class="ca" id="xaa2"></td></tr>
+      <tr><th>b&#7522; = 8.664&times;10&#8308;&middot;R&middot;Tc/Pc [cm&sup3;/mol]</th><td class="ca" id="xb1"></td><td class="ca" id="xb2"></td></tr>
+      <tr><th>a&#8321;&#8322; = &radic;(a&#8321;a&#8322;)(1 &minus; K&#8321;&#8322;)</th><td class="ca" id="xa12" colspan="2"></td></tr>
+      <tr><th>B = &Sigma;n&#7522;b&#7522;</th><td class="ca" id="xB" colspan="2"></td></tr>
+      <tr><th>D = &Sigma;&Sigma;n&#7522;n&#11388;a&#7522;&#11388;</th><td class="ca" id="xD" colspan="2"></td></tr>
+
+      <tr class="xl-h"><th>Quantity</th><th>Formula</th><th>Value</th></tr>
+      <tr><th>g</th><td class="fo">ln(1 &minus; B/V)</td><td class="ca" id="xg"></td></tr>
+      <tr><th>g_B</th><td class="fo">&minus;1/(V &minus; B)</td><td class="ca" id="xgB"></td></tr>
+      <tr><th>f</th><td class="fo">ln(1 + B/V)/B</td><td class="ca" id="xf"></td></tr>
+      <tr><th>f_V</th><td class="fo">&minus;1/(V(V + B))</td><td class="ca" id="xfV"></td></tr>
+      <tr><th>f_B</th><td class="fo">&minus;(f + V&middot;f_V)/B</td><td class="ca" id="xfB"></td></tr>
+      <tr><th>A_res</th><td class="fo">&minus;n_tot&middot;RT&middot;g &minus; D&middot;f</td><td class="ca" id="xAres"></td></tr>
+
+      <tr class="xl-h"><th>Term</th><th>i = 1 (methane)</th><th>i = 2 (ethane)</th></tr>
+      <tr><th>&minus;RT&middot;g</th><td class="ca" id="xt1a"></td><td class="ca" id="xt2a"></td></tr>
+      <tr><th>&minus;n_tot&middot;RT&middot;g_B&middot;b&#7522;</th><td class="ca" id="xt1b"></td><td class="ca" id="xt2b"></td></tr>
+      <tr><th>&minus;D&#7522;&middot;f</th><td class="ca" id="xt1c"></td><td class="ca" id="xt2c"></td></tr>
+      <tr><th>&minus;D&middot;f_B&middot;b&#7522;</th><td class="ca" id="xt1d"></td><td class="ca" id="xt2d"></td></tr>
+      <tr><th>D&#7522; = &part;D/&part;n&#7522; = 2&Sigma;&#11388;a&#7522;&#11388;n&#11388;</th><td class="ca" id="xD1"></td><td class="ca" id="xD2"></td></tr>
+      <tr><th>A&#8345;&#7522; = &part;A_res/&part;n&#7522;</th><td class="ca em" id="xAn1"></td><td class="ca em" id="xAn2"></td></tr>
+      <tr id="xUsedRow" hidden><th>value fed to the test</th><td class="ca em" id="xUsed"></td><td class="na"></td></tr>
+    </tbody>
+  </table>
   </div>
-  <p id="eMsg" class="eos-msg" hidden></p>
-  <div id="eBody">
-    <p class="eos-derived" id="eDer"></p>
-    <div class="eos-scroll">
-      <table class="eos-table"><thead><tr>
-        <th>p</th><th>E₁</th><th>E₂</th><th>slope, this row to next</th>
-      </tr></thead><tbody id="eRows"></tbody></table>
-    </div>
-    <p class="eos-fits" id="eFits"></p>
-    <p class="eos-verdict" id="eVer"></p>
+
+  <p class="xl-cap">Testing &part;A_res/&part;n&#8321; by perturbation</p>
+  <div class="xl-scroll">
+  <table class="xl-t">
+    <thead><tr class="xl-h"><th>p</th><th>n_pert</th><th>A_res_pert</th><th>E&#8321;</th>
+      <th>A&#8345;&#8321;&middot;n&#8321;&middot;p</th><th>E&#8322;</th><th>slope</th></tr></thead>
+    <tbody id="xSweep"></tbody>
+  </table>
   </div>
+
+  <p class="xl-cap">Least-squares fit of F&#8322; = ln|E&#8322;| against F&#8321; = ln|E&#8321;|</p>
+  <div class="xl-scroll">
+  <table class="xl-t">
+    <thead><tr class="xl-h"><th>r</th><th>F&#8321;</th><th>F&#8322;</th>
+      <th>d&#8321; = F&#8321; &minus; F&#773;&#8321;</th><th>d&#8322; = F&#8322; &minus; F&#773;&#8322;</th>
+      <th>d&#8321;&middot;d&#8322;</th><th>d&#8321;&sup2;</th></tr></thead>
+    <tbody id="xLs"></tbody>
+  </table>
+  </div>
+  <p class="xl-fits" id="xFits"></p>
+  <p class="xl-verdict" id="xVer"></p>
 </div>
 
 <style>
-.eos-lab{border:1px solid rgba(128,128,128,.35);border-radius:4px;padding:1rem 1.1rem;margin:1.5rem 0;font-size:.92rem}
-.eos-controls{display:flex;flex-wrap:wrap;gap:.6rem 1.1rem;align-items:flex-end}
-.eos-controls label{display:flex;flex-direction:column;font-size:.82rem;line-height:1.3;gap:.2rem}
-.eos-controls input[type=number]{width:7.5rem;padding:.2rem .35rem;font:inherit;font-size:.88rem;
-  color:inherit;background:transparent;border:1px solid rgba(128,128,128,.5);border-radius:3px}
-.eos-controls input[type=range]{width:9rem}
-.eos-err{min-width:11rem}
-.eos-err output{font-variant-numeric:tabular-nums;opacity:.75}
-.eos-controls button{padding:.3rem .8rem;font:inherit;font-size:.85rem;cursor:pointer;color:inherit;
-  background:transparent;border:1px solid rgba(128,128,128,.6);border-radius:3px}
-.eos-controls button:hover{background:rgba(128,128,128,.12)}
-.eos-derived,.eos-fits{font-size:.8rem;opacity:.8;margin:.9rem 0 .5rem;line-height:1.6}
-.eos-scroll{overflow-x:auto;margin:.4rem 0}
-.eos-table{width:100%;margin:0;font-variant-numeric:tabular-nums;font-size:.85rem}
-.eos-table td,.eos-table th{white-space:nowrap;padding-right:.8rem}
-.eos-table th{text-align:left;font-weight:600;font-size:.78rem}
-.eos-verdict{margin:.6rem 0 0;font-size:.86rem;font-weight:600}
-.eos-msg{margin:.9rem 0 0;font-size:.86rem;font-weight:600}
-@media (max-width:620px){.eos-controls input[type=number]{width:6rem}}
+.xl{border:1px solid rgba(128,128,128,.35);border-radius:4px;padding:.9rem 1rem;margin:1.6rem 0;font-size:.9rem}
+.xl-legend{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap;margin:0 0 .7rem;font-size:.78rem;opacity:.85}
+.xl-legend button{margin-left:auto;padding:.25rem .75rem;font:inherit;font-size:.8rem;cursor:pointer;
+  color:inherit;background:transparent;border:1px solid rgba(128,128,128,.6);border-radius:3px}
+.xl-legend button:hover{background:rgba(128,128,128,.12)}
+.xl-k{display:inline-block;width:.85rem;height:.85rem;border:1px solid rgba(128,128,128,.6);vertical-align:-2px}
+.xl-k-ca{background:rgba(128,128,128,.14)}
+.xl-scroll{overflow-x:auto}
+.xl-t{border-collapse:collapse;width:100%;margin:.2rem 0 .9rem;font-variant-numeric:tabular-nums;font-size:.82rem}
+.xl-t th,.xl-t td{border:1px solid rgba(128,128,128,.3);padding:.18rem .4rem;text-align:right;white-space:nowrap}
+.xl-t th:first-child{text-align:left;font-weight:400}
+.xl-t tr.xl-h th{text-align:left;font-weight:700;background:rgba(128,128,128,.18);font-size:.78rem}
+.xl-t td.ca{background:rgba(128,128,128,.14)}
+.xl-t td.na{background:repeating-linear-gradient(135deg,transparent,transparent 4px,rgba(128,128,128,.1) 4px,rgba(128,128,128,.1) 8px)}
+.xl-t td.fo{text-align:left;font-size:.78rem;opacity:.75;background:rgba(128,128,128,.14)}
+.xl-t td.em{font-weight:700}
+.xl-t td.in{padding:0}
+.xl-t td.in input{width:100%;min-width:6.5rem;box-sizing:border-box;border:0;background:transparent;
+  color:inherit;font:inherit;font-size:.82rem;text-align:right;padding:.18rem .4rem}
+.xl-t td.in input:focus{outline:2px solid rgba(128,128,128,.55);outline-offset:-2px}
+.xl-cap{margin:.2rem 0 .1rem;font-size:.8rem;font-weight:600;opacity:.85}
+.xl-fits{font-size:.8rem;opacity:.85;margin:.2rem 0 .4rem;line-height:1.7}
+.xl-verdict{margin:.3rem 0 0;font-size:.86rem;font-weight:600}
+.xl-msg{margin:.2rem 0 .6rem;font-size:.86rem;font-weight:600}
 </style>
 
 <script>
 (function(){
-  var R=8.314462618, D0={eT:300,eV:500,en1:0.6,en2:0.4,ek:0.01,eE:0};
-  var Tc=[190.56,305.32], Pcm=[4.599,4.872], w=[0.011,0.099];
-  var g=function(id){return document.getElementById(id)};
-  var ids=['eT','eV','en1','en2','ek','eE'];
+  var R=8.314462618;
+  var DEF={xTc1:190.56,xTc2:305.32,xPc1:4.599,xPc2:4.872,xw1:0.011,xw2:0.099,
+           xn1:0.6,xn2:0.4,xT:300,xV:500,xk:0.01,xerr:0};
+  var IDS=Object.keys(DEF);
+  function G(i){return document.getElementById(i)}
+  function set(i,v){var e=G(i);if(e)e.textContent=v}
 
-  function model(T,V,n1,n2,k12){
-    var Pc=[Pcm[0]*1e6,Pcm[1]*1e6], n=[n1,n2];
-    // operation order mirrors the Python chunks above so the numbers agree digit for digit
+  function fx(x,d){return isFinite(x)?x.toFixed(d):'—'}
+  function sci(x,d){
+    if(!isFinite(x))return '—';
+    if(x===0)return '0';
+    var m=Math.abs(x);
+    return (m>=1e-4&&m<1e6)?x.toFixed(d):x.toExponential(6);
+  }
+
+  // operation order mirrors the Python chunks above so the numbers agree digit for digit
+  function model(T,V,n1,n2,k12,Tc,Pcm,w){
+    var Pc=[Pcm[0]*1e6,Pcm[1]*1e6], n=[n1,n2], i, j;
     var m=w.map(function(z){return 0.48+1.574*z-0.175*z*z});
     var al=m.map(function(mi,i){return Math.pow(1+mi*(1-Math.sqrt(T/Tc[i])),2)});
     var ac=Tc.map(function(tc,i){return 4.2747e5*Math.pow(R*tc,2)/Pc[i]});
@@ -562,96 +631,113 @@ the quickest way to watch the slope fall from 2 to 1.
     var a12=Math.sqrt(a[0]*a[1])*(1-k12), aij=[[a[0],a12],[a12,a[1]]];
     var Bof=function(v){var s=0;for(var i=0;i<2;i++)s+=v[i]*b[i];return s};
     var Dof=function(v){var s=0;for(var i=0;i<2;i++)for(var j=0;j<2;j++)s+=v[i]*v[j]*aij[i][j];return s};
-    var Ares=function(v){var B=Bof(v),D=Dof(v),nt=0;
-      for(var i=0;i<2;i++)nt+=v[i];
+    var Ares=function(v){var B=Bof(v),D=Dof(v),nt=0;for(var i=0;i<2;i++)nt+=v[i];
       return -nt*R*T*Math.log(1-B/V)-D*Math.log(1+B/V)/B};
     var B=Bof(n), D=Dof(n), nt=n[0]+n[1];
-    var gg=Math.log(1-B/V), f=Math.log(1+B/V)/B;
+    var g=Math.log(1-B/V), f=Math.log(1+B/V)/B;
     var g_B=-1/(V-B), f_V=-1/(V*(V+B)), f_B=-(f+V*f_V)/B;
-    var D1=2*(aij[0][0]*n[0]+aij[0][1]*n[1]);
-    var A_n1=-R*T*gg-nt*R*T*g_B*b[0]-D1*f-D*f_B*b[0];
-    return {b:b,a:a,a12:a12,B:B,D:D,g:gg,f:f,A_res:Ares(n),A_n1:A_n1,Ares:Ares};
-  }
-  function lsSlope(F1,F2){
-    var n=F1.length,m1=0,m2=0,i;
-    for(i=0;i<n;i++){m1+=F1[i];m2+=F2[i]} m1/=n;m2/=n;
-    var num=0,den=0;
-    for(i=0;i<n;i++){num+=(F1[i]-m1)*(F2[i]-m2);den+=(F1[i]-m1)*(F1[i]-m1)}
-    return num/den;
-  }
-  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
-  function fmt(x){
-    if(!isFinite(x))return '—';
-    return (Math.abs(x)>=1e-3&&Math.abs(x)<1e5)?x.toFixed(6):x.toExponential(6);
+    var Di=[2*(aij[0][0]*n[0]+aij[0][1]*n[1]), 2*(aij[1][0]*n[0]+aij[1][1]*n[1])];
+    var An=[0,1].map(function(k){return -R*T*g-nt*R*T*g_B*b[k]-Di[k]*f-D*f_B*b[k]});
+    return {m:m,al:al,ac:ac,a:a,b:b,a12:a12,B:B,D:D,nt:nt,g:g,f:f,g_B:g_B,f_V:f_V,f_B:f_B,
+            Di:Di,An:An,A_res:Ares(n),Ares:Ares,
+            term:[0,1].map(function(k){return [-R*T*g,-nt*R*T*g_B*b[k],-Di[k]*f,-D*f_B*b[k]]})};
   }
 
   function render(){
-    var T=+g('eT').value, V=+g('eV').value, n1=+g('en1').value,
-        n2=+g('en2').value, k12=+g('ek').value, err=+g('eE').value;
-    g('eEout').textContent=err.toFixed(1);
-    var msg=g('eMsg'), body=g('eBody'), bad=null;
-    if(!(T>0))bad='Temperature must be positive.';
-    else if(!(n1>0&&n2>0))bad='Both mole numbers must be positive.';
+    var v={}, k;
+    for(k=0;k<IDS.length;k++)v[IDS[k]]=+G(IDS[k]).value;
+    var msg=G('xMsg'), bad=null;
+    if(!(v.xT>0))bad='T must be positive.';
+    else if(!(v.xn1>0&&v.xn2>0))bad='Both mole numbers must be positive.';
+    else if(!(v.xTc1>0&&v.xTc2>0&&v.xPc1>0&&v.xPc2>0))bad='Tc and Pc must be positive.';
     else{
-      var bt=Tc.map(function(tc,i){return 8.664e4*R*tc/(Pcm[i]*1e6)});
-      var Bq=n1*bt[0]+n2*bt[1];
-      if(!(V>Bq))bad='V must exceed the co-volume B = '+Bq.toFixed(3)+' cm³ for this composition.';
+      var bt=[v.xTc1,v.xTc2].map(function(tc,i){return 8.664e4*(tc*R)/([v.xPc1,v.xPc2][i]*1e6)});
+      var Bq=v.xn1*bt[0]+v.xn2*bt[1];
+      if(!(v.xV>Bq))bad='V must exceed the co-volume B = '+Bq.toFixed(4)+' cm³ for this composition.';
     }
-    if(bad){msg.textContent=bad;msg.hidden=false;body.hidden=true;return}
-    msg.hidden=true;body.hidden=false;
+    if(bad){msg.textContent=bad;msg.hidden=false;return}
+    msg.hidden=true;
 
-    var M=model(T,V,n1,n2,k12), used=M.A_n1*(1+err/100);
-    g('eDer').innerHTML=
-      'b₁ = '+M.b[0].toFixed(4)+' &middot; b₂ = '+M.b[1].toFixed(4)+
-      ' &middot; B = '+M.B.toFixed(4)+' cm³ &middot; D = '+M.D.toFixed(1)+
-      '<br>g = '+M.g.toExponential(6)+' &middot; f = '+M.f.toExponential(6)+
-      ' &middot; A_res = '+M.A_res.toFixed(6)+' J'+
-      '<br>analytical &part;A/&part;n₁ = '+M.A_n1.toFixed(6)+' J/mol'+
-      (err!==0?' &middot; <strong>value fed to the test = '+used.toFixed(6)+'</strong>':'');
+    var M=model(v.xT,v.xV,v.xn1,v.xn2,v.xk,[v.xTc1,v.xTc2],[v.xPc1,v.xPc2],[v.xw1,v.xw2]);
+    var used=M.An[0]*(1+v.xerr/100);
 
-    var ps=[1e-2,1e-3,1e-4,1e-5,1e-6], rows=[];
+    set('xR',R.toFixed(9));
+    set('xm1',fx(M.m[0],9));   set('xm2',fx(M.m[1],9));
+    set('xa1',fx(M.al[0],9));  set('xa2',fx(M.al[1],9));
+    set('xac1',fx(M.ac[0],4)); set('xac2',fx(M.ac[1],4));
+    set('xaa1',fx(M.a[0],4));  set('xaa2',fx(M.a[1],4));
+    set('xb1',fx(M.b[0],6));   set('xb2',fx(M.b[1],6));
+    set('xa12',fx(M.a12,4));   set('xB',fx(M.B,6));  set('xD',fx(M.D,4));
+    set('xg',sci(M.g,9)); set('xgB',sci(M.g_B,9)); set('xf',sci(M.f,9));
+    set('xfV',sci(M.f_V,9)); set('xfB',sci(M.f_B,9)); set('xAres',fx(M.A_res,6));
+    ['a','b','c','d'].forEach(function(s,j){
+      set('xt1'+s,fx(M.term[0][j],4)); set('xt2'+s,fx(M.term[1][j],4));
+    });
+    set('xD1',fx(M.Di[0],4)); set('xD2',fx(M.Di[1],4));
+    set('xAn1',fx(M.An[0],6)); set('xAn2',fx(M.An[1],6));
+    G('xUsedRow').hidden = (v.xerr===0);
+    set('xUsed',fx(used,6));
+
+    var ps=[1e-2,1e-3,1e-4,1e-5,1e-6], rows=[], html='';
     ps.forEach(function(p){
-      var dn=n1*p, E1=M.Ares([n1*(1+p),n2])-M.A_res;
-      rows.push({p:p,E1:E1,E2:E1-used*dn});
+      var npert=v.xn1*(1+p), E1=M.Ares([npert,v.xn2])-M.A_res, lin=used*v.xn1*p;
+      rows.push({p:p,npert:npert,Ap:M.Ares([npert,v.xn2]),E1:E1,lin:lin,E2:E1-lin});
     });
-    var html='';
-    rows.forEach(function(r,k){
+    rows.forEach(function(r,i){
       var s='—';
-      if(k+1<rows.length){
-        var v=Math.log(Math.abs(r.E2/rows[k+1].E2))/Math.log(Math.abs(r.E1/rows[k+1].E1));
-        s=isFinite(v)?v.toFixed(4):'—';
+      if(i+1<rows.length){
+        var q=Math.log(Math.abs(r.E2/rows[i+1].E2))/Math.log(Math.abs(r.E1/rows[i+1].E1));
+        if(isFinite(q))s=q.toFixed(4);
       }
-      html+='<tr><td>'+r.p.toExponential(0)+'</td><td>'+fmt(r.E1)+
-            '</td><td>'+fmt(r.E2)+'</td><td>'+s+'</td></tr>';
+      html+='<tr><td>'+r.p.toExponential(0)+'</td><td>'+r.npert.toFixed(8)+'</td><td>'+
+        r.Ap.toFixed(6)+'</td><td>'+sci(r.E1,8)+'</td><td>'+sci(r.lin,8)+'</td><td>'+
+        sci(r.E2,8)+'</td><td>'+s+'</td></tr>';
     });
-    g('eRows').innerHTML=html;
+    G('xSweep').innerHTML=html;
 
-    var F1=rows.map(function(r){return Math.log(Math.abs(r.E1))}),
-        F2=rows.map(function(r){return Math.log(Math.abs(r.E2))});
-    var all=lsSlope(F1,F2), d4=lsSlope(F1.slice(0,4),F2.slice(0,4)),
-        d3=lsSlope(F1.slice(0,3),F2.slice(0,3));
-    g('eFits').innerHTML='least-squares slope &mdash; all five points: <strong>'+all.toFixed(6)+
-      '</strong> &middot; drop p = 1e-6: <strong>'+d4.toFixed(6)+
-      '</strong> &middot; p = 1e-2 to 1e-4: <strong>'+d3.toFixed(6)+'</strong>';
+    var F1=rows.map(function(r){return Math.log(Math.abs(r.E1))});
+    var F2=rows.map(function(r){return Math.log(Math.abs(r.E2))});
+    var n=F1.length, m1=0, m2=0, i;
+    for(i=0;i<n;i++){m1+=F1[i];m2+=F2[i]} m1/=n; m2/=n;
+    var sdd=0, sd1=0, lh='';
+    for(i=0;i<n;i++){
+      var d1=F1[i]-m1, d2=F2[i]-m2; sdd+=d1*d2; sd1+=d1*d1;
+      lh+='<tr><td>'+ps[i].toExponential(0)+'</td><td>'+fx(F1[i],6)+'</td><td>'+fx(F2[i],6)+
+          '</td><td>'+fx(d1,6)+'</td><td>'+fx(d2,6)+'</td><td>'+fx(d1*d2,6)+
+          '</td><td>'+fx(d1*d1,6)+'</td></tr>';
+    }
+    lh+='<tr><th>mean</th><td class="ca">'+fx(m1,6)+'</td><td class="ca">'+fx(m2,6)+
+        '</td><td class="na"></td><td class="na"></td><td class="ca em">'+fx(sdd,6)+
+        '</td><td class="ca em">'+fx(sd1,6)+'</td></tr>';
+    G('xLs').innerHTML=lh;
 
-    var ref=isFinite(d3)?d3:all, v;
-    if(!isFinite(ref))v='Slope could not be measured — the numbers have hit the round-off floor.';
-    else if(ref>1.75)v='Slope near 2: the derivative is consistent with the function.';
-    else if(ref<1.35)v='Slope near 1: the derivative does not match the function.';
-    else v='Slope between 1 and 2: the error is comparable to the step size — shrink p or read the first rows.';
-    g('eVer').textContent=v;
+    function ls(f1,f2){
+      var k, a1=0, a2=0, nn=f1.length;
+      for(k=0;k<nn;k++){a1+=f1[k];a2+=f2[k]} a1/=nn; a2/=nn;
+      var p1=0,p2=0;
+      for(k=0;k<nn;k++){p1+=(f1[k]-a1)*(f2[k]-a2);p2+=(f1[k]-a1)*(f1[k]-a1)}
+      return p1/p2;
+    }
+    var all=sdd/sd1, d4=ls(F1.slice(0,4),F2.slice(0,4)), d3=ls(F1.slice(0,3),F2.slice(0,3));
+    G('xFits').innerHTML='slope = &Sigma;d&#8321;d&#8322; / &Sigma;d&#8321;&sup2; &mdash; all five points: <strong>'+
+      fx(all,6)+'</strong> &middot; drop p = 1e-6: <strong>'+fx(d4,6)+
+      '</strong> &middot; p = 1e-2 to 1e-4: <strong>'+fx(d3,6)+'</strong>';
+
+    var ref=isFinite(d3)?d3:all, t;
+    if(!isFinite(ref))t='Slope could not be measured — the numbers have hit the round-off floor.';
+    else if(ref>1.75)t='Slope near 2: the derivative is consistent with the function.';
+    else if(ref<1.35)t='Slope near 1: the derivative does not match the function.';
+    else t='Slope between 1 and 2: the error is comparable to the step — shrink p, or read the first rows.';
+    set('xVer',t);
   }
 
-  ids.forEach(function(id){
-    var el=g(id);
-    el.addEventListener('input',render);
-    el.addEventListener('change',render);
+  function reset(){IDS.forEach(function(i){G(i).value=DEF[i]});render()}
+  IDS.forEach(function(i){
+    G(i).addEventListener('input',render);
+    G(i).addEventListener('change',render);
   });
-  g('eReset').addEventListener('click',function(){
-    ids.forEach(function(id){g(id).value=D0[id]});
-    render();
-  });
-  render();
+  G('xReset').addEventListener('click',reset);
+  reset();
 })();
 </script>
 ```
