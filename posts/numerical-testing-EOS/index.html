@@ -823,7 +823,7 @@ p = 1e-2 to 1e-4   slope = 1.999146</code></pre>
 </section>
 <section id="try-it-yourself" class="level3">
 <h3 class="anchored" data-anchor-id="try-it-yourself">Try it yourself</h3>
-<p>The same calculation as a live sheet. White cells are yours to edit; shaded cells recompute from them. The <strong>derivative error [%]</strong> cell injects a deliberate relative error into <span class="math inline">\(\partial A_{res}/\partial n_1\)</span> before the test sees it — set it to 1 and watch the slope column fall from 2 to 1.</p>
+<p>The same calculation as a live sheet. White cells are yours to edit; shaded cells recompute from them. Below the sheet, the <strong>derivative error</strong> slider injects a deliberate relative error into <span class="math inline">\(\partial A_{res}/\partial n_1\)</span> before the test sees it — drag it off zero and watch the slope column fall from 2 towards 1.</p>
 <div class="xl" id="xl">
   <p class="xl-legend"><span class="xl-k xl-k-in"></span> editable &nbsp; <span class="xl-k xl-k-ca"></span> computed &nbsp;
     <button type="button" id="xReset">Reset</button></p>
@@ -874,131 +874,121 @@ p = 1e-2 to 1e-4   slope = 1.999146</code></pre>
 <td class="na"></td>
 </tr>
 <tr class="odd">
-<th data-quarto-table-cell-role="th">derivative error [%]</th>
-<td class="in"><input id="xerr" type="number" step="any"></td>
-<td class="na"></td>
-</tr>
-<tr class="even">
 <th data-quarto-table-cell-role="th">Rₐ [J/mol/K]</th>
 <td id="xR" class="ca"></td>
 <td class="na"></td>
 </tr>
-<tr class="xl-h odd">
+<tr class="xl-h even">
 <th data-quarto-table-cell-role="th">EOS parameters</th>
 <th data-quarto-table-cell-role="th">Methane</th>
 <th data-quarto-table-cell-role="th">Ethane</th>
 </tr>
-<tr class="even">
+<tr class="odd">
 <th data-quarto-table-cell-role="th">m = 0.480 + 1.574ω − 0.175ω²</th>
 <td id="xm1" class="ca"></td>
 <td id="xm2" class="ca"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <th data-quarto-table-cell-role="th">α = [1 + m(1 − √(T/Tc))]²</th>
 <td id="xa1" class="ca"></td>
 <td id="xa2" class="ca"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <th data-quarto-table-cell-role="th">a₀ = 4.2747×10⁵·(R·Tc)²/Pc</th>
 <td id="xac1" class="ca"></td>
 <td id="xac2" class="ca"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <th data-quarto-table-cell-role="th">aᵢ = a₀·α [J·cm³/mol²]</th>
 <td id="xaa1" class="ca"></td>
 <td id="xaa2" class="ca"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <th data-quarto-table-cell-role="th">bᵢ = 8.664×10⁴·R·Tc/Pc [cm³/mol]</th>
 <td id="xb1" class="ca"></td>
 <td id="xb2" class="ca"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <th data-quarto-table-cell-role="th">a₁₂ = √(a₁a₂)(1 − K₁₂)</th>
 <td colspan="2" id="xa12" class="ca"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <th data-quarto-table-cell-role="th">B = Σnᵢbᵢ</th>
 <td colspan="2" id="xB" class="ca"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <th data-quarto-table-cell-role="th">D = ΣΣnᵢnⱼaᵢⱼ</th>
 <td colspan="2" id="xD" class="ca"></td>
 </tr>
-<tr class="xl-h even">
+<tr class="xl-h odd">
 <th data-quarto-table-cell-role="th">Quantity</th>
 <th data-quarto-table-cell-role="th">Formula</th>
 <th data-quarto-table-cell-role="th">Value</th>
 </tr>
-<tr class="odd">
+<tr class="even">
 <th data-quarto-table-cell-role="th">g</th>
 <td class="fo">ln(1 − B/V)</td>
 <td id="xg" class="ca"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <th data-quarto-table-cell-role="th">g_B</th>
 <td class="fo">−1/(V − B)</td>
 <td id="xgB" class="ca"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <th data-quarto-table-cell-role="th">f</th>
 <td class="fo">ln(1 + B/V)/B</td>
 <td id="xf" class="ca"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <th data-quarto-table-cell-role="th">f_V</th>
 <td class="fo">−1/(V(V + B))</td>
 <td id="xfV" class="ca"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <th data-quarto-table-cell-role="th">f_B</th>
 <td class="fo">−(f + V·f_V)/B</td>
 <td id="xfB" class="ca"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <th data-quarto-table-cell-role="th">A_res</th>
 <td class="fo">−n_tot·RT·g − D·f</td>
 <td id="xAres" class="ca"></td>
 </tr>
-<tr class="xl-h odd">
+<tr class="xl-h even">
 <th data-quarto-table-cell-role="th">Term</th>
 <th data-quarto-table-cell-role="th">i = 1 (methane)</th>
 <th data-quarto-table-cell-role="th">i = 2 (ethane)</th>
 </tr>
-<tr class="even">
+<tr class="odd">
 <th data-quarto-table-cell-role="th">−RT·g</th>
 <td id="xt1a" class="ca"></td>
 <td id="xt2a" class="ca"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <th data-quarto-table-cell-role="th">−n_tot·RT·g_B·bᵢ</th>
 <td id="xt1b" class="ca"></td>
 <td id="xt2b" class="ca"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <th data-quarto-table-cell-role="th">−Dᵢ·f</th>
 <td id="xt1c" class="ca"></td>
 <td id="xt2c" class="ca"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <th data-quarto-table-cell-role="th">−D·f_B·bᵢ</th>
 <td id="xt1d" class="ca"></td>
 <td id="xt2d" class="ca"></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <th data-quarto-table-cell-role="th">Dᵢ = ∂D/∂nᵢ = 2Σⱼaᵢⱼnⱼ</th>
 <td id="xD1" class="ca"></td>
 <td id="xD2" class="ca"></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <th data-quarto-table-cell-role="th">Aₙᵢ = ∂A_res/∂nᵢ</th>
 <td id="xAn1" class="ca em"></td>
 <td id="xAn2" class="ca em"></td>
-</tr>
-<tr id="xUsedRow" class="even" hidden="">
-<th data-quarto-table-cell-role="th">value fed to the test</th>
-<td id="xUsed" class="ca em"></td>
-<td class="na"></td>
 </tr>
 </tbody>
 </table>
@@ -1006,6 +996,12 @@ p = 1e-2 to 1e-4   slope = 1.999146</code></pre>
   </div>
 
   <p class="xl-cap">Testing ∂A_res/∂n₁ by perturbation</p>
+  <div class="xl-drive">
+    <label for="xerrR">derivative error [%]</label>
+    <input type="range" id="xerrR" min="-5" max="5" step="0.05" value="0">
+    <input type="number" id="xerr" step="any" value="0" aria-label="derivative error percent">
+    <span id="xUsedWrap" hidden="">value fed to the test: <strong id="xUsed"></strong> J/mol</span>
+  </div>
   <div class="xl-scroll">
   
 <table class="xl-t caption-top">
@@ -1072,6 +1068,12 @@ p = 1e-2 to 1e-4   slope = 1.999146</code></pre>
   color:inherit;font:inherit;font-size:.82rem;text-align:right;padding:.18rem .4rem}
 .xl-t td.in input:focus{outline:2px solid rgba(128,128,128,.55);outline-offset:-2px}
 .xl-cap{margin:.2rem 0 .1rem;font-size:.8rem;font-weight:600;opacity:.85}
+.xl-drive{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin:.35rem 0 .2rem;
+  padding:.45rem .6rem;border:1px solid rgba(128,128,128,.3);border-radius:3px;font-size:.8rem}
+.xl-drive input[type=range]{flex:1 1 11rem;min-width:9rem;max-width:20rem}
+.xl-drive input[type=number]{width:5.5rem;padding:.15rem .35rem;font:inherit;font-size:.8rem;
+  text-align:right;color:inherit;background:transparent;border:1px solid rgba(128,128,128,.5);border-radius:3px}
+.xl-drive span{font-variant-numeric:tabular-nums;opacity:.85}
 .xl-fits{font-size:.8rem;opacity:.85;margin:.2rem 0 .4rem;line-height:1.7}
 .xl-verdict{margin:.3rem 0 0;font-size:.86rem;font-weight:600}
 .xl-msg{margin:.2rem 0 .6rem;font-size:.86rem;font-weight:600}
@@ -1149,7 +1151,7 @@ p = 1e-2 to 1e-4   slope = 1.999146</code></pre>
     });
     set('xD1',fx(M.Di[0],4)); set('xD2',fx(M.Di[1],4));
     set('xAn1',fx(M.An[0],6)); set('xAn2',fx(M.An[1],6));
-    G('xUsedRow').hidden = (v.xerr===0);
+    G('xUsedWrap').hidden = (v.xerr===0);
     set('xUsed',fx(used,6));
 
     var ps=[1e-2,1e-3,1e-4,1e-5,1e-6], rows=[], html='';
@@ -1205,10 +1207,21 @@ p = 1e-2 to 1e-4   slope = 1.999146</code></pre>
     set('xVer',t);
   }
 
-  function reset(){IDS.forEach(function(i){G(i).value=DEF[i]});render()}
+  function reset(){
+    IDS.forEach(function(i){G(i).value=DEF[i]});
+    G('xerrR').value=DEF.xerr;
+    render();
+  }
   IDS.forEach(function(i){
     G(i).addEventListener('input',render);
     G(i).addEventListener('change',render);
+  });
+  G('xerr').addEventListener('input',function(){
+    var x=parseFloat(G('xerr').value);
+    if(isFinite(x))G('xerrR').value=Math.max(-5,Math.min(5,x));
+  });
+  G('xerrR').addEventListener('input',function(){
+    G('xerr').value=G('xerrR').value; render();
   });
   G('xReset').addEventListener('click',reset);
   reset();
