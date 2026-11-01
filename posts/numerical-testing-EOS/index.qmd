@@ -492,9 +492,10 @@ print(f"p = 1e-2 to 1e-4   slope = {ls_slope(F1[:3], F2[:3]):.6f}")
 ### Try it yourself
 
 The same calculation as a live sheet. White cells are yours to edit; shaded
-cells recompute from them. The **derivative error [%]** cell injects a
-deliberate relative error into $\partial A_{res}/\partial n_1$ before the test
-sees it — set it to 1 and watch the slope column fall from 2 to 1.
+cells recompute from them. Below the sheet, the **derivative error** slider
+injects a deliberate relative error into $\partial A_{res}/\partial n_1$ before
+the test sees it — drag it off zero and watch the slope column fall from 2
+towards 1.
 
 ```{=html}
 <div class="xl" id="xl">
@@ -521,7 +522,6 @@ sees it — set it to 1 and watch the slope column fall from 2 to 1.
       <tr><th>T [K]</th><td class="in"><input id="xT" type="number" step="any"></td><td class="na"></td></tr>
       <tr><th>V [cm&sup3;]</th><td class="in"><input id="xV" type="number" step="any"></td><td class="na"></td></tr>
       <tr><th>K&#8321;&#8322;</th><td class="in"><input id="xk" type="number" step="any"></td><td class="na"></td></tr>
-      <tr><th>derivative error [%]</th><td class="in"><input id="xerr" type="number" step="any"></td><td class="na"></td></tr>
       <tr><th>R&#8336; [J/mol/K]</th><td class="ca" id="xR"></td><td class="na"></td></tr>
 
       <tr class="xl-h"><th>EOS parameters</th><th>Methane</th><th>Ethane</th></tr>
@@ -549,12 +549,17 @@ sees it — set it to 1 and watch the slope column fall from 2 to 1.
       <tr><th>&minus;D&middot;f_B&middot;b&#7522;</th><td class="ca" id="xt1d"></td><td class="ca" id="xt2d"></td></tr>
       <tr><th>D&#7522; = &part;D/&part;n&#7522; = 2&Sigma;&#11388;a&#7522;&#11388;n&#11388;</th><td class="ca" id="xD1"></td><td class="ca" id="xD2"></td></tr>
       <tr><th>A&#8345;&#7522; = &part;A_res/&part;n&#7522;</th><td class="ca em" id="xAn1"></td><td class="ca em" id="xAn2"></td></tr>
-      <tr id="xUsedRow" hidden><th>value fed to the test</th><td class="ca em" id="xUsed"></td><td class="na"></td></tr>
     </tbody>
   </table>
   </div>
 
   <p class="xl-cap">Testing &part;A_res/&part;n&#8321; by perturbation</p>
+  <div class="xl-drive">
+    <label for="xerrR">derivative error [%]</label>
+    <input type="range" id="xerrR" min="-5" max="5" step="0.05" value="0">
+    <input type="number" id="xerr" step="any" value="0" aria-label="derivative error percent">
+    <span id="xUsedWrap" hidden>value fed to the test: <strong id="xUsed"></strong> J/mol</span>
+  </div>
   <div class="xl-scroll">
   <table class="xl-t">
     <thead><tr class="xl-h"><th>p</th><th>n_pert</th><th>A_res_pert</th><th>E&#8321;</th>
@@ -598,6 +603,12 @@ sees it — set it to 1 and watch the slope column fall from 2 to 1.
   color:inherit;font:inherit;font-size:.82rem;text-align:right;padding:.18rem .4rem}
 .xl-t td.in input:focus{outline:2px solid rgba(128,128,128,.55);outline-offset:-2px}
 .xl-cap{margin:.2rem 0 .1rem;font-size:.8rem;font-weight:600;opacity:.85}
+.xl-drive{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin:.35rem 0 .2rem;
+  padding:.45rem .6rem;border:1px solid rgba(128,128,128,.3);border-radius:3px;font-size:.8rem}
+.xl-drive input[type=range]{flex:1 1 11rem;min-width:9rem;max-width:20rem}
+.xl-drive input[type=number]{width:5.5rem;padding:.15rem .35rem;font:inherit;font-size:.8rem;
+  text-align:right;color:inherit;background:transparent;border:1px solid rgba(128,128,128,.5);border-radius:3px}
+.xl-drive span{font-variant-numeric:tabular-nums;opacity:.85}
 .xl-fits{font-size:.8rem;opacity:.85;margin:.2rem 0 .4rem;line-height:1.7}
 .xl-verdict{margin:.3rem 0 0;font-size:.86rem;font-weight:600}
 .xl-msg{margin:.2rem 0 .6rem;font-size:.86rem;font-weight:600}
@@ -675,7 +686,7 @@ sees it — set it to 1 and watch the slope column fall from 2 to 1.
     });
     set('xD1',fx(M.Di[0],4)); set('xD2',fx(M.Di[1],4));
     set('xAn1',fx(M.An[0],6)); set('xAn2',fx(M.An[1],6));
-    G('xUsedRow').hidden = (v.xerr===0);
+    G('xUsedWrap').hidden = (v.xerr===0);
     set('xUsed',fx(used,6));
 
     var ps=[1e-2,1e-3,1e-4,1e-5,1e-6], rows=[], html='';
@@ -731,10 +742,21 @@ sees it — set it to 1 and watch the slope column fall from 2 to 1.
     set('xVer',t);
   }
 
-  function reset(){IDS.forEach(function(i){G(i).value=DEF[i]});render()}
+  function reset(){
+    IDS.forEach(function(i){G(i).value=DEF[i]});
+    G('xerrR').value=DEF.xerr;
+    render();
+  }
   IDS.forEach(function(i){
     G(i).addEventListener('input',render);
     G(i).addEventListener('change',render);
+  });
+  G('xerr').addEventListener('input',function(){
+    var x=parseFloat(G('xerr').value);
+    if(isFinite(x))G('xerrR').value=Math.max(-5,Math.min(5,x));
+  });
+  G('xerrR').addEventListener('input',function(){
+    G('xerr').value=G('xerrR').value; render();
   });
   G('xReset').addEventListener('click',reset);
   reset();
