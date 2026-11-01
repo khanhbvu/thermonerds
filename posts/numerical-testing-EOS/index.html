@@ -226,10 +226,7 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#perturbing-a-mole-number" id="toc-perturbing-a-mole-number" class="nav-link" data-scroll-target="#perturbing-a-mole-number">Perturbing a mole number</a></li>
   </ul></li>
-  <li><a href="#where-it-stops-working" id="toc-where-it-stops-working" class="nav-link" data-scroll-target="#where-it-stops-working">Where it stops working</a>
-  <ul class="collapse">
-  <li><a href="#sidestepping-the-floor" id="toc-sidestepping-the-floor" class="nav-link" data-scroll-target="#sidestepping-the-floor">Sidestepping the floor</a></li>
-  </ul></li>
+  <li><a href="#where-it-stops-working" id="toc-where-it-stops-working" class="nav-link" data-scroll-target="#where-it-stops-working">Where it stops working</a></li>
   <li><a href="#what-a-failure-looks-like" id="toc-what-a-failure-looks-like" class="nav-link" data-scroll-target="#what-a-failure-looks-like">What a failure looks like</a>
   <ul class="collapse">
   <li><a href="#when-slope-1-is-not-a-bug" id="toc-when-slope-1-is-not-a-bug" class="nav-link" data-scroll-target="#when-slope-1-is-not-a-bug">When slope 1 is not a bug</a></li>
@@ -829,14 +826,6 @@ p = 1e-2 to 1e-4   slope = 1.999146</code></pre>
 <p>Look at the last row of the table. The slope column drifts, and the least-squares fit over all five points sits slightly <em>above</em> 2 while the fit over the clean range sits just below.</p>
 <p>That is round-off, not a wrong derivative. At <span class="math inline">\(p = 10^{-6}\)</span> we extract a quantity of order <span class="math inline">\(10^{-11}\)</span> from a difference of numbers of order <span class="math inline">\(10^{2}\)</span> — thirteen significant figures, against the sixteen or so double precision carries. Most of the precision is consumed by cancellation before <a href="#eq-e2" class="quarto-xref">Equation&nbsp;3</a> even subtracts.</p>
 <p>This is the finite-difference tradeoff, and the consequence is worth stating plainly: <strong>shrinking <span class="math inline">\(\Delta x\)</span> does not sharpen the test indefinitely.</strong> Truncation error falls as the step shrinks; round-off error rises. The usable window here runs from about <span class="math inline">\(10^{-2}\)</span> to <span class="math inline">\(10^{-4}\)</span>, and you find it by looking for where the slope is flat rather than by assuming smaller is better.</p>
-<section id="sidestepping-the-floor" class="level3">
-<h3 class="anchored" data-anchor-id="sidestepping-the-floor">Sidestepping the floor</h3>
-<p>The floor exists because <a href="#eq-e2" class="quarto-xref">Equation&nbsp;3</a> subtracts two nearly equal numbers. If your function is analytic and your code tolerates complex arithmetic, there is a way around it entirely — the complex-step derivative:</p>
-<p><span id="eq-cstep"><span class="math display">\[
-\frac{dF}{dx} \approx \frac{\operatorname{Im}\left[F(x + ih)\right]}{h}
-\tag{20}\]</span></span></p>
-<p>There is no subtraction of nearly equal reals here, so no cancellation and no floor: take <span class="math inline">\(h = 10^{-200}\)</span> and the agreement is at machine precision. The catch is that <span class="math inline">\(F\)</span> must be genuinely analytic. Absolute values, comparisons, branches and anything that discards an imaginary part will break it — and equation-of-state code is full of all four. When it applies it is sharper than anything above; when it fails, the failure itself tells you something about your function.</p>
-</section>
 </section>
 <section id="what-a-failure-looks-like" class="level2">
 <h2 class="anchored" data-anchor-id="what-a-failure-looks-like">What a failure looks like</h2>
