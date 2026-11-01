@@ -1,0 +1,109 @@
+/*-- scss:defaults --*/
+$grid-sidebar-width: 0px;   // this site has no left sidebar; without this
+                            // Quarto reserves 250px for one and the body is
+                            // pushed right, leaving a wide blank left gutter
+// Preprint — warm paper, journal article. Titles in oxblood.
+$body-bg:                 #fbfaf6;
+$body-color:              #1c1b18;
+$link-color:              #8a2b1f;
+$link-hover-color:        #5e1c14;
+$border-color:            #ddd8c8;
+$font-family-serif:       "Source Serif 4", Charter, Cambria, Georgia, serif;
+$font-family-sans-serif:  "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+$font-family-monospace:   "IBM Plex Mono", ui-monospace, Menlo, monospace;
+$font-family-base:        $font-family-serif;
+$headings-font-family:    $font-family-serif;
+$headings-font-weight:    600;
+$font-size-root:          19px;
+$line-height-base:        1.72;
+$code-bg:                 #f1efe6;
+$code-color:              #8a2b1f;
+$pre-bg:                  #f1efe6;
+$blockquote-border-color: #8a2b1f;
+$toc-color:               #7a7566;
+
+/*-- scss:rules --*/
+:root { --tn-accent:#8a2b1f; --tn-muted:#7a7566; --tn-rule:#ddd8c8; --tn-head:#15140f; }
+h1,h2,h3,h4 { color: var(--tn-head); text-wrap: balance; }
+h2 { font-size:1.4rem; padding-bottom:.25em; border-bottom:1px solid var(--tn-rule); margin-top:2em; }
+h3 { font-size:1.12rem; font-style:italic; }
+main blockquote { border-left:0; padding:0 2.2em; font-style:italic; color:var(--tn-muted); }
+
+// ---------- listing: titles must not read as body text
+.quarto-listing .listing-title,
+.quarto-listing .listing-title a,
+div.quarto-post .listing-title,
+div.quarto-post .listing-title a {
+  color: var(--tn-accent) !important;
+  font-size: 1.45rem; font-weight: 600; line-height: 1.25; text-decoration: none;
+}
+.quarto-listing .listing-title a:hover { text-decoration: underline; text-underline-offset: 3px; }
+div.quarto-post { padding: 1.6em 0; border-bottom: 1px solid var(--tn-rule); }
+div.quarto-post:last-child { border-bottom: 0; }
+.listing-date { font-variant: small-caps; letter-spacing:.06em; color: var(--tn-muted); }
+.listing-category { font-size:.72rem; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--tn-muted); border:1px solid var(--tn-rule); border-radius:2px; padding:2px 7px; }
+
+// ---------- equations: a wide derivation scrolls in its own box, never
+//            widening the page. Quarto's stock themes do not do this.
+mjx-container { line-height: normal; }
+mjx-container[display="true"] {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  padding: .45em .1em;
+}
+mjx-container[display="true"]::-webkit-scrollbar { height: 6px; }
+mjx-container[display="true"]::-webkit-scrollbar-thumb {
+  background: var(--tn-rule); border-radius: 3px;
+}
+
+// ---------- tables
+main table { font-variant-numeric: tabular-nums; font-size: .92rem; }
+main thead th {
+  font-size: .76rem; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--tn-muted); white-space: nowrap;
+}
+
+// ---------- containment: stop any single wide element widening the page.
+// Grid and flex children default to min-width:auto, which means they refuse
+// to shrink below their content. One long heading, TOC entry or equation then
+// pushes the whole layout wider than the viewport, a horizontal scrollbar
+// appears, and the centred column looks shifted left relative to other pages.
+// Making those children shrinkable is the fix.
+.page-columns > *,
+#quarto-content,
+main.content,
+.column-body,
+#quarto-document-content,
+#quarto-margin-sidebar,
+.quarto-title-block { min-width: 0; }
+
+// long words with no break opportunity: chemical names, identifiers, URLs
+h1, h2, h3, h4, h5 { overflow-wrap: break-word; }
+#TOC, nav[role="doc-toc"], .sidebar nav { overflow-wrap: anywhere; }
+
+// anything that can legitimately be wider gets its own scroll box
+main table, main pre, main .cell-output-display { max-width: 100%; overflow-x: auto; }
+main img, main svg { max-width: 100%; height: auto; }
+
+// ---------- listing rows must line up with each other.
+// Quarto's default listing is a flex row: a date column and a body column
+// sized by flex-basis. A body child that demands width -- a display equation
+// in the preview is the usual culprit -- wins against that basis, because
+// flex children default to min-width:auto. The date column is squeezed, its
+// text wraps, and that row's title starts at a different x than its
+// neighbours. Pin the date column and let the body shrink instead.
+div.quarto-post { align-items: flex-start; }
+div.quarto-post .metadata { flex: 0 0 8rem; min-width: 8rem; }
+div.quarto-post .body { flex: 1 1 auto; min-width: 0; }
+div.quarto-post .thumbnail { min-width: 0; }
+
+// a preview should never render a full-size display equation
+div.quarto-post .body mjx-container { max-width: 100%; overflow-x: auto; }
+div.quarto-post .body mjx-container[display="true"] { margin: .5em 0 !important; }
+
+@media (max-width: 620px) {
+  div.quarto-post { flex-direction: column; }
+  div.quarto-post .metadata { flex: 0 0 auto; min-width: 0; }
+}

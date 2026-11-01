@@ -1,5 +1,7 @@
 ---
 title: "Thermodynamic Potentials Applied for Equations of State"
+description: |
+  Applying the Helmholtz framework to the ideal gas and to SRK: residual properties, the infinite-volume reference state, and the route to fugacity coefficients.
 # TODO: replace the date and alias with the real ones from Blogger.
 date: 2026-10-03
 categories: [thermodynamics, equations-of-state, srk, residual-properties, fugacity]

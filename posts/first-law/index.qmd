@@ -1,7 +1,9 @@
 ---
 # TODO: replace the title, date and alias with the real ones from Blogger.
 title: "From the First Law to the Fundamental Relation"
-date: 2026-10-01
+description: |
+  Conservation of energy, the Second Law, and why thermodynamics is built on state functions rather than path functions.
+date: 2026-09-01
 categories: [thermodynamics, first-law, second-law]
 # aliases:
 #   - /2026/10/the-blogger-slug.html

@@ -1,6 +1,8 @@
 ---
 title: "Why AI Chat Math Won't Paste Into Word, and What Actually Travels on the Clipboard"
-date: 2026-10-30
+description: |
+  Why a formula copied out of a chat arrives in Word as a picture, and what has to travel on the clipboard for it to arrive as a real equation.
+date: 2026-10-15
 categories: [tools, latex, word, texbridge]
 ---
 

@@ -1,0 +1,631 @@
+---
+title: "Numerical Testing of an EOS Implementation"
+description: |
+  A perturbation test that catches a wrong derivative whether you derived it by hand or let a computer do it, worked through on SRK.
+date: 2026-10-31
+categories: [thermodynamics, equations-of-state, srk, numerics, testing]
+---
+
+Working with an equation of state means differentiating it, repeatedly. You
+need pressure as a derivative of Helmholtz energy, chemical potentials as
+derivatives with respect to composition, fugacity coefficients built from
+those, and second derivatives on top for anything that solves by Newton's
+method. The expressions are considerably worse than polynomials, and in most
+production code they are derived by hand and then coded — autodiff costs a
+factor of several per evaluation, and a flash calculation calls these
+functions millions of times.
+
+Both steps can go wrong, and the failure is quiet. A derivative that is wrong
+by half a percent produces numbers that look entirely plausible. Your flash
+calculation still converges — just more slowly, or to the wrong answer near a
+phase boundary, or not at all at the one state point you needed.
+
+What makes this tractable is that you do not need a second implementation to
+check against, and you do not need symbolic algebra. You can check a
+derivative against the only thing you are sure of: the function it claims to
+differentiate.
+
+## Where $E_1$ and $E_2$ come from
+
+Take any function $F(x)$ and perturb its argument to $x_{pert} = x + \Delta x$.
+A Taylor expansion says exactly what happens:
+
+$$
+F(x + \Delta x) = F(x) + \frac{dF}{dx}\Delta x
+  + \frac{1}{2}\frac{d^2F}{dx^2}(\Delta x)^2
+  + \frac{1}{6}\frac{d^3F}{dx^3}(\Delta x)^3 + \cdots
+$$ {#eq-taylor}
+
+Now truncate @eq-taylor at successive orders and ask how wrong you are each
+time. That is the whole idea, and both $E_1$ and $E_2$ come straight out of it.
+
+**Truncate after the first term.** Pretend $F$ does not change at all, so
+$F(x_{pert}) \approx F(x)$. The error you make is everything you discarded:
+
+$$
+E_1 \equiv F(x_{pert}) - F(x)
+  = \frac{dF}{dx}\Delta x + \frac{1}{2}\frac{d^2F}{dx^2}(\Delta x)^2 + \cdots
+$$ {#eq-e1}
+
+**Truncate after the second term.** Now use the derivative you are testing.
+The error left over is:
+
+$$
+E_2 \equiv F(x_{pert}) - F(x) - \frac{dF}{dx}\Delta x
+  = E_1 - \frac{dF}{dx}\Delta x
+  = \frac{1}{2}\frac{d^2F}{dx^2}(\Delta x)^2 + \cdots
+$$ {#eq-e2}
+
+So $E_1$ and $E_2$ are the same kind of object — truncation errors of the same
+series — measured one order apart. That is the entire construction.
+
+Two observations before going further.
+
+Neither is zero, and neither is supposed to be. Chasing a small $E_2$ is the
+wrong instinct; what carries the information is the **rate** at which each one
+vanishes as $\Delta x$ shrinks.
+
+And note the asymmetry. $E_1$ has a leading term plus corrections, so for
+small $\Delta x$ you can legitimately drop everything after
+$\frac{dF}{dx}\Delta x$. $E_2$ cannot be simplified the same way — its leading
+term *is* the first surviving term, and there is nothing larger to compare it
+against.
+
+Only one of these quantities contains your derivative. $E_1$ is computed from
+two calls to $F$ and nothing else, so it cannot be wrong. $E_2$ is the only
+place your claim enters, which is why it is the one that tests it.
+
+## Why the slope is 2
+
+Work it through on $F = x^2$, where $dF/dx = 2x$ and everything is visible:
+
+$$
+E_1 = (x + \Delta x)^2 - x^2 = 2x\Delta x + (\Delta x)^2
+$$ {#eq-e1sq}
+
+$$
+E_2 = E_1 - 2x\Delta x = (\Delta x)^2
+$$ {#eq-e2sq}
+
+For small $\Delta x$ the quadratic term in @eq-e1sq is negligible beside the
+linear one, so $E_1 \approx 2x\Delta x$. Take logarithms of both:
+
+$$
+\ln|E_1| = \ln(2x) + \ln(\Delta x)
+$$ {#eq-lne1}
+
+$$
+\ln|E_2| = 2\ln(\Delta x)
+$$ {#eq-lne2}
+
+Here $x$ is held fixed and only $\Delta x$ varies, so $\ln(2x)$ is a constant.
+Eliminate $\ln(\Delta x)$ between @eq-lne1 and @eq-lne2:
+
+$$
+\ln|E_2| = 2\ln|E_1| - 2\ln(2x)
+$$ {#eq-slope}
+
+A straight line of **slope 2**. Not approximately, not asymptotically — this
+is what the algebra gives, for a correctly coded derivative.
+
+### Why it fails loudly when the derivative is wrong
+
+Suppose your code returns $\frac{dF}{dx} + \delta$ instead of the true value.
+Then @eq-e2 becomes
+
+$$
+E_2 = -\delta\,\Delta x + \frac{1}{2}\frac{d^2F}{dx^2}(\Delta x)^2 + \cdots
+$$
+
+The leading term is now **first order** in $\Delta x$, exactly like $E_1$. So
+$\ln|E_2| = \ln|E_1| + \text{constant}$ and the slope collapses to **1**.
+
+This is why the test is sharp. However small $\delta$ is, $\Delta x$
+eventually beats $(\Delta x)^2$, so the wrong first-order term always wins in
+the limit. A tiny error does not produce a slope of 1.99 — it produces a slope
+of 1. You are reading a rate, not a magnitude, and there is no tolerance to
+tune.
+
+### The general case
+
+Nothing above needed $F = x^2$. Dividing @eq-e2 by the square of @eq-e1, the
+$\Delta x$ factors cancel:
+
+$$
+\frac{E_2}{E_1^{\,2}} \;\longrightarrow\;
+  \frac{F''(x)}{2\,F'(x)^2} \qquad \text{as } \Delta x \to 0
+$$ {#eq-ratio}
+
+so for any twice-differentiable $F$,
+
+$$
+\ln|E_2| = 2\ln|E_1| + \ln\left|\frac{F''(x)}{2F'(x)^2}\right| + O(\Delta x)
+$$ {#eq-general}
+
+Slope 2 always; the intercept depends on the function and on where you
+evaluate it. For $F = x^2$ that intercept is
+$\ln\left|2 / (2 \cdot 4x^2)\right| = -2\ln(2x)$, which is @eq-slope again.
+
+The split matters: the intercept is what you would need to know the function
+to predict, and the slope is not. That is why the test is built on the slope.
+
+## Checking it on functions you can differentiate by hand
+
+Two functions first, including one wrong derivative for contrast. For
+$F = \ln x$ the series does not terminate —
+$E_2 = \ln(1 + \Delta x/x) - \Delta x/x = -\tfrac{1}{2}(\Delta x/x)^2 + \cdots$
+— so the $O(\Delta x)$ correction in @eq-general is visible at large steps and
+fades as the step shrinks.
+
+```{python}
+#| label: tbl-simple
+#| echo: true
+#| output: asis
+
+import math
+
+x   = 3.0
+dxs = [1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
+
+def pair(kind, dx):
+    if kind == "sq":                                   # F = x^2, correct
+        E1 = (x + dx)**2 - x**2;        return E1, E1 - 2.0 * x * dx
+    if kind == "ln":                                   # F = ln x, correct
+        E1 = math.log(x + dx) - math.log(x); return E1, E1 - dx / x
+    E1 = (x + dx)**2 - x**2;            return E1, E1 - 2.1 * x * dx   # 5% wrong
+
+print("| $\\Delta x$ range | $x^2$ | $\\ln x$ | $x^2$, derivative 5% wrong |")
+print("| --- | --- | --- | --- |")
+for k in range(len(dxs) - 1):
+    cells = []
+    for kind in ("sq", "ln", "bad"):
+        (a1, a2), (b1, b2) = pair(kind, dxs[k]), pair(kind, dxs[k + 1])
+        cells.append(math.log(abs(a2 / b2)) / math.log(abs(a1 / b1)))
+    print(f"| {dxs[k]:.0e} to {dxs[k+1]:.0e} | " + " | ".join(f"{c:.4f}" for c in cells) + " |")
+```
+
+Two correct derivatives give 2. A five percent error gives 1. Nothing lands in
+between, and the gap widens as the step shrinks rather than narrowing.
+
+### Does it hold generally?
+
+Two cases prove little, and @eq-general claims something about every
+twice-differentiable function — including the intercept. A wider sweep:
+
+```{python}
+#| label: tbl-sweep
+#| echo: true
+#| output: asis
+
+cases = {
+    "$x^2$":       (lambda t: t**2,            lambda t: 2*t,               lambda t: 2.0),
+    "$\\ln x$":    (math.log,                  lambda t: 1/t,               lambda t: -1/t**2),
+    "$1/x$":       (lambda t: 1/t,             lambda t: -1/t**2,           lambda t: 2/t**3),
+    "$e^x$":       (math.exp,                  math.exp,                    math.exp),
+    "$\\sqrt{x}$": (math.sqrt,                 lambda t: 0.5/math.sqrt(t),  lambda t: -0.25*t**-1.5),
+    "$\\sin x$":   (math.sin,                  math.cos,                    lambda t: -math.sin(t)),
+    "$x^2\\ln x$": (lambda t: t*t*math.log(t), lambda t: 2*t*math.log(t)+t, lambda t: 2*math.log(t)+3),
+}
+
+print("| $F(x)$ | slope | intercept | predicted |")
+print("| --- | --- | --- | --- |")
+for name, (F, d1, d2) in cases.items():
+    pts = []
+    for dx in [1e-3, 1e-4, 1e-5]:
+        E1 = F(x + dx) - F(x)
+        pts.append((math.log(abs(E1)), math.log(abs(E1 - d1(x) * dx))))
+    slope     = (pts[0][1] - pts[2][1]) / (pts[0][0] - pts[2][0])
+    intercept = pts[1][1] - 2 * pts[1][0]
+    print(f"| {name} | {slope:.5f} | {intercept:.6f} "
+          f"| {math.log(abs(d2(x) / (2 * d1(x)**2))):.6f} |")
+```
+
+Growth rates from $1/x$ to $e^x$, a sign-changing second derivative, a product
+needing the chain rule. Every slope is 2 to four decimals and every intercept
+matches @eq-general to five. That is the case for trusting the method on
+something you cannot differentiate by hand.
+
+## Measuring the slope properly
+
+Each perturbation produces exactly one $E_1$ and one $E_2$, so a *series* of
+step sizes produces a series of points — one point per step. Writing
+
+$$
+F_1 = \ln|E_1|, \qquad F_2 = \ln|E_2|
+$$ {#eq-f1f2}
+
+a run over five values of $\Delta x$ gives five pairs $(F_1, F_2)$, and the
+slope you are testing is the slope of the line through them.
+
+### Why two points is the minimum
+
+A single perturbation gives a single point, and a single point has no slope —
+infinitely many lines pass through it.
+
+It is tempting to think the ratio $F_2/F_1$ would do. It would, if the line
+passed through the origin. It does not: @eq-general puts the intercept at
+$\ln\left|F''/2F'^{\,2}\right|$, which for the worked example below is about
+4.01. Taking the ratio anyway, on that same data:
+
+| $p$ | $F_1$ | $F_2$ | $F_2/F_1$ |
+| --- | --- | --- | --- |
+| 1e-02 | 1.1717 | −5.1997 | −4.4377 |
+| 1e-03 | −1.1324 | −9.8044 | 8.6580 |
+| 1e-04 | −3.4351 | −14.4095 | 4.1947 |
+| 1e-05 | −5.7377 | −19.0149 | 3.3140 |
+
+Not one of them is near 2, and they do not even agree with each other. The
+intercept is responsible for the whole mess, and it is not optional — it
+carries real information, since @eq-general predicts it in closed form.
+
+**Two points remove the problem, because the unknown intercept cancels.**
+
+Do not assume the slope — it is the thing being measured. Call it $m$, leave
+the intercept as $c$, and write the relation at two step sizes $k$ and $k+1$:
+
+$$
+F_{2,k} = m F_{1,k} + c, \qquad F_{2,k+1} = m F_{1,k+1} + c
+$$ {#eq-twopt}
+
+Two equations, two unknowns. Subtracting eliminates $c$ whatever its value and
+leaves $m$ on its own:
+
+$$
+m = \frac{F_{2,k} - F_{2,k+1}}{F_{1,k} - F_{1,k+1}}
+  = \frac{\ln\left|E_{2,k} / E_{2,k+1}\right|}{\ln\left|E_{1,k} / E_{1,k+1}\right|}
+$$ {#eq-secant}
+
+This matters for the logic of the test. @eq-secant *measures* $m$ from the
+data without assuming anything about it. Theory then predicts what it should
+be: $m = 2$ if the derivative is correct, $m = 1$ if it is not. Comparing the
+two is the test. Had we written $2$ in @eq-twopt we would have assumed the
+answer and learned nothing.
+
+@eq-secant is what the slope columns in every table here compute. Each value
+belongs to a **pair** of rows, not to a single row — which is why those
+columns are labelled by an interval and why the last row has no entry.
+
+So two points is the minimum. They determine a unique line, so they fix $c$
+as well as $m$ — back-substituting $c = F_{2,k} - m F_{1,k}$ recovers it.
+@eq-secant simply avoids needing it. That is a convenience, not a limitation.
+
+What two points cannot give you is any evidence that the relation is linear
+in the first place. A line through two points fits them exactly, with zero
+residual, so there is nothing left over to tell you whether the slope is
+*stable*. Five perturbations give you that, and stability across the range is
+what locates the round-off floor.
+
+### Fitting all of them at once
+
+Reading the slope a pair at a time is fine for seeing the trend, but each
+value uses only two of your points and depends on which pair you picked. Least
+squares uses all of them:
+
+$$
+\text{slope} = \frac{\sum_r F_{1,r}\left(F_{2,r} - \overline{F_2}\right)}
+                     {\sum_r F_{1,r}\left(F_{1,r} - \overline{F_1}\right)}
+$$ {#eq-ls}
+
+The subscript $r$ indexes the perturbations — one term per step size — and
+the overbars are means over that series.
+
+### Where @eq-ls comes from
+
+It is ordinary linear least squares, and it is worth seeing that this form is
+not a rearrangement of the familiar one — it is what the normal equations give
+directly. Fitting $F_2 = a + b F_1$ means choosing $a$ and $b$ to minimise
+
+$$
+S(a, b) = \sum_r \left(F_{2,r} - a - b F_{1,r}\right)^2
+$$ {#eq-sse}
+
+Differentiating with respect to the intercept and setting it to zero,
+
+$$
+\frac{\partial S}{\partial a} = -2\sum_r \left(F_{2,r} - a - b F_{1,r}\right) = 0
+\quad\Longrightarrow\quad a = \overline{F_2} - b\,\overline{F_1}
+$$ {#eq-normal-a}
+
+so the fitted line passes through the centroid of the data. Differentiating
+with respect to the slope,
+
+$$
+\frac{\partial S}{\partial b} = -2\sum_r F_{1,r}\left(F_{2,r} - a - b F_{1,r}\right) = 0
+$$ {#eq-normal-b}
+
+and substituting @eq-normal-a into @eq-normal-b gives
+
+$$
+\sum_r F_{1,r}\left(F_{2,r} - \overline{F_2}\right)
+  = b \sum_r F_{1,r}\left(F_{1,r} - \overline{F_1}\right)
+$$
+
+which is @eq-ls solved for $b$. The more commonly quoted
+$\sum(F_1 - \overline{F_1})(F_2 - \overline{F_2}) \big/ \sum(F_1 - \overline{F_1})^2$
+is the same number, obtained by adding and subtracting terms that vanish
+because deviations from a mean sum to zero.
+
+One detail worth noticing: the intercept $a$ is free here, not pinned to zero.
+That is deliberate — @eq-general predicts a non-zero intercept, and forcing
+the line through the origin would bias the slope.
+
+## The worked example
+
+SRK for a methane–ethane binary, as a residual Helmholtz function. With
+
+$$
+B = \sum_i n_i b_i, \qquad D = \sum_i\sum_j n_i n_j a_{ij}, \qquad
+g = \ln\left(1 - \frac{B}{V}\right), \qquad f = \frac{1}{B}\ln\left(1 + \frac{B}{V}\right)
+$$
+
+the residual Helmholtz energy and the composition derivative under test are
+
+$$
+A^{res} = -n_{tot} R T\, g - D f
+$$ {#eq-ares}
+
+$$
+A_{n_i} = -RT g - n_{tot} R T g_B b_i - D_i f - D f_B b_i
+$$ {#eq-ani}
+
+where $g_B = -1/(V-B)$, $f_V = -1/[V(V+B)]$, $f_B = -(f + V f_V)/B$ and
+$D_i = 2\sum_j a_{ij} n_j$.
+
+@eq-ani is the reason this post exists. Four terms, each arriving by a
+different path through the chain rule, and no way to tell by looking whether
+it is right.
+
+```{python}
+#| label: model
+#| echo: true
+
+R, T, V = 8.314462618, 300.0, 500.0      # J/mol/K, K, cm3
+Tc  = [190.56, 305.32]                    # K
+Pc  = [4.599e6, 4.872e6]                  # Pa
+w   = [0.011, 0.099]
+n   = [0.6, 0.4]                          # mol
+k12 = 0.01
+
+b  = [8.664e4 * (tc * R) / pc for tc, pc in zip(Tc, Pc)]
+ac = [4.2747e5 * ((R * tc) ** 2) / pc for tc, pc in zip(Tc, Pc)]
+m  = [0.48 + 1.574 * z - 0.175 * z * z for z in w]
+al = [(1 + mi * (1 - math.sqrt(T / tc))) ** 2 for mi, tc in zip(m, Tc)]
+a  = [aci * ali for aci, ali in zip(ac, al)]
+aij = [[a[0], math.sqrt(a[0] * a[1]) * (1 - k12)],
+       [math.sqrt(a[0] * a[1]) * (1 - k12), a[1]]]
+
+def A_res(nv):
+    B = sum(ni * bi for ni, bi in zip(nv, b))
+    D = sum(nv[i] * nv[j] * aij[i][j] for i in range(2) for j in range(2))
+    return -sum(nv) * R * T * math.log(1 - B / V) - D * math.log(1 + B / V) / B
+
+B = sum(ni * bi for ni, bi in zip(n, b))
+D = sum(n[i] * n[j] * aij[i][j] for i in range(2) for j in range(2))
+g, f = math.log(1 - B / V), math.log(1 + B / V) / B
+g_B  = -1 / (V - B)
+f_V  = -1 / (V * (V + B))
+f_B  = -(f + V * f_V) / B
+D1   = 2 * (aij[0][0] * n[0] + aij[0][1] * n[1])
+
+A_n1 = -R * T * g - sum(n) * R * T * g_B * b[0] - D1 * f - D * f_B * b[0]
+
+print(f"A_res = {A_res(n):.6f} J")
+print(f"A_n1  = {A_n1:.6f} J/mol")
+```
+
+### Perturbing a mole number
+
+One practical change from the theory above. Rather than a fixed $\Delta x$,
+perturb *relatively*: $\Delta n_1 = n_1 p$, so $n_1 \to n_1(1+p)$. Nothing in
+the derivation cares — $\Delta x$ was arbitrary — but it means $p$ carries the
+same meaning whether a variable is of order $10^{-3}$ or $10^{5}$, which
+matters once you start testing across the phase diagram.
+
+```{python}
+#| label: tbl-test
+#| echo: true
+#| output: asis
+
+A0, rows = A_res(n), []
+for p in [1e-2, 1e-3, 1e-4, 1e-5, 1e-6]:
+    E1 = A_res([n[0] * (1 + p), n[1]]) - A0
+    rows.append((p, E1, E1 - A_n1 * n[0] * p))
+
+print("| $p$ | $E_1$ | $E_2$ | slope (this row to next) |")
+print("| --- | --- | --- | --- |")
+for k, (p, E1, E2) in enumerate(rows):
+    if k + 1 < len(rows):
+        sl = math.log(abs(E2 / rows[k+1][2])) / math.log(abs(E1 / rows[k+1][1]))
+        print(f"| {p:.0e} | {E1:.6e} | {E2:.6e} | {sl:.4f} |")
+    else:
+        print(f"| {p:.0e} | {E1:.6e} | {E2:.6e} | — |")
+```
+
+$E_1$ falls by ten per row; $E_2$ by one hundred. The slope column reads 2.
+@eq-ani is correct.
+
+```{python}
+#| label: least-squares
+#| echo: true
+
+F1 = [math.log(abs(r[1])) for r in rows]
+F2 = [math.log(abs(r[2])) for r in rows]
+
+def ls_slope(f1, f2):
+    m1, m2 = sum(f1) / len(f1), sum(f2) / len(f2)
+    return (sum(a * (b_ - m2) for a, b_ in zip(f1, f2))
+            / sum(a * (a - m1) for a in f1))
+
+print(f"all five points    slope = {ls_slope(F1, F2):.6f}")
+print(f"drop p = 1e-6      slope = {ls_slope(F1[:4], F2[:4]):.6f}")
+print(f"p = 1e-2 to 1e-4   slope = {ls_slope(F1[:3], F2[:3]):.6f}")
+```
+
+## Where it stops working
+
+Look at the last row of the table. The slope column drifts, and the
+least-squares fit over all five points sits slightly *above* 2 while the fit
+over the clean range sits just below.
+
+That is round-off, not a wrong derivative. At $p = 10^{-6}$ we extract a
+quantity of order $10^{-11}$ from a difference of numbers of order $10^{2}$ —
+thirteen significant figures, against the sixteen or so double precision
+carries. Most of the precision is consumed by cancellation before @eq-e2 even
+subtracts.
+
+This is the finite-difference tradeoff, and the consequence is worth stating
+plainly: **shrinking $\Delta x$ does not sharpen the test indefinitely.**
+Truncation error falls as the step shrinks; round-off error rises. The usable
+window here runs from about $10^{-2}$ to $10^{-4}$, and you find it by looking
+for where the slope is flat rather than by assuming smaller is better.
+
+### Sidestepping the floor
+
+The floor exists because @eq-e2 subtracts two nearly equal numbers. If your
+function is analytic and your code tolerates complex arithmetic, there is a
+way around it entirely — the complex-step derivative:
+
+$$
+\frac{dF}{dx} \approx \frac{\operatorname{Im}\left[F(x + ih)\right]}{h}
+$$ {#eq-cstep}
+
+There is no subtraction of nearly equal reals here, so no cancellation and no
+floor: take $h = 10^{-200}$ and the agreement is at machine precision. The
+catch is that $F$ must be genuinely analytic. Absolute values, comparisons,
+branches and anything that discards an imaginary part will break it — and
+equation-of-state code is full of all four. When it applies it is sharper than
+anything above; when it fails, the failure itself tells you something about
+your function.
+
+## What a failure looks like
+
+Suppose the last term of @eq-ani, $D f_B b_i$, were wrong by one percent.
+
+```{python}
+#| label: broken
+#| echo: true
+#| output: asis
+
+A_n1_bad = A_n1 - 0.01 * (D * f_B * b[0])
+bad = [(p, E1, E1 - A_n1_bad * n[0] * p) for p, E1, _ in rows]
+
+print("| $p$ range | slope, correct | slope, 1% error |")
+print("| --- | --- | --- |")
+for k in range(len(rows) - 1):
+    good = (math.log(abs(rows[k][2] / rows[k+1][2]))
+            / math.log(abs(rows[k][1] / rows[k+1][1])))
+    poor = (math.log(abs(bad[k][2] / bad[k+1][2]))
+            / math.log(abs(bad[k][1] / bad[k+1][1])))
+    print(f"| {rows[k][0]:.0e} to {rows[k+1][0]:.0e} | {good:.4f} | {poor:.4f} |")
+```
+
+The correct column holds at 2; the broken one collapses toward 1 as the step
+shrinks, exactly as the five percent error on $x^2$ did. One wrong term out of
+four, under one percent of the total value, and the test reads it off
+unambiguously.
+
+You would not have caught that by checking the number looked reasonable.
+
+## "But my derivatives come from a computer"
+
+Worth answering before you build any of this into a test suite.
+
+If you differentiate with autodiff — dual numbers, JAX, reverse mode — the
+derivative is generated from the function's own code and is correct to machine
+precision by construction. The algebra-slip risk genuinely disappears. So is
+the test pointless?
+
+No, and the clearest evidence is that the autodiff ecosystem ships this exact
+test. PyTorch's `torch.autograd.gradcheck` validates analytical gradients
+against finite differences, and is the documented way to verify a custom
+`autograd.Function`. JAX has `check_grads`. Both exist *because* the computer
+did the differentiation and somebody still wanted proof.
+
+The reason is that the test never asks where the derivative came from. It asks
+whether your derivative code is consistent with your function code, and that
+is the same question however the derivative was produced. What changes is what
+a slope of 1 tells you:
+
+| Derivative from | What slope 1 means |
+| --- | --- |
+| Hand derivation | An algebra slip, or a typo in the code |
+| Symbolic algebra, retyped | A transcription error |
+| Autodiff | A branch, an internal solver, a custom rule, or the wrong variable |
+| Any of them, months later | The function changed and the derivative did not |
+
+### Where autodiff actually breaks on EOS code
+
+The interesting failures are not in the differentiation. They are in the
+assumptions around it, and equation-of-state code is unusually rich in them.
+
+**Branches.** Which cubic root is the liquid? That is an `if`. Autodiff
+differentiates the branch taken and tells you nothing about the switch — and
+near a phase boundary the switch is exactly where you need the derivative to
+be right.
+
+**Internal iterative solves.** If the function solves for volume by Newton
+iteration, naive autodiff differentiates *through the iterations* instead of
+applying the implicit function theorem. That is correct only if the iteration
+converged tightly, and silently wrong otherwise.
+
+**Custom derivative rules.** The moment you hand-write one for speed you are
+back to hand-derivation, with less scrutiny, because it looks like autodiff.
+
+**Splines and lookup tables.** You get the interpolant's derivative, which is
+not the property's derivative.
+
+A symbolic package has a different weakness. It hands you a correct
+expression, and then a human retypes it as code, splits it across intermediate
+variables, and reuses a term computed earlier. The derivation was right; the
+implementation is not.
+
+### The reason that never goes away
+
+Someone swaps the $\alpha$ correlation, or makes $k_{ij}$ temperature
+dependent, updates @eq-ares and forgets @eq-ani. However the derivative was
+produced originally, the two code paths have now drifted apart, and this test
+is what notices.
+
+That makes it a regression test, and regression tests do not care how correct
+the code was on the day it was written.
+
+### What it does not check
+
+It verifies your derivative against your function, not against your intent.
+Ask for $\partial/\partial n_i$ when you wanted $\partial/\partial x_i$, test
+the same wrong thing, and it passes with slope 2 — consistently differentiating
+the wrong quantity. The test tells you the two code paths agree. Whether they
+are the pair you meant is still yours to get right.
+
+## Using it in practice
+
+- **Test at several states.** A derivative can be right in the vapour region
+  and wrong near the critical point, where $\alpha(T_r)$ behaves differently.
+- **Work outwards.** Verify first derivatives before second. A second
+  derivative checked against a wrong first derivative tells you nothing.
+- **Perturb relatively**, so one $p$ means the same thing for every variable.
+- **Find the flat window** before trusting a number, rather than assuming the
+  smallest step is best.
+- **Use the free checks too.** Mixed second derivatives should be symmetric,
+  $A_{n_i n_j} = A_{n_j n_i}$, which costs one comparison and no perturbation
+  at all. Euler's theorem gives another: $\sum_i n_i A_{n_i}$ should reproduce
+  a quantity you can compute directly.
+- **Assert the slope, not the table.** Check that the fitted slope from
+  @eq-ls is within tolerance of 2 across the clean window, and the whole thing
+  runs in CI with nobody reading anything.
+
+The idea generalises past equations of state. Any time you differentiate
+something by hand and then implement it, you have made two independent claims
+and verified neither. This checks both against the one thing you are sure of.
+
+## Reference
+
+<!-- TODO: fill in the source. Section 2.3, "Numerical Testing of an EOS
+     Implementation", which is where the E1/E2 construction and the
+     slope-2 criterion are taken from. -->
+
+The $E_1$ / $E_2$ construction and the slope-2 criterion are a standard
+technique for verifying hand-derived analytical derivatives against finite
+differences. The SRK Helmholtz formulation in terms of $B$, $D$, $g$ and $f$ is
+standard; the worked binary, the multi-function sweep and the round-off
+analysis are my own.
