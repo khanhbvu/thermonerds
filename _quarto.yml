@@ -46,6 +46,9 @@ format:
       # site title. Palettes and the font-size scaling come from the ReadMode
       # extension. Underscore-prefixed so Quarto does not publish it as a page.
       - file: _reader.html
+      # Cloudflare Web Analytics beacon (private stats: visitors + country).
+      # Manual snippet because the domain is DNS-only in Cloudflare.
+      - file: _analytics.html
       - text: |
           <link rel="preconnect" href="https://fonts.googleapis.com">
           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
