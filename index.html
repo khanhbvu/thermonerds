@@ -85,9 +85,9 @@ ul.task-list li input[type="checkbox"] {
     }
 
     const options = {
-      valueNames: ['listing-date','listing-title','listing-author','listing-image','listing-description','listing-categories',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-file-modified-sort'] }],
+      valueNames: ['listing-date','listing-title','listing-author','listing-subtitle','listing-image','listing-description','listing-categories',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-file-modified-sort'] }],
       
-      searchColumns: ["listing-date","listing-title","listing-author","listing-image","listing-description","listing-categories"],
+      searchColumns: ["listing-date","listing-title","listing-author","listing-subtitle","listing-image","listing-description","listing-categories"],
     };
 
     window['quarto-listings'] = window['quarto-listings'] || {};
@@ -551,7 +551,7 @@ window.Quarto = {
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         
-    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(5)</span></div><div class="category" data-category="ZXF1YXRpb25zLW9mLXN0YXRl">equations-of-state <span class="quarto-category-count">(3)</span></div><div class="category" data-category="Zmlyc3QtbGF3">first-law <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZnVnYWNpdHk=">fugacity <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Z2liYnM=">gibbs <span class="quarto-category-count">(1)</span></div><div class="category" data-category="aGVsbWhvbHR6">helmholtz <span class="quarto-category-count">(1)</span></div><div class="category" data-category="bGF0ZXg=">latex <span class="quarto-category-count">(1)</span></div><div class="category" data-category="bnVtZXJpY3M=">numerics <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cmVzaWR1YWwtcHJvcGVydGllcw==">residual-properties <span class="quarto-category-count">(1)</span></div><div class="category" data-category="c2Vjb25kLWxhdw==">second-law <span class="quarto-category-count">(1)</span></div><div class="category" data-category="c3Jr">srk <span class="quarto-category-count">(2)</span></div><div class="category" data-category="dGVzdGluZw==">testing <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dGV4YnJpZGdl">texbridge <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dGhlcm1vZHluYW1pY3M=">thermodynamics <span class="quarto-category-count">(4)</span></div><div class="category" data-category="dG9vbHM=">tools <span class="quarto-category-count">(1)</span></div><div class="category" data-category="d29yZA==">word <span class="quarto-category-count">(1)</span></div></div></div>
+    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(6)</span></div><div class="category" data-category="ZXF1YXRpb24lMjBvZiUyMHN0YXRl">equation of state <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZXF1YXRpb25zLW9mLXN0YXRl">equations-of-state <span class="quarto-category-count">(3)</span></div><div class="category" data-category="Zmlyc3QtbGF3">first-law <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Zmxhc2glMjBjYWxjdWxhdGlvbg==">flash calculation <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZnVnYWNpdHk=">fugacity <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Z2liYnM=">gibbs <span class="quarto-category-count">(1)</span></div><div class="category" data-category="SDJT">H2S <span class="quarto-category-count">(1)</span></div><div class="category" data-category="aGVsbWhvbHR6">helmholtz <span class="quarto-category-count">(1)</span></div><div class="category" data-category="bGF0ZXg=">latex <span class="quarto-category-count">(1)</span></div><div class="category" data-category="bWV0aGFuZQ==">methane <span class="quarto-category-count">(1)</span></div><div class="category" data-category="bnVtZXJpY3M=">numerics <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cGhhc2UlMjBzdGFiaWxpdHk=">phase stability <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cmVzaWR1YWwtcHJvcGVydGllcw==">residual-properties <span class="quarto-category-count">(1)</span></div><div class="category" data-category="c2Vjb25kLWxhdw==">second-law <span class="quarto-category-count">(1)</span></div><div class="category" data-category="U1JL">SRK <span class="quarto-category-count">(1)</span></div><div class="category" data-category="c3Jr">srk <span class="quarto-category-count">(2)</span></div><div class="category" data-category="dGVzdGluZw==">testing <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dGV4YnJpZGdl">texbridge <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dGhlcm1vZHluYW1pY3M=">thermodynamics <span class="quarto-category-count">(4)</span></div><div class="category" data-category="dG9vbHM=">tools <span class="quarto-category-count">(1)</span></div><div class="category" data-category="d29yZA==">word <span class="quarto-category-count">(1)</span></div></div></div>
 <!-- main -->
 <main class="content column-page-left" id="quarto-document-content">
 
@@ -581,7 +581,50 @@ window.Quarto = {
 
 <div class="quarto-listing quarto-listing-container-default" id="listing-listing">
 <div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-categories="dGhlcm1vZHluYW1pY3MlMkNlcXVhdGlvbnMtb2Ytc3RhdGUlMkNzcmslMkNudW1lcmljcyUyQ3Rlc3Rpbmc=" data-listing-date-sort="1793422800000" data-listing-file-modified-sort="1793555141947" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="32" data-listing-word-count-sort="6308">
+<div class="quarto-post image-right" data-index="0" data-categories="Zmxhc2glMjBjYWxjdWxhdGlvbiUyQ3BoYXNlJTIwc3RhYmlsaXR5JTJDZXF1YXRpb24lMjBvZiUyMHN0YXRlJTJDU1JLJTJDbWV0aGFuZSUyQ0gyUw==" data-listing-date-sort="1793772000000" data-listing-file-modified-sort="1793893863508" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="29" data-listing-word-count-sort="5637">
+<div class="thumbnail"><a href="./posts/flash/index.html" class="no-external">
+
+<p class="card-img-top"><img loading='lazy' src="posts\flash\fig-roots.png"  class="thumbnail-image card-img"/></p>
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/flash/index.html" class="no-external">Two Liquids, Not a Vapour: A Fully Worked Flash Calculation for Methane/H₂S</a>
+</h3>
+<div class="listing-subtitle">
+<a href="./posts/flash/index.html" class="no-external">Stability analysis, phase split and equilibrium checks with the SRK equation of state, worked number by number</a>
+</div>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('Zmxhc2glMjBjYWxjdWxhdGlvbg=='); return false;">flash calculation</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cGhhc2UlMjBzdGFiaWxpdHk='); return false;">phase stability</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('ZXF1YXRpb24lMjBvZiUyMHN0YXRl'); return false;">equation of state</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('U1JL'); return false;">SRK</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('bWV0aGFuZQ=='); return false;">methane</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('SDJT'); return false;">H2S</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/flash/index.html" class="no-external">
+<p>Michelsen’s classic methane/H₂S case at 190 K and 40 atm, solved step by step: why a flash can converge to a vapour-liquid answer that is wrong, and how the tangent plane stability test finds the correct liquid-liquid equilibrium.</p>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/flash/index.html" class="no-external">
+<div class="listing-date">
+Nov 4, 2026
+</div>
+<div class="listing-author">
+Khanh B. Vu
+</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="1" data-categories="dGhlcm1vZHluYW1pY3MlMkNlcXVhdGlvbnMtb2Ytc3RhdGUlMkNzcmslMkNudW1lcmljcyUyQ3Rlc3Rpbmc=" data-listing-date-sort="1793422800000" data-listing-file-modified-sort="1793555141947" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="32" data-listing-word-count-sort="6308">
 <div class="thumbnail"><a href="./posts/numerical-testing-EOS/index.html" class="no-external">
 
 <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
@@ -591,6 +634,9 @@ window.Quarto = {
 <h3 class="no-anchor listing-title">
 <a href="./posts/numerical-testing-EOS/index.html" class="no-external">Numerical Testing of an EOS Implementation</a>
 </h3>
+<div class="listing-subtitle">
+<a href="./posts/numerical-testing-EOS/index.html" class="no-external"></a>
+</div>
 <div class="listing-categories">
 
 <div class="listing-category" onclick="window.quartoListingCategory('dGhlcm1vZHluYW1pY3M='); return false;">thermodynamics</div>
@@ -616,7 +662,7 @@ Oct 31, 2026
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="1" data-categories="dG9vbHMlMkNsYXRleCUyQ3dvcmQlMkN0ZXhicmlkZ2U=" data-listing-date-sort="1792040400000" data-listing-file-modified-sort="1793506171063" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="6" data-listing-word-count-sort="1162">
+<div class="quarto-post image-right" data-index="2" data-categories="dG9vbHMlMkNsYXRleCUyQ3dvcmQlMkN0ZXhicmlkZ2U=" data-listing-date-sort="1792040400000" data-listing-file-modified-sort="1793506171063" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="6" data-listing-word-count-sort="1162">
 <div class="thumbnail"><a href="./posts/ai-math-into-word/index.html" class="no-external">
 
 <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
@@ -626,6 +672,9 @@ Oct 31, 2026
 <h3 class="no-anchor listing-title">
 <a href="./posts/ai-math-into-word/index.html" class="no-external">Why AI Chat Math Won’t Paste Into Word, and What Actually Travels on the Clipboard</a>
 </h3>
+<div class="listing-subtitle">
+<a href="./posts/ai-math-into-word/index.html" class="no-external"></a>
+</div>
 <div class="listing-categories">
 
 <div class="listing-category" onclick="window.quartoListingCategory('dG9vbHM='); return false;">tools</div>
@@ -649,7 +698,7 @@ Oct 15, 2026
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="2" data-categories="dGhlcm1vZHluYW1pY3MlMkNlcXVhdGlvbnMtb2Ytc3RhdGUlMkNzcmslMkNyZXNpZHVhbC1wcm9wZXJ0aWVzJTJDZnVnYWNpdHk=" data-listing-date-sort="1791003600000" data-listing-file-modified-sort="1793506170747" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="17" data-listing-word-count-sort="3266">
+<div class="quarto-post image-right" data-index="3" data-categories="dGhlcm1vZHluYW1pY3MlMkNlcXVhdGlvbnMtb2Ytc3RhdGUlMkNzcmslMkNyZXNpZHVhbC1wcm9wZXJ0aWVzJTJDZnVnYWNpdHk=" data-listing-date-sort="1791003600000" data-listing-file-modified-sort="1793506170747" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="17" data-listing-word-count-sort="3266">
 <div class="thumbnail"><a href="./posts/potentials-for-eos/index.html" class="no-external">
 
 <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
@@ -659,6 +708,9 @@ Oct 15, 2026
 <h3 class="no-anchor listing-title">
 <a href="./posts/potentials-for-eos/index.html" class="no-external">Thermodynamic Potentials Applied for Equations of State</a>
 </h3>
+<div class="listing-subtitle">
+<a href="./posts/potentials-for-eos/index.html" class="no-external"></a>
+</div>
 <div class="listing-categories">
 
 <div class="listing-category" onclick="window.quartoListingCategory('dGhlcm1vZHluYW1pY3M='); return false;">thermodynamics</div>
@@ -684,7 +736,7 @@ Oct 3, 2026
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="3" data-categories="dGhlcm1vZHluYW1pY3MlMkNoZWxtaG9sdHolMkNnaWJicyUyQ2VxdWF0aW9ucy1vZi1zdGF0ZQ==" data-listing-date-sort="1789448400000" data-listing-file-modified-sort="1793506732718" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="7" data-listing-word-count-sort="1377">
+<div class="quarto-post image-right" data-index="4" data-categories="dGhlcm1vZHluYW1pY3MlMkNoZWxtaG9sdHolMkNnaWJicyUyQ2VxdWF0aW9ucy1vZi1zdGF0ZQ==" data-listing-date-sort="1789448400000" data-listing-file-modified-sort="1793506732718" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="7" data-listing-word-count-sort="1377">
 <div class="thumbnail"><a href="./posts/thermodynamic-potentials/index.html" class="no-external">
 
 <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
@@ -694,6 +746,9 @@ Oct 3, 2026
 <h3 class="no-anchor listing-title">
 <a href="./posts/thermodynamic-potentials/index.html" class="no-external">Thermodynamic Potentials</a>
 </h3>
+<div class="listing-subtitle">
+<a href="./posts/thermodynamic-potentials/index.html" class="no-external"></a>
+</div>
 <div class="listing-categories">
 
 <div class="listing-category" onclick="window.quartoListingCategory('dGhlcm1vZHluYW1pY3M='); return false;">thermodynamics</div>
@@ -717,7 +772,7 @@ Sep 15, 2026
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="4" data-categories="dGhlcm1vZHluYW1pY3MlMkNmaXJzdC1sYXclMkNzZWNvbmQtbGF3" data-listing-date-sort="1788238800000" data-listing-file-modified-sort="1793506170181" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="8" data-listing-word-count-sort="1421">
+<div class="quarto-post image-right" data-index="5" data-categories="dGhlcm1vZHluYW1pY3MlMkNmaXJzdC1sYXclMkNzZWNvbmQtbGF3" data-listing-date-sort="1788238800000" data-listing-file-modified-sort="1793506170181" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="8" data-listing-word-count-sort="1421">
 <div class="thumbnail"><a href="./posts/first-law/index.html" class="no-external">
 
 <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
@@ -727,6 +782,9 @@ Sep 15, 2026
 <h3 class="no-anchor listing-title">
 <a href="./posts/first-law/index.html" class="no-external">From the First Law to the Fundamental Relation</a>
 </h3>
+<div class="listing-subtitle">
+<a href="./posts/first-law/index.html" class="no-external"></a>
+</div>
 <div class="listing-categories">
 
 <div class="listing-category" onclick="window.quartoListingCategory('dGhlcm1vZHluYW1pY3M='); return false;">thermodynamics</div>

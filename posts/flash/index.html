@@ -1,0 +1,2558 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.20">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Khanh B. Vu">
+<meta name="dcterms.date" content="2026-11-04">
+<meta name="description" content="Michelsen’s classic methane/H₂S case at 190 K and 40 atm, solved step by step: why a flash can converge to a vapour-liquid answer that is wrong, and how the tangent plane stability test finds the correct liquid-liquid equilibrium.">
+
+<title>Two Liquids, Not a Vapour: A Fully Worked Flash Calculation for Methane/H₂S – Thermo Nerds</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-a5677c8584ae24b67293f1cbb7ea1013.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-85abf8db0aa09999752057b574b7acc9.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+<!-- Reader controls: colour themes and text size, in the navbar beside the site
+     title. Palettes, the mix() helper and the font-size scaling are taken from
+     the ReadMode extension (readmode/content.js, readmode/popup.js); the
+     storage layer is localStorage rather than chrome.storage, and the CSS
+     targets this site's own elements instead of ReadMode's blanket override,
+     which would fight MathJax and the in-post calculator. -->
+<style>
+  .rm-btn {
+    margin-left: auto; display: inline-flex; align-items: center; gap: .35rem;
+    padding: .2rem .55rem; font: inherit; font-size: .82rem; line-height: 1.2;
+    cursor: pointer; color: inherit; background: transparent;
+    border: 1px solid currentColor; border-radius: 3px; opacity: .72;
+  }
+  .rm-btn:hover, .rm-btn[aria-expanded="true"] { opacity: 1; }
+  .rm-btn .rm-aa { font-size: .95rem; font-weight: 600; }
+  /* no margin-left:auto here: Quarto's brand container carries mx-auto, and a
+     second auto margin would split the free space three ways and pull the
+     title off centre. The brand's own margin-right:auto already pushes this
+     element to the right edge. */
+  .rm-wrap { position: relative; display: flex; }
+  .rm-panel {
+    /* Rendered as a child of <body>, not of the navbar. Inside the navbar its
+       z-index is trapped in the navbar's stacking context, so page content can
+       paint over the panel's lower half and swallow taps there -- which on a
+       phone is exactly where the Reset button sits. Position and height are
+       set from JS against visualViewport. */
+    position: fixed; z-index: 2147483000;
+    width: 20rem; max-width: calc(100vw - 1rem); padding: .85rem .9rem;
+    overflow-y: auto; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    font-size: .82rem; line-height: 1.45; text-align: left;
+    background: var(--rm-bg, #fff); color: var(--rm-text, inherit);
+    border: 1px solid rgba(128,128,128,.45); border-radius: 4px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.14);
+  }
+  .rm-panel[hidden] { display: none; }
+  .rm-grouplabel {
+    margin: .55rem 0 .3rem; font-size: .68rem; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; opacity: .6;
+  }
+  .rm-grouplabel:first-child { margin-top: 0; }
+  .rm-themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: .3rem; }
+  .rm-theme {
+    display: flex; flex-direction: column; align-items: center; gap: .18rem;
+    padding: .25rem .1rem; font: inherit; font-size: .62rem; line-height: 1.1;
+    cursor: pointer; color: inherit; background: transparent;
+    border: 1px solid transparent; border-radius: 3px; text-align: center;
+  }
+  .rm-theme:hover { border-color: rgba(128,128,128,.5); }
+  .rm-btn, .rm-theme, .rm-reset { touch-action: manipulation; }
+  .rm-reset { min-height: 2.4rem; }
+  .rm-theme { min-height: 2.9rem; }
+  .rm-theme[aria-pressed="true"] { border-color: currentColor; font-weight: 700; }
+  .rm-sw {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 1.75rem; font-size: .78rem; font-weight: 600;
+    border: 1px solid rgba(128,128,128,.45); border-radius: 2px;
+  }
+  .rm-row {
+    display: flex; align-items: center; gap: .5rem;
+    margin-top: .8rem; padding-top: .7rem; border-top: 1px solid rgba(128,128,128,.3);
+  }
+  .rm-row label { flex: 0 0 auto; font-size: .72rem; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase; opacity: .7; }
+  .rm-row input[type=range] { flex: 1 1 auto; min-width: 0; }
+  .rm-val { flex: 0 0 2.6rem; text-align: right; font-variant-numeric: tabular-nums; }
+  .rm-reset {
+    margin-top: .6rem; padding: .22rem .6rem; font: inherit; font-size: .72rem;
+    cursor: pointer; color: inherit; background: transparent;
+    border: 1px solid rgba(128,128,128,.5); border-radius: 3px;
+  }
+  .rm-reset:hover { border-color: currentColor; }
+  @media (max-width: 420px) { .rm-panel { width: calc(100vw - 1.5rem); } }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- palettes, verbatim from readmode/content.js ----
+  var THEMES = {
+    dark:     { bg: '#1b1c1f', text: '#dcdcdc', link: '#8ab4f8', dark: true },
+    dim:      { bg: '#2b2d31', text: '#c9cbd0', link: '#9cc0ff', dark: true },
+    warm:     { bg: '#1f1a14', text: '#e8d5b5', link: '#f0a95b', dark: true },
+    sepia:    { bg: '#f4ecd8', text: '#433422', link: '#8a4b0f' },
+    ivory:    { bg: '#f6f1e7', text: '#292820', link: '#8a4b0f' },
+    beige:    { bg: '#f2eee8', text: '#2e2a25', link: '#7a4519' },
+    sage:     { bg: '#eaf0e8', text: '#263329', link: '#1f6640' },
+    bluegray: { bg: '#edf2f7', text: '#1f2933', link: '#1d4ed8' },
+    charcoal: { bg: '#24272b', text: '#e0e0e0', link: '#8ab4f8', dark: true },
+    cream:    { bg: '#fbf7ee', text: '#2a2722', link: '#1a5bb8' },
+    light:    { bg: '#ffffff', text: '#1f1f1f', link: '#0b57d0' },
+    mint:     { bg: '#e6f2e8', text: '#1d2b20', link: '#0a6640' },
+    contrast:         { bg: '#000000', text: '#ffff00', link: '#00ff7f', dark: true, strong: true },
+    'contrast-white': { bg: '#000000', text: '#ffffff', link: '#7fd4ff', dark: true, strong: true },
+    'contrast-light': { bg: '#ffffff', text: '#000000', link: '#0000ee', strong: true }
+  };
+  var GROUPS = [
+    ['Light', [['ivory','Ivory'],['beige','Beige'],['sepia','Sepia'],['cream','Cream'],
+               ['sage','Sage'],['mint','Mint'],['bluegray','Blue-gray'],['light','White']]],
+    ['Dark', [['charcoal','Charcoal'],['dark','Dark'],['dim','Dim'],['warm','Warm night']]],
+    ['High contrast', [['contrast','Yellow'],['contrast-white','White'],['contrast-light','Black']]]
+  ];
+
+  // blend two hex colours, for borders and code panels (readmode/content.js)
+  function mix(hex, toward, amount) {
+    var a = parseInt(hex.slice(1), 16), b = parseInt(toward.slice(1), 16);
+    var ch = function (n, s) { return (n >> s) & 255; };
+    var m = function (s) { return Math.round(ch(a, s) + (ch(b, s) - ch(a, s)) * amount); };
+    return '#' + ((1 << 24) | (m(16) << 16) | (m(8) << 8) | m(0)).toString(16).slice(1);
+  }
+
+  var KEY = 'thermonerds-reader';
+  var DEF = { theme: 'off', fontSize: 100 };
+
+  function load() {
+    try {
+      var v = JSON.parse(localStorage.getItem(KEY));
+      if (v && typeof v === 'object') {
+        return { theme: THEMES[v.theme] ? v.theme : 'off',
+                 fontSize: (v.fontSize >= 80 && v.fontSize <= 250) ? v.fontSize : 100 };
+      }
+    } catch (e) {}                     // private window, blocked storage, bad JSON
+    return { theme: DEF.theme, fontSize: DEF.fontSize };
+  }
+  function store(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+
+  var state = load();
+
+  // Every selector is prefixed with html[data-rm], which adds one class-level
+  // unit of specificity. The site themes style listing titles as
+  // `.quarto-listing .listing-title a { ... !important }` (two classes); an
+  // unprefixed `.listing-title a` loses that tie and a dark theme would leave
+  // black titles on a black page. The prefix wins regardless of source order.
+  function css(s) {
+    var out = '';
+    var t = THEMES[s.theme];
+    var H = 'html[data-rm] ';
+    if (t) {
+      var border = t.strong ? t.text : mix(t.bg, t.text, 0.22);
+      var panel  = mix(t.bg, t.text, t.strong ? 0.12 : 0.07);
+      var muted  = mix(t.bg, t.text, 0.62);
+      var TXT = 'color:' + t.text + ' !important';
+      out +=
+        'html[data-rm]{--rm-bg:' + t.bg + ';--rm-text:' + t.text + ';--rm-link:' + t.link +
+          ';--rm-panel:' + panel + ';--rm-border:' + border + ';--rm-muted:' + muted +
+          ';color-scheme:' + (t.dark ? 'dark' : 'light') + '}' +
+        'html[data-rm],html[data-rm] body{background:' + t.bg + ' !important;' + TXT + '}' +
+        H + ':is(main,.quarto-container,#quarto-content,#quarto-document-content,' +
+            '.page-columns,.quarto-title-block,footer,.footer,.sidebar,#quarto-margin-sidebar)' +
+            '{background:transparent !important;' + TXT + '}' +
+        H + ':is(h1,h2,h3,h4,h5,h6,p,li,dd,dt,td,th,figcaption,strong,em,blockquote,code,pre)' +
+            '{' + TXT + '}' +
+        // listing titles: matched at higher specificity than the themes' own rule
+        H + ':is(.quarto-listing,div.quarto-post) :is(.listing-title,.listing-title a)' +
+            '{' + TXT + '}' +
+        H + ':is(.listing-title,.listing-title a,.listing-subtitle){' + TXT + '}' +
+        H + ':is(.listing-date,.listing-category,.quarto-title-meta-heading,' +
+            '.quarto-category,nav[role="doc-toc"] a,#TOC a){color:' + muted + ' !important}' +
+        H + ':is(nav[role="doc-toc"],#TOC) a:is(:hover,.active){' + TXT + '}' +
+        H + 'main :is(a,a:visited){color:' + t.link + ' !important}' +
+        H + ':is(.quarto-listing,div.quarto-post) .listing-title a:hover{color:' + t.link + ' !important}' +
+        H + '.navbar{background:' + panel + ' !important;border-bottom:1px solid ' + border + ' !important}' +
+        H + '.navbar :is(.navbar-brand,.nav-link,.navbar-title,.menu-text){' + TXT + '}' +
+        H + 'main :is(pre,code,div.sourceCode,kbd,.cell-output){background:' + panel + ' !important;' + TXT + '}' +
+        H + 'main :is(pre,code,.sourceCode) span{color:inherit !important}' +
+        H + ':is(main table,main th,main td,main tr,hr,blockquote,div.quarto-post,' +
+            '.quarto-title-block,main pre,main div.sourceCode){border-color:' + border + ' !important}' +
+        H + 'blockquote{border-left-color:' + border + ' !important}' +
+        H + 'mjx-container{' + TXT + '}' +
+        // the in-post calculator draws itself from neutral greys, so only its
+        // editable cells need telling which surface they sit on
+        H + ':is(.xl-t td.in input,.xl-drive input[type=number]){' + TXT + '}' +
+        H + ':is(.xl-t td.ca,.xl-t tr.xl-h th,.xl-t td.fo){background:' + panel + ' !important}';
+    }
+    if (s.fontSize && s.fontSize !== 100) {
+      // Scales body text without zooming images; nested items reset so sizes
+      // don't compound. (readmode/content.js)
+      out +=
+        'html[data-rm-size] main :is(p,li,blockquote,dd,dt,td,th,figcaption,label)' +
+          '{font-size:' + s.fontSize + '% !important}' +
+        'html[data-rm-size] main :is(li p,li li,blockquote p,td p,li label,td label)' +
+          '{font-size:100% !important}';
+    }
+    return out;
+  }
+
+  // Applied from <head>, before first paint, so a remembered theme never flashes.
+  var tag = document.createElement('style');
+  tag.id = 'rm-style';
+  if (THEMES[state.theme]) document.documentElement.setAttribute('data-rm', state.theme);
+  if (state.fontSize !== 100) document.documentElement.setAttribute('data-rm-size', String(state.fontSize));
+  tag.textContent = css(state);
+  (document.head || document.documentElement).appendChild(tag);
+
+  function apply() {
+    var el = document.documentElement;
+    if (THEMES[state.theme]) el.setAttribute('data-rm', state.theme);
+    else el.removeAttribute('data-rm');
+    if (state.fontSize !== 100) el.setAttribute('data-rm-size', String(state.fontSize));
+    else el.removeAttribute('data-rm-size');
+    tag.textContent = css(state);
+    store(state);
+  }
+
+  // ---- controls, once the navbar exists ----
+  function build() {
+    // Prefer the existing nav list: adding an item there moves the brand no
+    // more than another nav link would. Appending to .navbar-container instead
+    // hands the brand's own mx-auto fresh free space to redistribute, which
+    // visibly shifts the title.
+    // .quarto-navbar-tools sits outside the collapsible menu, so the control
+    // stays reachable on a phone, where navbar-expand-lg hides .navbar-collapse
+    // behind the hamburger.
+    var tools = document.querySelector('.navbar .quarto-navbar-tools');
+    var list = tools ? null : document.querySelector('.navbar .navbar-nav');
+    var bar = tools || list ||
+              document.querySelector('.navbar .navbar-container') ||
+              document.querySelector('.navbar > .container-fluid') ||
+              document.querySelector('.navbar');
+    if (!bar) return;
+
+    var wrap = document.createElement(list ? 'li' : 'div');
+    wrap.className = list ? 'nav-item rm-wrap' : 'rm-wrap';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'rm-btn';
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-label', 'Reading options: colour theme and text size');
+    btn.innerHTML = '<span class="rm-aa">Aa</span><span>Reading</span>';
+
+    var panel = document.createElement('div');
+    panel.className = 'rm-panel';
+    panel.hidden = true;
+    panel.setAttribute('role', 'group');
+    panel.setAttribute('aria-label', 'Reading options');
+
+    var html = '';
+    for (var g = 0; g < GROUPS.length; g++) {
+      html += '<div class="rm-grouplabel">' + GROUPS[g][0] + '</div><div class="rm-themes">';
+      var list = GROUPS[g][1];
+      for (var i = 0; i < list.length; i++) {
+        var id = list[i][0], t = THEMES[id];
+        html += '<button type="button" class="rm-theme" data-v="' + id + '">' +
+                '<span class="rm-sw" style="background:' + t.bg + ';color:' + t.text + '">Aa</span>' +
+                list[i][1] + '</button>';
+      }
+      html += '</div>';
+    }
+    html += '<div class="rm-grouplabel">Site</div><div class="rm-themes">' +
+            '<button type="button" class="rm-theme" data-v="off">' +
+            '<span class="rm-sw" style="background:transparent">Aa</span>Default</button></div>' +
+            '<div class="rm-row"><label for="rm-size">Text size</label>' +
+            '<input type="range" id="rm-size" min="80" max="250" step="10">' +
+            '<span class="rm-val" id="rm-sizeval"></span></div>' +
+            '<button type="button" class="rm-reset">Reset to default</button>';
+    panel.innerHTML = html;
+
+    wrap.appendChild(btn);
+    bar.appendChild(wrap);
+    document.body.appendChild(panel);   // outside the navbar's stacking context
+
+    var size = panel.querySelector('#rm-size');
+    var sizeVal = panel.querySelector('#rm-sizeval');
+
+    function sync() {
+      var all = panel.querySelectorAll('.rm-theme');
+      for (var i = 0; i < all.length; i++) {
+        all[i].setAttribute('aria-pressed', all[i].getAttribute('data-v') === state.theme ? 'true' : 'false');
+      }
+      size.value = state.fontSize;
+      sizeVal.textContent = state.fontSize + '%';
+    }
+
+    panel.addEventListener('click', function (e) {
+      var sw = e.target.closest('.rm-theme');
+      if (sw) { state.theme = sw.getAttribute('data-v'); apply(); sync(); return; }
+      if (e.target.closest('.rm-reset')) {
+        state.theme = DEF.theme; state.fontSize = DEF.fontSize; apply(); sync();
+      }
+    });
+    size.addEventListener('input', function () {
+      state.fontSize = +size.value; apply(); sync();
+    });
+
+    // Positioned from JS against visualViewport rather than vh: on Android
+    // Chrome 100vh is the URL-bar-hidden height, so a vh-sized panel runs below
+    // the visible area and its last control cannot be reached or tapped.
+    function place() {
+      var vp = window.visualViewport;
+      var vh = vp ? vp.height : window.innerHeight;
+      var vw = vp ? vp.width  : window.innerWidth;
+      var bb = btn.getBoundingClientRect();
+      var nb = document.querySelector('.navbar');
+      var nbb = nb ? nb.getBoundingClientRect().bottom : 0;
+      var top = Math.round(Math.max(bb.bottom, nbb, 0) + 6);
+      if (top > vh - 120) top = Math.max(6, vh - 120);   // always leave room
+      panel.style.top = top + 'px';
+      panel.style.maxHeight = Math.max(140, Math.round(vh - top - 10)) + 'px';
+      panel.style.left = 'auto';
+      panel.style.right = Math.round(Math.max(8, vw - bb.right)) + 'px';
+      if (panel.getBoundingClientRect().left < 8) panel.style.right = '8px';
+    }
+    function open(v) {
+      panel.hidden = !v;
+      if (v) place();                 // measured while visible, before paint
+      btn.setAttribute('aria-expanded', v ? 'true' : 'false');
+    }
+    function replace() { if (!panel.hidden) place(); }
+    window.addEventListener('resize', replace);
+    window.addEventListener('scroll', replace, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', replace);
+      window.visualViewport.addEventListener('scroll', replace);
+    }
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      open(panel.hidden);
+    });
+    panel.addEventListener('click', function (e) { e.stopPropagation(); });
+    document.addEventListener('click', function () { open(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !panel.hidden) { open(false); btn.focus(); }
+    });
+
+    sync();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', build);
+  } else {
+    build();
+  }
+})();
+</script>
+<!-- Cloudflare Web Analytics. Free, cookieless, and reports Country, Path,
+     Referer, Device type, Browser and OS in the Cloudflare dashboard under
+     Analytics & Logs -> Web Analytics.
+
+     This is the manual beacon rather than Cloudflare's automatic injection,
+     because thermonerds.com is DNS-only (grey cloud) in Cloudflare -- it has to
+     be, or GitHub cannot issue the Let's Encrypt certificate for the custom
+     domain. Automatic injection only reaches proxied traffic; the manual
+     snippet works on any host, GitHub Pages included.
+
+     The token is a public site identifier, not a secret: it ships in the
+     source of every page.
+
+     Expect undercounting. The beacon is blocked by most ad blockers and by
+     Firefox strict mode, which a thermodynamics readership uses more than
+     average. Read it as a trend, not a census. -->
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&quot;token&quot;: &quot;0da600393c414e5b8085be10af9c399c&quot;}"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400">
+<script>
+  window.MathJax = {
+    loader: { load: ['[tex]/mhchem'] },
+    tex: {
+      packages: { '[+]': ['mhchem'] },
+      tags: 'ams',
+      tagSide: 'right',
+      macros: {
+        Vm:   "V_{m}",
+        kij:  "k_{ij}",
+        Rgas: "R"
+      }
+    }
+  };
+</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Thermo Nerds</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#summary" id="toc-summary" class="nav-link active" data-scroll-target="#summary">Summary</a></li>
+  <li><a href="#the-test-case" id="toc-the-test-case" class="nav-link" data-scroll-target="#the-test-case"><span class="header-section-number">1</span> The test case</a></li>
+  <li><a href="#the-equation-of-state" id="toc-the-equation-of-state" class="nav-link" data-scroll-target="#the-equation-of-state"><span class="header-section-number">2</span> The equation of state</a>
+  <ul class="collapse">
+  <li><a href="#srk-in-brief" id="toc-srk-in-brief" class="nav-link" data-scroll-target="#srk-in-brief"><span class="header-section-number">2.1</span> SRK in brief</a></li>
+  <li><a href="#the-feed" id="toc-the-feed" class="nav-link" data-scroll-target="#the-feed"><span class="header-section-number">2.2</span> The feed</a></li>
+  <li><a href="#choosing-the-root-when-there-are-three" id="toc-choosing-the-root-when-there-are-three" class="nav-link" data-scroll-target="#choosing-the-root-when-there-are-three"><span class="header-section-number">2.3</span> Choosing the root when there are three</a></li>
+  </ul></li>
+  <li><a href="#the-wilson-estimate-gets-this-case-wrong" id="toc-the-wilson-estimate-gets-this-case-wrong" class="nav-link" data-scroll-target="#the-wilson-estimate-gets-this-case-wrong"><span class="header-section-number">3</span> The Wilson estimate gets this case wrong</a></li>
+  <li><a href="#stability-test-of-the-feed" id="toc-stability-test-of-the-feed" class="nav-link" data-scroll-target="#stability-test-of-the-feed"><span class="header-section-number">4</span> Stability test of the feed</a>
+  <ul class="collapse">
+  <li><a href="#the-tangent-plane-criterion" id="toc-the-tangent-plane-criterion" class="nav-link" data-scroll-target="#the-tangent-plane-criterion"><span class="header-section-number">4.1</span> The tangent plane criterion</a></li>
+  <li><a href="#sec-update" id="toc-sec-update" class="nav-link" data-scroll-target="#sec-update"><span class="header-section-number">4.2</span> Where the update formula comes from</a></li>
+  <li><a href="#the-two-trials" id="toc-the-two-trials" class="nav-link" data-scroll-target="#the-two-trials"><span class="header-section-number">4.3</span> The two trials</a></li>
+  <li><a href="#from-the-trials-to-initial-k-values" id="toc-from-the-trials-to-initial-k-values" class="nav-link" data-scroll-target="#from-the-trials-to-initial-k-values"><span class="header-section-number">4.4</span> From the trials to initial K values</a></li>
+  </ul></li>
+  <li><a href="#the-first-phase-split-and-how-it-goes-wrong" id="toc-the-first-phase-split-and-how-it-goes-wrong" class="nav-link" data-scroll-target="#the-first-phase-split-and-how-it-goes-wrong"><span class="header-section-number">5</span> The first phase split, and how it goes wrong</a>
+  <ul class="collapse">
+  <li><a href="#sec-split-equations" id="toc-sec-split-equations" class="nav-link" data-scroll-target="#sec-split-equations"><span class="header-section-number">5.1</span> The equations</a></li>
+  <li><a href="#iteration-1-in-detail" id="toc-iteration-1-in-detail" class="nav-link" data-scroll-target="#iteration-1-in-detail"><span class="header-section-number">5.2</span> Iteration 1 in detail</a></li>
+  <li><a href="#convergence" id="toc-convergence" class="nav-link" data-scroll-target="#convergence"><span class="header-section-number">5.3</span> Convergence</a></li>
+  <li><a href="#it-passes-the-usual-checks" id="toc-it-passes-the-usual-checks" class="nav-link" data-scroll-target="#it-passes-the-usual-checks"><span class="header-section-number">5.4</span> It passes the usual checks</a></li>
+  </ul></li>
+  <li><a href="#the-decisive-check-stability-of-the-split" id="toc-the-decisive-check-stability-of-the-split" class="nav-link" data-scroll-target="#the-decisive-check-stability-of-the-split"><span class="header-section-number">6</span> The decisive check: stability of the split</a>
+  <ul class="collapse">
+  <li><a href="#seeing-it-the-tangent-plane-distance" id="toc-seeing-it-the-tangent-plane-distance" class="nav-link" data-scroll-target="#seeing-it-the-tangent-plane-distance"><span class="header-section-number">6.1</span> Seeing it: the tangent plane distance</a></li>
+  </ul></li>
+  <li><a href="#the-second-split-the-correct-answer" id="toc-the-second-split-the-correct-answer" class="nav-link" data-scroll-target="#the-second-split-the-correct-answer"><span class="header-section-number">7</span> The second split: the correct answer</a>
+  <ul class="collapse">
+  <li><a href="#final-result" id="toc-final-result" class="nav-link" data-scroll-target="#final-result"><span class="header-section-number">7.1</span> Final result</a></li>
+  </ul></li>
+  <li><a href="#proof-that-the-answer-is-the-equilibrium" id="toc-proof-that-the-answer-is-the-equilibrium" class="nav-link" data-scroll-target="#proof-that-the-answer-is-the-equilibrium"><span class="header-section-number">8</span> Proof that the answer is the equilibrium</a></li>
+  <li><a href="#sec-phase-rule" id="toc-sec-phase-rule" class="nav-link" data-scroll-target="#sec-phase-rule"><span class="header-section-number">9</span> Why the wrong answer is so tempting: the phase rule</a></li>
+  <li><a href="#the-general-algorithm" id="toc-the-general-algorithm" class="nav-link" data-scroll-target="#the-general-algorithm"><span class="header-section-number">10</span> The general algorithm</a></li>
+  <li><a href="#sec-ternary" id="toc-sec-ternary" class="nav-link" data-scroll-target="#sec-ternary"><span class="header-section-number">11</span> Beyond the binary: a real three-phase region</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  <li><a href="#sec-appendix-a" id="toc-sec-appendix-a" class="nav-link" data-scroll-target="#sec-appendix-a">Appendix A: Derivation of the stability update</a>
+  <ul class="collapse">
+  <li><a href="#step-by-step-differentiation" id="toc-step-by-step-differentiation" class="nav-link" data-scroll-target="#step-by-step-differentiation">Step-by-step differentiation</a></li>
+  <li><a href="#applying-the-gibbsduhem-relation" id="toc-applying-the-gibbsduhem-relation" class="nav-link" data-scroll-target="#applying-the-gibbsduhem-relation">Applying the Gibbs–Duhem relation</a></li>
+  <li><a href="#setting-the-derivative-to-zero" id="toc-setting-the-derivative-to-zero" class="nav-link" data-scroll-target="#setting-the-derivative-to-zero">Setting the derivative to zero</a></li>
+  <li><a href="#value-of-tm-at-the-stationary-point" id="toc-value-of-tm-at-the-stationary-point" class="nav-link" data-scroll-target="#value-of-tm-at-the-stationary-point">Value of <span class="math inline">\(tm\)</span> at the stationary point</a></li>
+  </ul></li>
+  <li><a href="#sec-appendix-b" id="toc-sec-appendix-b" class="nav-link" data-scroll-target="#sec-appendix-b">Appendix B: Why the convergence error uses squared log ratios</a>
+  <ul class="collapse">
+  <li><a href="#why-logarithms-ln-are-used" id="toc-why-logarithms-ln-are-used" class="nav-link" data-scroll-target="#why-logarithms-ln-are-used">1. Why logarithms (<span class="math inline">\(\ln\)</span>) are used</a></li>
+  <li><a href="#why-it-is-squared-dots2" id="toc-why-it-is-squared-dots2" class="nav-link" data-scroll-target="#why-it-is-squared-dots2">2. Why it is squared (<span class="math inline">\([\dots]^2\)</span>)</a></li>
+  <li><a href="#what-the-error-means-thermodynamically" id="toc-what-the-error-means-thermodynamically" class="nav-link" data-scroll-target="#what-the-error-means-thermodynamically">3. What the error means thermodynamically</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Two Liquids, Not a Vapour: A Fully Worked Flash Calculation for Methane/H₂S</h1>
+<p class="subtitle lead">Stability analysis, phase split and equilibrium checks with the SRK equation of state, worked number by number</p>
+  <div class="quarto-categories">
+    <div class="quarto-category">flash calculation</div>
+    <div class="quarto-category">phase stability</div>
+    <div class="quarto-category">equation of state</div>
+    <div class="quarto-category">SRK</div>
+    <div class="quarto-category">methane</div>
+    <div class="quarto-category">H2S</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    Michelsen’s classic methane/H₂S case at 190 K and 40 atm, solved step by step: why a flash can converge to a vapour-liquid answer that is wrong, and how the tangent plane stability test finds the correct liquid-liquid equilibrium.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Khanh B. Vu </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">November 4, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<style>
+/* the site theme sets table headers in (small) capitals with letter spacing;
+   keep math in headers exactly as MathJax draws it (ln, not LN) */
+th .math, th .math *, th mjx-container, th mjx-container * {
+  text-transform: none !important;
+  font-variant: normal !important;
+  font-variant-caps: normal !important;
+  font-feature-settings: normal !important;
+  letter-spacing: normal !important;
+}
+</style>
+<section id="summary" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="summary">Summary</h2>
+<p>A flash calculation answers one question: at a given temperature <span class="math inline">\(T\)</span>, pressure <span class="math inline">\(P\)</span> and feed composition <span class="math inline">\(\mathbf z\)</span>, how many phases are there, how much of each, and what are their compositions? For most mixtures, a textbook algorithm gets this right. Michelsen’s 1982 test case, <strong>methane/H₂S 50/50 with the Soave–Redlich–Kwong (SRK) equation at 190 K and 40 atm</strong>, is a classic example where it does not.</p>
+<p>At these conditions, a standard flash converges smoothly to a vapour-liquid split with <strong>1.9 % and 89.4 % H₂S</strong>. That split satisfies equal fugacities and closes the material balance, and its Gibbs energy is lower than the feed’s. It is still <strong>wrong</strong>. The correct equilibrium is two <strong>liquids</strong> with <strong>7.7 % and 89.5 % H₂S</strong>.</p>
+<p>This post works through the whole calculation number by number:</p>
+<ol type="1">
+<li>the equation of state and the root choice,</li>
+<li>the stability test of the feed, with every iteration,</li>
+<li>the first phase split, which converges to the wrong answer,</li>
+<li>the checks that show it is wrong,</li>
+<li>the second split, which gives the correct answer,</li>
+<li>the checks that prove the correct answer is correct.</li>
+</ol>
+<p>It ends with a general algorithm you can apply to any mixture. All numbers were produced by my own Python flash code and checked independently.</p>
+<div id="tbl-summary" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: The two converged splits at 190 K and 40.53 bar
+</figcaption>
+<div aria-describedby="tbl-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>V–L split (wrong)</th>
+<th>L–L split (correct)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>H₂S-rich phase, H₂S mole fraction</td>
+<td>0.894275</td>
+<td>0.895027</td>
+</tr>
+<tr class="even">
+<td>methane-rich phase, H₂S mole fraction</td>
+<td>0.019245</td>
+<td>0.076777</td>
+</tr>
+<tr class="odd">
+<td>methane-rich phase amount <span class="math inline">\(\beta\)</span></td>
+<td>0.450585</td>
+<td>0.482771</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(Z\)</span> of the methane-rich phase</td>
+<td>0.53220 (vapour)</td>
+<td>0.16510 (dense liquid)</td>
+</tr>
+<tr class="odd">
+<td>Gibbs energy <span class="math inline">\(g = G/(nRT)\)</span></td>
+<td>−2.684158</td>
+<td><strong>−2.685750</strong></td>
+</tr>
+<tr class="even">
+<td>stable?</td>
+<td>no (<span class="math inline">\(tm = -3.31\times10^{-3}\)</span>)</td>
+<td><strong>yes</strong> (all <span class="math inline">\(tm \ge 0\)</span>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="the-test-case" class="level2" data-number="1">
+<h2 data-number="1" class="anchored" data-anchor-id="the-test-case"><span class="header-section-number">1</span> The test case</h2>
+<div id="tbl-comp" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-comp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: Component data
+</figcaption>
+<div aria-describedby="tbl-comp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th>methane</th>
+<th>H₂S</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(T_c\)</span> (K)</td>
+<td>190.56</td>
+<td>373.53</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(P_c\)</span> (bar)</td>
+<td>45.99</td>
+<td>89.607</td>
+</tr>
+<tr class="odd">
+<td>acentric factor <span class="math inline">\(\omega\)</span></td>
+<td>0.0115</td>
+<td>0.0942</td>
+</tr>
+<tr class="even">
+<td>feed mole fraction <span class="math inline">\(z_i\)</span></td>
+<td>0.5</td>
+<td>0.5</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>The conditions are <span class="math inline">\(T = 190\)</span> K and <span class="math inline">\(P = 40\)</span> atm <span class="math inline">\(= 4.053\times10^{6}\)</span> Pa <span class="math inline">\(= 40.53\)</span> bar. The EOS is SRK with the classic van der Waals mixing rule and <span class="math inline">\(k_{12} = 0.085\)</span>, the value in the NeqSim database. <span class="math inline">\(R = 8.314\)</span> J mol⁻¹ K⁻¹, so <span class="math inline">\(RT = 1579.748\)</span> J mol⁻¹.</p>
+<p>This case is a hard one because <span class="math inline">\(T = 190\)</span> K is just below the critical temperature of methane (190.56 K). Methane-rich mixtures here can be gas-like or liquid-like depending on a few percent of H₂S. The pressure is also only 0.39 bar above the three-phase line of this binary (<a href="#sec-phase-rule" class="quarto-xref">Section&nbsp;9</a>).</p>
+</section>
+<section id="the-equation-of-state" class="level2" data-number="2">
+<h2 data-number="2" class="anchored" data-anchor-id="the-equation-of-state"><span class="header-section-number">2</span> The equation of state</h2>
+<section id="srk-in-brief" class="level3" data-number="2.1">
+<h3 data-number="2.1" class="anchored" data-anchor-id="srk-in-brief"><span class="header-section-number">2.1</span> SRK in brief</h3>
+<p>For each component:</p>
+<p><span class="math display">\[
+a_i = 0.42748\,\frac{R^2T_{c,i}^2}{P_{c,i}}\,\alpha_i, \qquad
+\alpha_i = \left[1 + m_i\left(1-\sqrt{T/T_{c,i}}\right)\right]^2, \qquad
+m_i = 0.480 + 1.574\,\omega_i - 0.176\,\omega_i^2
+\]</span></p>
+<p><span class="math display">\[
+b_i = 0.08664\,\frac{RT_{c,i}}{P_{c,i}}
+\]</span></p>
+<p>For a phase with mole fractions <span class="math inline">\(\mathbf w\)</span>:</p>
+<p><span class="math display">\[
+a = \sum_i\sum_j w_i w_j a_{ij}, \quad a_{ij} = \sqrt{a_i a_j}\,(1-k_{ij}), \qquad b = \sum_i w_i b_i
+\]</span></p>
+<p><span class="math display">\[
+A = \frac{aP}{(RT)^2}, \qquad B = \frac{bP}{RT}
+\]</span></p>
+<p>The compressibility factor is a root of the cubic</p>
+<p><span class="math display">\[
+Z^3 - Z^2 + (A - B - B^2)\,Z - AB = 0
+\]</span></p>
+<p>and the fugacity coefficient of component <span class="math inline">\(i\)</span> is</p>
+<p><span class="math display">\[
+\ln\varphi_i = \underbrace{\frac{b_i}{b}(Z-1)}_{\text{term 1}}
+\;\underbrace{-\,\ln(Z-B)}_{\text{term 2}}
+\;\underbrace{-\,\frac{A}{B}\left(\frac{2\sum_j w_j a_{ij}}{a} - \frac{b_i}{b}\right)\ln\!\left(1+\frac{B}{Z}\right)}_{\text{term 3}}
+\]</span></p>
+<p>At 190 K:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th>methane</th>
+<th>H₂S</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(\sqrt{T/T_c}\)</span></td>
+<td>0.998530</td>
+<td>0.713204</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(m\)</span></td>
+<td>0.498078</td>
+<td>0.626709</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\alpha\)</span></td>
+<td>1.001465</td>
+<td>1.391780</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(a\)</span> (Pa m⁶ mol⁻²)</td>
+<td>0.233679</td>
+<td>0.640419</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(b\)</span> (m³ mol⁻¹)</td>
+<td>2.98484 × 10⁻⁵</td>
+<td>3.00287 × 10⁻⁵</td>
+</tr>
+</tbody>
+</table>
+<p>The cross term is <span class="math inline">\(a_{12} = \sqrt{0.233679 \times 0.640419}\,(1-0.085) = 0.386849 \times 0.915 = 0.353967\)</span>.</p>
+</section>
+<section id="the-feed" class="level3" data-number="2.2">
+<h3 data-number="2.2" class="anchored" data-anchor-id="the-feed"><span class="header-section-number">2.2</span> The feed</h3>
+<p>For <span class="math inline">\(\mathbf z = (0.5, 0.5)\)</span>: <span class="math inline">\(a = 0.395508\)</span>, <span class="math inline">\(b = 2.99385\times10^{-5}\)</span>, so <span class="math inline">\(A = 0.642327\)</span> and <span class="math inline">\(B = 0.076810\)</span>. The cubic is</p>
+<p><span class="math display">\[
+Z^3 - Z^2 + 0.559617\,Z - 0.049337 = 0
+\]</span></p>
+<p>It has one real root, <span class="math inline">\(Z = 0.106165\)</span>. Term by term:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>methane</th>
+<th>H₂S</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(\sum_j z_j a_{ij}\)</span></td>
+<td>0.293823</td>
+<td>0.497193</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(b_i/b\)</span></td>
+<td>0.996989</td>
+<td>1.003011</td>
+</tr>
+<tr class="odd">
+<td>term 1</td>
+<td>−0.891144</td>
+<td>−0.896526</td>
+</tr>
+<tr class="even">
+<td>term 2 <span class="math inline">\(= -\ln(0.029355)\)</span></td>
+<td>3.528302</td>
+<td>3.528302</td>
+</tr>
+<tr class="odd">
+<td>term 3 (<span class="math inline">\(A/B = 8.362517\)</span>, <span class="math inline">\(\ln(1+B/Z) = 0.544357\)</span>)</td>
+<td>−2.225168</td>
+<td>−6.879215</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\ln\varphi_i\)</span></td>
+<td><strong>0.411990</strong></td>
+<td><strong>−4.247439</strong></td>
+</tr>
+</tbody>
+</table>
+<p>With <span class="math inline">\(Z = 0.106\)</span> the feed is a dense phase. “Liquid-like” describes its density; it does not mean the feed is stable as a single liquid. Deciding that is the job of the stability test.</p>
+<p>The two quantities used everywhere below are the reduced chemical potentials of the feed and its Gibbs energy:</p>
+<p><span class="math display">\[
+d_i = \ln z_i + \ln\varphi_i(\mathbf z) = (-0.281157,\; -4.940586)
+\]</span></p>
+<p><span class="math display">\[
+g_{\text{feed}} = \sum_i z_i d_i = -2.610872
+\]</span></p>
+</section>
+<section id="choosing-the-root-when-there-are-three" class="level3" data-number="2.3">
+<h3 data-number="2.3" class="anchored" data-anchor-id="choosing-the-root-when-there-are-three"><span class="header-section-number">2.3</span> Choosing the root when there are three</h3>
+<p>Every <span class="math inline">\(\ln\varphi\)</span> evaluation needs one <span class="math inline">\(Z\)</span>. When the cubic has three real roots, the middle one has no physical meaning. Of the other two, a bulk phase takes the one with the <strong>lower Gibbs energy</strong>, <span class="math inline">\(\sum_i w_i(\ln w_i + \ln\varphi_i)\)</span>. The smallest root is not automatically “the liquid”, and the largest is not automatically “the vapour”.</p>
+<p>For this system, three real roots exist only for 2.4–4.8 % H₂S on the methane-rich side. The Gibbs-energy choice jumps from the gas-like branch to the dense branch at <strong>3.43 % H₂S</strong> (<a href="#fig-roots" class="quarto-xref">Figure&nbsp;1</a>).</p>
+<div id="fig-roots" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-roots-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="fig-roots.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-roots-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Compressibility factor of methane-rich mixtures at 190 K and 40.53 bar. In the shaded band the SRK cubic has three real roots; the black line is the root with the lower Gibbs energy. The jump at 3.43 % H₂S produces the kinks in the tangent-plane curves of <a href="#fig-tpd" class="quarto-xref">Figure&nbsp;3</a>.
+</figcaption>
+</figure>
+</div>
+<p>This matters because both methane-rich phases in this post sit just outside that band: the wrong vapour at 1.9 % H₂S, on the gas-like branch, and the correct light liquid at 7.7 % H₂S, on the dense branch.</p>
+</section>
+</section>
+<section id="the-wilson-estimate-gets-this-case-wrong" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="the-wilson-estimate-gets-this-case-wrong"><span class="header-section-number">3</span> The Wilson estimate gets this case wrong</h2>
+<p>The usual first guess for the equilibrium ratios <span class="math inline">\(K_i = y_i/x_i\)</span> is Wilson’s correlation:</p>
+<p><span class="math display">\[
+K_i^{W} = \frac{P_{c,i}}{P}\exp\!\left[5.373\,(1+\omega_i)\left(1-\frac{T_{c,i}}{T}\right)\right]
+\]</span></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th><span class="math inline">\(P_c/P\)</span></th>
+<th>exponent</th>
+<th><span class="math inline">\(K^W\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>methane</td>
+<td>1.134715</td>
+<td>−0.016018</td>
+<td>1.116684</td>
+</tr>
+<tr class="even">
+<td>H₂S</td>
+<td>2.210881</td>
+<td>−5.678937</td>
+<td>0.007555</td>
+</tr>
+</tbody>
+</table>
+<p>A two-phase solution of the Rachford–Rice equation needs <span class="math inline">\(\sum z_iK_i &gt; 1\)</span> and <span class="math inline">\(\sum z_i/K_i &gt; 1\)</span>. Here <span class="math inline">\(\sum z_iK_i = 0.5621 &lt; 1\)</span>. Taken at face value, the Wilson K values say <strong>the feed is a single liquid</strong>, which is wrong. A flash that skips the stability test and trusts Wilson would stop here with one phase.</p>
+</section>
+<section id="stability-test-of-the-feed" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="stability-test-of-the-feed"><span class="header-section-number">4</span> Stability test of the feed</h2>
+<section id="the-tangent-plane-criterion" class="level3" data-number="4.1">
+<h3 data-number="4.1" class="anchored" data-anchor-id="the-tangent-plane-criterion"><span class="header-section-number">4.1</span> The tangent plane criterion</h3>
+<p>A phase with composition <span class="math inline">\(\mathbf z\)</span> is stable if no trial phase <span class="math inline">\(\mathbf w\)</span> can lower the Gibbs energy by forming. Michelsen’s tangent plane distance measures this:</p>
+<p><span class="math display">\[
+D(\mathbf w) = \sum_i w_i\left[\ln w_i + \ln\varphi_i(\mathbf w) - d_i\right]
+\]</span></p>
+<p><span class="math inline">\(D(\mathbf w)\)</span> is the distance between the Gibbs energy surface at <span class="math inline">\(\mathbf w\)</span> and the tangent plane that touches it at <span class="math inline">\(\mathbf z\)</span>. If <span class="math inline">\(D(\mathbf w) \ge 0\)</span> for every <span class="math inline">\(\mathbf w\)</span>, the feed is stable. One <span class="math inline">\(\mathbf w\)</span> with <span class="math inline">\(D &lt; 0\)</span> is enough to prove it unstable.</p>
+<p>You cannot scan every <span class="math inline">\(\mathbf w\)</span> for a multicomponent mixture. Instead you look for the <strong>stationary points</strong> of <span class="math inline">\(D\)</span>, where the minima sit. Working with unnormalised mole numbers <span class="math inline">\(W_i\)</span> makes this easy. Michelsen’s modified function is</p>
+<p><span class="math display">\[
+tm(\mathbf W) = 1 + \sum_i W_i\left[\ln W_i + \ln\varphi_i(\mathbf w) - d_i - 1\right], \qquad \mathbf w = \mathbf W/\textstyle\sum_j W_j
+\]</span></p>
+</section>
+<section id="sec-update" class="level3" data-number="4.2">
+<h3 data-number="4.2" class="anchored" data-anchor-id="sec-update"><span class="header-section-number">4.2</span> Where the update formula comes from</h3>
+<p>Setting <span class="math inline">\(\partial\, tm/\partial W_i = 0\)</span> gives, because <span class="math inline">\(\sum_j W_j\,\partial\ln\varphi_j/\partial W_i = 0\)</span> (the Gibbs–Duhem relation; the full derivation is in <a href="#sec-appendix-a">Appendix A</a>),</p>
+<p><span class="math display">\[
+\ln W_i + \ln\varphi_i(\mathbf w) - d_i = 0
+\]</span></p>
+<p>Solving this for <span class="math inline">\(W_i\)</span> gives the successive substitution update</p>
+<p><span class="math display">\[
+\boxed{\;W_i^{\text{new}} = \exp\!\left[d_i - \ln\varphi_i(\mathbf w)\right]\;}
+\]</span></p>
+<p>At a stationary point the bracket in <span class="math inline">\(tm\)</span> equals <span class="math inline">\(-1\)</span>, so</p>
+<p><span class="math display">\[
+tm^{*} = 1 - \sum_i W_i
+\]</span></p>
+<p>The sign of the converged <span class="math inline">\(tm\)</span> is therefore the sign of <span class="math inline">\(1 - \sum W_i\)</span>. If <span class="math inline">\(\sum W_i &gt; 1\)</span> the feed is unstable, and <span class="math inline">\(\mathbf w\)</span> is the composition of the new phase.</p>
+<p>The sign of the <strong>first</strong> <span class="math inline">\(tm\)</span> means nothing. A trial can start positive and end negative, and in this example both do. Iterate until <span class="math inline">\(tm\)</span> stops changing.</p>
+</section>
+<section id="the-two-trials" class="level3" data-number="4.3">
+<h3 data-number="4.3" class="anchored" data-anchor-id="the-two-trials"><span class="header-section-number">4.3</span> The two trials</h3>
+<p>Michelsen starts two trials from the Wilson K values:</p>
+<ul>
+<li><strong>vapour-like:</strong> <span class="math inline">\(W_i = K_i^W z_i\)</span></li>
+<li><strong>liquid-like:</strong> <span class="math inline">\(W_i = z_i / K_i^W\)</span></li>
+</ul>
+<p><strong>Vapour-like trial</strong>, <span class="math inline">\(\mathbf W^{(0)} = (0.558342,\; 0.003778)\)</span>, <span class="math inline">\(\sum W = 0.562119\)</span>:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>it</th>
+<th><span class="math inline">\(W_1\)</span></th>
+<th><span class="math inline">\(W_2\)</span></th>
+<th><span class="math inline">\(\sum W\)</span></th>
+<th>H₂S in <span class="math inline">\(\mathbf w\)</span></th>
+<th><span class="math inline">\(Z\)</span></th>
+<th><span class="math inline">\(tm\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>0.558342</td>
+<td>0.003778</td>
+<td>0.562119</td>
+<td>0.006720</td>
+<td>0.55503</td>
+<td><strong>+0.068778</strong></td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>1.069420</td>
+<td>0.019684</td>
+<td>1.089104</td>
+<td>0.018073</td>
+<td>0.53455</td>
+<td>−0.089310</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>1.068956</td>
+<td>0.020366</td>
+<td>1.089322</td>
+<td>0.018696</td>
+<td>0.53331</td>
+<td>−0.089323</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td>1.068915</td>
+<td>0.020408</td>
+<td>1.089323</td>
+<td>0.018735</td>
+<td>0.53323</td>
+<td>−0.089323</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td>1.068912</td>
+<td>0.020411</td>
+<td>1.089323</td>
+<td>0.018737</td>
+<td>0.53322</td>
+<td><strong>−0.089323</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Iteration 0 in detail: <span class="math inline">\(\ln\varphi(\mathbf w) = (-0.348274,\,-1.012613)\)</span>, so</p>
+<p><span class="math display">\[
+W_1^{\text{new}} = \exp(-0.281157 + 0.348274) = 1.069420, \qquad
+W_2^{\text{new}} = \exp(-4.940586 + 1.012613) = 0.019684
+\]</span></p>
+<p>and</p>
+<p><span class="math display">\[
+tm^{(0)} = 1 + 0.558342(-0.649901 - 1) + 0.003778(-1.650719 - 1) = +0.068778
+\]</span></p>
+<p><strong>Liquid-like trial</strong>, <span class="math inline">\(\mathbf W^{(0)} = (0.447754,\; 66.181326)\)</span>, <span class="math inline">\(\sum W = 66.63\)</span>:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>it</th>
+<th><span class="math inline">\(W_1\)</span></th>
+<th><span class="math inline">\(W_2\)</span></th>
+<th><span class="math inline">\(\sum W\)</span></th>
+<th>H₂S in <span class="math inline">\(\mathbf w\)</span></th>
+<th><span class="math inline">\(Z\)</span></th>
+<th><span class="math inline">\(tm\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>0.447754</td>
+<td>66.181326</td>
+<td>66.629081</td>
+<td>0.993280</td>
+<td>0.09181</td>
+<td><strong>+214.12</strong></td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>0.070738</td>
+<td>0.978136</td>
+<td>1.048875</td>
+<td>0.932558</td>
+<td>0.09288</td>
+<td>−0.058947</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>0.095948</td>
+<td>0.966713</td>
+<td>1.062662</td>
+<td>0.909710</td>
+<td>0.09331</td>
+<td>−0.064112</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td>0.115155</td>
+<td>0.950147</td>
+<td>1.065303</td>
+<td>0.891904</td>
+<td>0.09367</td>
+<td>−0.065320</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td>0.117841</td>
+<td>0.947497</td>
+<td>1.065338</td>
+<td>0.889387</td>
+<td>0.09372</td>
+<td>−0.065338</td>
+</tr>
+<tr class="even">
+<td>41</td>
+<td>0.117942</td>
+<td>0.947396</td>
+<td>1.065338</td>
+<td>0.889292</td>
+<td>0.09372</td>
+<td><strong>−0.065338</strong></td>
+</tr>
+</tbody>
+</table>
+<div id="fig-convergence" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-convergence-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="fig-convergence.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-convergence-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Left: <span class="math inline">\(tm\)</span> of the two feed trials. Both start positive and converge to negative values, so the feed is unstable. Right: convergence of the phase split by successive substitution, measured by <span class="math inline">\(\sum_i[\ln(K_i^{new}/K_i^{old})]^2\)</span>, for the first (V–L) split and the corrected (L–L) split.
+</figcaption>
+</figure>
+</div>
+<p>The liquid trial converges more slowly, in 41 iterations against 10, because it is close to the feed’s own composition region. In practice you stop SS when the ratio of successive changes shows linear convergence and switch to a Newton step (Michelsen’s <span class="math inline">\(\alpha = 2\sqrt{W}\)</span> variables). For a hand calculation, SS is easier to follow.</p>
+</section>
+<section id="from-the-trials-to-initial-k-values" class="level3" data-number="4.4">
+<h3 data-number="4.4" class="anchored" data-anchor-id="from-the-trials-to-initial-k-values"><span class="header-section-number">4.4</span> From the trials to initial K values</h3>
+<p>Both trials give <span class="math inline">\(tm &lt; 0\)</span>, so the feed is unstable. Each converged trial also estimates one phase:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Trial results</th>
+<th>Initial K for the split</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>only the vapour-like trial is negative</td>
+<td><span class="math inline">\(K_i = W_i^{v}/z_i\)</span> (the feed stands in for the liquid)</td>
+</tr>
+<tr class="even">
+<td>only the liquid-like trial is negative</td>
+<td><span class="math inline">\(K_i = z_i/W_i^{l}\)</span> (the feed stands in for the vapour)</td>
+</tr>
+<tr class="odd">
+<td>both are negative</td>
+<td><span class="math inline">\(K_i = W_i^{v}/W_i^{l}\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>Here:</p>
+<p><span class="math display">\[
+\mathbf K^{(0)} = \frac{(1.068912,\; 0.020411)}{(0.117942,\; 0.947396)} = (9.063041,\; 0.021544)
+\]</span></p>
+<p>The raw, unnormalised <span class="math inline">\(W\)</span> are used on purpose. For example, <span class="math inline">\(\sum_i z_i W_i^v/z_i = \sum W^v &gt; 1\)</span> whenever the trial was negative, so the starting K values always allow a two-phase Rachford–Rice solution.</p>
+</section>
+</section>
+<section id="the-first-phase-split-and-how-it-goes-wrong" class="level2" data-number="5">
+<h2 data-number="5" class="anchored" data-anchor-id="the-first-phase-split-and-how-it-goes-wrong"><span class="header-section-number">5</span> The first phase split, and how it goes wrong</h2>
+<section id="sec-split-equations" class="level3" data-number="5.1">
+<h3 data-number="5.1" class="anchored" data-anchor-id="sec-split-equations"><span class="header-section-number">5.1</span> The equations</h3>
+<p>For two phases with liquid <span class="math inline">\(\mathbf x\)</span>, second phase <span class="math inline">\(\mathbf y = \mathbf K\mathbf x\)</span> and phase fraction <span class="math inline">\(\beta\)</span>, the material balance gives the Rachford–Rice equation:</p>
+<p><span class="math display">\[
+\sum_i \frac{z_i(K_i-1)}{1+\beta(K_i-1)} = 0, \qquad
+x_i = \frac{z_i}{1+\beta(K_i-1)}, \qquad y_i = K_ix_i
+\]</span></p>
+<p>For a binary there is no need to solve it. With <span class="math inline">\(x_1 + x_2 = 1\)</span> and <span class="math inline">\(K_1x_1 + K_2x_2 = 1\)</span>:</p>
+<p><span class="math display">\[
+x_1 = \frac{1-K_2}{K_1-K_2}, \qquad y_1 = K_1x_1, \qquad \beta = \frac{z_1 - x_1}{y_1 - x_1}
+\]</span></p>
+<p>Successive substitution then updates</p>
+<p><span class="math display">\[
+K_i^{\text{new}} = \frac{\varphi_i(\mathbf x)}{\varphi_i(\mathbf y)}
+\]</span></p>
+<p>which makes the fugacities equal at convergence. Convergence is measured by</p>
+<p><span class="math display">\[
+\varepsilon = \sum_i\left[\ln\frac{K_i^{\text{new}}}{K_i^{\text{old}}}\right]^2
+\]</span></p>
+<p>The error uses the log of the K ratio, squared, rather than a plain difference of K values. The main reason is that <span class="math inline">\(\ln K_i^{\text{new}} - \ln K_i^{\text{old}} = \ln f_i^{x} - \ln f_i^{y}\)</span>, so <span class="math inline">\(\varepsilon\)</span> measures the fugacity mismatch directly. <a href="#sec-appendix-b">Appendix B</a> explains the choice in full.</p>
+<p>The Gibbs energy of the split is</p>
+<p><span class="math display">\[
+g = (1-\beta)\,g_x + \beta\,g_y, \qquad g_{\text{phase}} = \sum_i w_i\left(\ln w_i + \ln\varphi_i\right)
+\]</span></p>
+<p>and it must decrease from one iteration to the next.</p>
+</section>
+<section id="iteration-1-in-detail" class="level3" data-number="5.2">
+<h3 data-number="5.2" class="anchored" data-anchor-id="iteration-1-in-detail"><span class="header-section-number">5.2</span> Iteration 1 in detail</h3>
+<p>From <span class="math inline">\(\mathbf K^{(0)} = (9.063041,\; 0.021544)\)</span>:</p>
+<p><span class="math display">\[
+x_1 = \frac{1 - 0.021544}{9.063041 - 0.021544} = 0.108218, \quad
+y_1 = 9.063041 \times 0.108218 = 0.980787, \quad
+\beta = \frac{0.5 - 0.108218}{0.980787 - 0.108218} = 0.448998
+\]</span></p>
+<p>The two phases:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th><span class="math inline">\(\mathbf x\)</span> (H₂S-rich)</th>
+<th><span class="math inline">\(\mathbf y\)</span> (methane-rich)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>composition (CH₄, H₂S)</td>
+<td>(0.108218, 0.891782)</td>
+<td>(0.980787, 0.019213)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(A\)</span>, <span class="math inline">\(B\)</span></td>
+<td>0.942547, 0.076991</td>
+<td>0.387114, 0.076588</td>
+</tr>
+<tr class="odd">
+<td>cubic roots</td>
+<td><span class="math inline">\(Z = 0.093669\)</span></td>
+<td><span class="math inline">\(Z = 0.532266\)</span></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\ln\varphi\)</span></td>
+<td>(1.868039, −4.887978)</td>
+<td>(−0.347767, −1.050502)</td>
+</tr>
+</tbody>
+</table>
+<p>New K values and error:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><span class="math inline">\(\ln\varphi^x - \ln\varphi^y\)</span></th>
+<th><span class="math inline">\(K^{\text{new}}\)</span></th>
+<th><span class="math inline">\(\ln(K^{\text{new}}/K^{\text{old}})\)</span></th>
+<th>squared</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>methane</td>
+<td>2.215806</td>
+<td>9.168801</td>
+<td>0.011601</td>
+<td>1.3459 × 10⁻⁴</td>
+</tr>
+<tr class="even">
+<td>H₂S</td>
+<td>−3.837476</td>
+<td>0.021548</td>
+<td>0.000170</td>
+<td>2.9 × 10⁻⁸</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td></td>
+<td></td>
+<td><span class="math inline">\(\varepsilon\)</span></td>
+<td><strong>1.35 × 10⁻⁴</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Gibbs energy:</p>
+<p><span class="math display">\[
+g_x = 0.108218(-2.223609 + 1.868039) + 0.891782(-0.114533 - 4.887978) = -0.038479 - 4.461150 = -4.499629
+\]</span></p>
+<p><span class="math display">\[
+g_y = 0.980787(-0.019404 - 0.347767) + 0.019213(-3.951965 - 1.050502) = -0.360115 - 0.096132 = -0.456247
+\]</span></p>
+<p><span class="math display">\[
+g = 0.551002(-4.499629) + 0.448998(-0.456247) = \mathbf{-2.684149}
+\]</span></p>
+<p>That is already <span class="math inline">\(0.0733\)</span> below the feed, so splitting clearly pays.</p>
+</section>
+<section id="convergence" class="level3" data-number="5.3">
+<h3 data-number="5.3" class="anchored" data-anchor-id="convergence"><span class="header-section-number">5.3</span> Convergence</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>it</th>
+<th><span class="math inline">\(K_1\)</span></th>
+<th><span class="math inline">\(K_2\)</span></th>
+<th>H₂S in <span class="math inline">\(\mathbf x\)</span></th>
+<th>H₂S in <span class="math inline">\(\mathbf y\)</span></th>
+<th><span class="math inline">\(\beta\)</span></th>
+<th><span class="math inline">\(\varepsilon\)</span></th>
+<th><span class="math inline">\(g\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>9.063041</td>
+<td>0.021544</td>
+<td>0.891782</td>
+<td>0.019213</td>
+<td>0.448998</td>
+<td>1.35e−4</td>
+<td>−2.6841491</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>9.168801</td>
+<td>0.021548</td>
+<td>0.893033</td>
+<td>0.019243</td>
+<td>0.449803</td>
+<td>3.47e−5</td>
+<td>−2.6841559</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>9.222653</td>
+<td>0.021535</td>
+<td>0.893658</td>
+<td>0.019245</td>
+<td>0.450197</td>
+<td>8.69e−6</td>
+<td>−2.6841576</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td>9.263177</td>
+<td>0.021524</td>
+<td>0.894123</td>
+<td>0.019245</td>
+<td>0.450489</td>
+<td>5.31e−7</td>
+<td>−2.6841581</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td>9.276095</td>
+<td>0.021520</td>
+<td>0.894271</td>
+<td>0.019245</td>
+<td>0.450582</td>
+<td>4.79e−10</td>
+<td>−2.6841582</td>
+</tr>
+<tr class="even">
+<td>20</td>
+<td>9.276494</td>
+<td>0.021520</td>
+<td>0.894275</td>
+<td>0.019245</td>
+<td>0.450585</td>
+<td>3.86e−16</td>
+<td>−2.6841582</td>
+</tr>
+<tr class="odd">
+<td>38</td>
+<td>9.276494</td>
+<td>0.021520</td>
+<td>0.894275</td>
+<td>0.019245</td>
+<td>0.450585</td>
+<td>4.40e−27</td>
+<td>−2.6841582</td>
+</tr>
+</tbody>
+</table>
+<p>The error falls by a steady factor of about 4 per iteration, as linear convergence should, and <span class="math inline">\(g\)</span> decreases monotonically. The result is a vapour (<span class="math inline">\(Z = 0.5322\)</span>) with <strong>1.92 % H₂S</strong> and a liquid (<span class="math inline">\(Z = 0.0936\)</span>) with <strong>89.43 % H₂S</strong>.</p>
+<p>When I ran NeqSim’s TPflash on the same case, it returned the same split: gas 1.92 % H₂S and liquid 89.42 % H₂S.</p>
+</section>
+<section id="it-passes-the-usual-checks" class="level3" data-number="5.4">
+<h3 data-number="5.4" class="anchored" data-anchor-id="it-passes-the-usual-checks"><span class="header-section-number">5.4</span> It passes the usual checks</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>check</th>
+<th>result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>fugacity of methane, <span class="math inline">\(x_1\varphi_1^xP\)</span> vs <span class="math inline">\(y_1\varphi_1^yP\)</span></td>
+<td>28.074032 vs 28.074032 bar (<span class="math inline">\(\Delta\ln f = 6.6\times10^{-14}\)</span>)</td>
+</tr>
+<tr class="even">
+<td>fugacity of H₂S</td>
+<td>0.272784 vs 0.272784 bar (<span class="math inline">\(\Delta\ln f = 2.2\times10^{-15}\)</span>)</td>
+</tr>
+<tr class="odd">
+<td>methane balance</td>
+<td><span class="math inline">\(0.450585(0.980755) + 0.549415(0.105725) = 0.500000000000\)</span></td>
+</tr>
+<tr class="even">
+<td>H₂S balance</td>
+<td><span class="math inline">\(0.450585(0.019245) + 0.549415(0.894275) = 0.500000000000\)</span></td>
+</tr>
+<tr class="odd">
+<td>Gibbs energy vs feed</td>
+<td><span class="math inline">\(-2.684158 &lt; -2.610872\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>Equal fugacities, a closed material balance and a lower Gibbs energy than the feed are necessary conditions for equilibrium. They are <strong>not sufficient</strong>. Equal fugacities only say the split is a stationary point of <span class="math inline">\(G\)</span>. A stationary point can be a local minimum that is not the global one.</p>
+</section>
+</section>
+<section id="the-decisive-check-stability-of-the-split" class="level2" data-number="6">
+<h2 data-number="6" class="anchored" data-anchor-id="the-decisive-check-stability-of-the-split"><span class="header-section-number">6</span> The decisive check: stability of the split</h2>
+<p>At a converged split, both phases share the same chemical potentials:</p>
+<p><span class="math display">\[
+d_i = \ln x_i + \ln\varphi_i^x = \ln y_i + \ln\varphi_i^y = (-0.367197,\; -5.001119)
+\]</span></p>
+<p>These define a single tangent plane that touches the Gibbs surface at both <span class="math inline">\(\mathbf x\)</span> and <span class="math inline">\(\mathbf y\)</span>. The split is the global minimum only if the <strong>whole</strong> Gibbs surface lies on or above this plane. Testing “phase <span class="math inline">\(\mathbf x\)</span>” and testing “phase <span class="math inline">\(\mathbf y\)</span>” therefore mean the same thing: both use the same <span class="math inline">\(d\)</span>. The only difference is where the trials start.</p>
+<p>Four trials were started from each phase: Wilson vapour-like, Wilson liquid-like, near-pure methane, and near-pure H₂S, the last two as dense trial phases.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>started from</th>
+<th>trial</th>
+<th>converged to (H₂S)</th>
+<th><span class="math inline">\(tm\)</span></th>
+<th>meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(\mathbf x\)</span></td>
+<td>vapour-like <span class="math inline">\(K^W x\)</span></td>
+<td><strong>0.076145</strong></td>
+<td><strong>−3.306 × 10⁻³</strong></td>
+<td><strong>new phase: unstable</strong></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\mathbf x\)</span></td>
+<td>liquid-like <span class="math inline">\(x/K^W\)</span></td>
+<td>0.894275</td>
+<td>0</td>
+<td>itself (trivial)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\mathbf x\)</span></td>
+<td>pure methane</td>
+<td>0.019245</td>
+<td>0</td>
+<td>the other phase</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\mathbf x\)</span></td>
+<td>pure H₂S</td>
+<td>0.894275</td>
+<td>0</td>
+<td>itself</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\mathbf y\)</span></td>
+<td>vapour-like <span class="math inline">\(K^W y\)</span></td>
+<td>0.019245</td>
+<td>0</td>
+<td>itself</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\mathbf y\)</span></td>
+<td>liquid-like <span class="math inline">\(y/K^W\)</span></td>
+<td>0.894275</td>
+<td>0</td>
+<td>the other phase</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\mathbf y\)</span></td>
+<td>pure methane</td>
+<td>0.019245</td>
+<td>0</td>
+<td>itself</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\mathbf y\)</span></td>
+<td>pure H₂S</td>
+<td>0.894275</td>
+<td>0</td>
+<td>the other phase</td>
+</tr>
+</tbody>
+</table>
+<p>The vapour-like trial from <span class="math inline">\(\mathbf x\)</span> starts at <span class="math inline">\(\mathbf W = (0.118061,\; 0.006756)\)</span> with <span class="math inline">\(tm = +0.615\)</span>. After one iteration <span class="math inline">\(tm\)</span> is already −0.0028, and after 43 iterations it settles at</p>
+<p><span class="math display">\[
+\mathbf u = (0.923855,\; 0.076145), \qquad Z_u = 0.16540, \qquad tm = 1 - \textstyle\sum W = -3.306\times10^{-3}
+\]</span></p>
+<p>All four trials started from <span class="math inline">\(\mathbf y\)</span> found nothing. They landed on one of the two known phases, which is a trivial answer. <strong>A stability test that tries only one starting point, such as “test the vapour with a vapour-like guess”, passes this wrong answer.</strong> Use several trials, and discard any that converge to a phase you already have.</p>
+<section id="seeing-it-the-tangent-plane-distance" class="level3" data-number="6.1">
+<h3 data-number="6.1" class="anchored" data-anchor-id="seeing-it-the-tangent-plane-distance"><span class="header-section-number">6.1</span> Seeing it: the tangent plane distance</h3>
+<p><a href="#fig-tpd" class="quarto-xref">Figure&nbsp;3</a> plots <span class="math inline">\(D(\mathbf w)\)</span> along the whole composition line for both tangent planes.</p>
+<div id="fig-tpd" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-tpd-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="fig-tpd.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tpd-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Tangent plane distance at 190 K and 40.53 bar. Orange: plane of the V–L split. It touches zero at both phases, 1.92 % and 89.43 % H₂S, but dips to −3.30 × 10⁻³ near 7.6 % H₂S, so that split is unstable. Blue: plane of the L–L split. It touches zero at 7.68 % and 89.50 % H₂S and is non-negative everywhere, so that split is the equilibrium. The kinks near 3.4 % H₂S come from the switch between cubic roots in <a href="#fig-roots" class="quarto-xref">Figure&nbsp;1</a>.
+</figcaption>
+</figure>
+</div>
+<p>A direct scan agrees with the trials:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>H₂S in trial</th>
+<th><span class="math inline">\(Z\)</span></th>
+<th><span class="math inline">\(D\)</span> (V–L plane)</th>
+<th><span class="math inline">\(D\)</span> (L–L plane)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0.0010</td>
+<td>0.56414</td>
+<td>+0.01494</td>
+<td>+0.01855</td>
+</tr>
+<tr class="even">
+<td>0.0192</td>
+<td>0.53229</td>
+<td>≈ 0</td>
+<td>+0.00353</td>
+</tr>
+<tr class="odd">
+<td>0.0340</td>
+<td>0.49640 (3 roots)</td>
+<td>+0.00428</td>
+<td>+0.00775</td>
+</tr>
+<tr class="even">
+<td>0.0500</td>
+<td>0.18154</td>
+<td>−0.00065</td>
+<td>+0.00276</td>
+</tr>
+<tr class="odd">
+<td><strong>0.0761</strong></td>
+<td>0.16542</td>
+<td><strong>−0.00330</strong></td>
+<td>≈ 0</td>
+</tr>
+<tr class="even">
+<td>0.1000</td>
+<td>0.15570</td>
+<td>−0.00173</td>
+<td>+0.00148</td>
+</tr>
+<tr class="odd">
+<td>0.2000</td>
+<td>0.13259</td>
+<td>+0.02201</td>
+<td>+0.02481</td>
+</tr>
+<tr class="even">
+<td>0.5000 (feed)</td>
+<td>0.10617</td>
+<td>+0.07329</td>
+<td>+0.07488</td>
+</tr>
+<tr class="odd">
+<td>0.8943</td>
+<td>0.09362</td>
+<td>≈ 0</td>
+<td>≈ 0</td>
+</tr>
+<tr class="even">
+<td>0.9990</td>
+<td>0.09172</td>
+<td>+0.07730</td>
+<td>+0.07688</td>
+</tr>
+</tbody>
+</table>
+<p>The negative region of the V–L plane runs from about 4.5 % to 11 % H₂S, on the dense branch of the cubic. A dense methane-rich phase there would lower <span class="math inline">\(G\)</span>, so the vapour is not the stable methane-rich phase.</p>
+</section>
+</section>
+<section id="the-second-split-the-correct-answer" class="level2" data-number="7">
+<h2 data-number="7" class="anchored" data-anchor-id="the-second-split-the-correct-answer"><span class="header-section-number">7</span> The second split: the correct answer</h2>
+<p>The unstable trial <span class="math inline">\(\mathbf u\)</span> replaces the phase that was not stable. The split restarts from <span class="math inline">\(\mathbf u\)</span> and the H₂S-rich phase <span class="math inline">\(\mathbf x\)</span>:</p>
+<p><span class="math display">\[
+\mathbf K^{(0)} = \frac{\mathbf u}{\mathbf x} = \frac{(0.923855,\; 0.076145)}{(0.105725,\; 0.894275)} = (8.738307,\; 0.085147)
+\]</span></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>it</th>
+<th><span class="math inline">\(K_1\)</span></th>
+<th><span class="math inline">\(K_2\)</span></th>
+<th>H₂S in <span class="math inline">\(\mathbf x\)</span></th>
+<th>H₂S in <span class="math inline">\(\mathbf u\)</span></th>
+<th><span class="math inline">\(\beta\)</span></th>
+<th><span class="math inline">\(\varepsilon\)</span></th>
+<th><span class="math inline">\(g\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>8.738307</td>
+<td>0.085147</td>
+<td>0.894275</td>
+<td>0.076145</td>
+<td>0.481922</td>
+<td>2.18e−5</td>
+<td>−2.6857490</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>8.767200</td>
+<td>0.085428</td>
+<td>0.894656</td>
+<td>0.076429</td>
+<td>0.482331</td>
+<td>5.98e−6</td>
+<td>−2.6857500</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>8.781392</td>
+<td>0.085585</td>
+<td>0.894844</td>
+<td>0.076585</td>
+<td>0.482542</td>
+<td>1.66e−6</td>
+<td>−2.6857503</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td>8.791702</td>
+<td>0.085721</td>
+<td>0.894983</td>
+<td>0.076719</td>
+<td>0.482708</td>
+<td>1.34e−7</td>
+<td>−2.6857504</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td>8.794789</td>
+<td>0.085779</td>
+<td>0.895026</td>
+<td>0.076774</td>
+<td>0.482768</td>
+<td>2.96e−10</td>
+<td>−2.6857504</td>
+</tr>
+<tr class="even">
+<td>20</td>
+<td>8.794869</td>
+<td>0.085782</td>
+<td>0.895027</td>
+<td>0.076777</td>
+<td>0.482771</td>
+<td>1.91e−15</td>
+<td>−2.6857504</td>
+</tr>
+<tr class="odd">
+<td>42</td>
+<td>8.794869</td>
+<td>0.085782</td>
+<td>0.895027</td>
+<td>0.076777</td>
+<td>0.482771</td>
+<td>7.05e−27</td>
+<td>−2.6857504</td>
+</tr>
+</tbody>
+</table>
+<p>Even the first iteration has a lower <span class="math inline">\(g\)</span> (−2.685749) than the converged V–L split (−2.684158).</p>
+<section id="final-result" class="level3" data-number="7.1">
+<h3 data-number="7.1" class="anchored" data-anchor-id="final-result"><span class="header-section-number">7.1</span> Final result</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>H₂S-rich liquid</th>
+<th>methane-rich liquid</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>amount</td>
+<td>0.517229</td>
+<td>0.482771</td>
+</tr>
+<tr class="even">
+<td>methane</td>
+<td>0.104973</td>
+<td>0.923223</td>
+</tr>
+<tr class="odd">
+<td>H₂S</td>
+<td>0.895027</td>
+<td>0.076777</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(Z\)</span></td>
+<td>0.093603</td>
+<td>0.165098</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\ln\varphi\)</span> (CH₄, H₂S)</td>
+<td>(1.883246, −4.889793)</td>
+<td>(−0.290922, −2.433846)</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="proof-that-the-answer-is-the-equilibrium" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="proof-that-the-answer-is-the-equilibrium"><span class="header-section-number">8</span> Proof that the answer is the equilibrium</h2>
+<p>A flash result should pass five checks. These are the numbers for the L–L split.</p>
+<p><strong>1. Equal fugacities.</strong> <span class="math inline">\(f_i = w_i\varphi_iP\)</span>:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>H₂S-rich liquid</th>
+<th>methane-rich liquid</th>
+<th><span class="math inline">\(\Delta\ln f\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>methane</td>
+<td>0.104973 × 6.574814 × 40.53 = 27.972882 bar</td>
+<td>0.923223 × 0.747574 × 40.53 = 27.972882 bar</td>
+<td>−9.1 × 10⁻¹⁵</td>
+</tr>
+<tr class="even">
+<td>H₂S</td>
+<td>0.895027 × 0.007523 × 40.53 = 0.272900 bar</td>
+<td>0.076777 × 0.087699 × 40.53 = 0.272900 bar</td>
+<td>+8.6 × 10⁻¹⁴</td>
+</tr>
+</tbody>
+</table>
+<p><strong>2. Material balance.</strong></p>
+<p><span class="math display">\[
+\text{CH}_4: 0.482771(0.923223) + 0.517229(0.104973) = 0.445705 + 0.054295 = 0.500000000000
+\]</span></p>
+<p><span class="math display">\[
+\text{H}_2\text{S}: 0.482771(0.076777) + 0.517229(0.895027) = 0.037066 + 0.462934 = 0.500000000000
+\]</span></p>
+<p><strong>3. Lowest Gibbs energy found.</strong></p>
+<p><span class="math display">\[
+g_x = 0.104973(-2.254053 + 1.883246) + 0.895027(-0.110901 - 4.889793) = -4.514681
+\]</span></p>
+<p><span class="math display">\[
+g_u = 0.923223(-0.079885 - 0.290922) + 0.076777(-2.566848 - 2.433846) = -0.726277
+\]</span></p>
+<p><span class="math display">\[
+g = 0.517229(-4.514681) + 0.482771(-0.726277) = -2.685750
+\]</span></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th><span class="math inline">\(g\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>single-phase feed</td>
+<td>−2.610872</td>
+</tr>
+<tr class="even">
+<td>V–L split</td>
+<td>−2.684158</td>
+</tr>
+<tr class="odd">
+<td><strong>L–L split</strong></td>
+<td><strong>−2.685750</strong> (<span class="math inline">\(1.59\times10^{-3}\)</span> below V–L)</td>
+</tr>
+</tbody>
+</table>
+<p>The difference looks small, but it is a difference in <span class="math inline">\(G/(nRT)\)</span>, and it decides which answer is the equilibrium.</p>
+<p><strong>4. Stability of each phase.</strong> All eight trials converge to <span class="math inline">\(\mathbf x\)</span> or <span class="math inline">\(\mathbf u\)</span> with <span class="math inline">\(tm = 0\)</span>, with one exception. The near-pure-methane trial converges to a gas-like composition with 1.93 % H₂S and <span class="math inline">\(tm = +3.525\times10^{-3}\)</span>. That stationary point is <em>positive</em>: it is the old vapour, now a <strong>metastable</strong> phase that lies above the new tangent plane. A positive stationary point does not make a split unstable.</p>
+<p><strong>5. Tangent plane scan.</strong> For a binary, the whole composition line can be scanned. The minimum of <span class="math inline">\(D\)</span> on the L–L plane is <span class="math inline">\(+1.0\times10^{-10}\)</span>, at the H₂S-rich phase itself. No composition lies below the plane (blue curve in <a href="#fig-tpd" class="quarto-xref">Figure&nbsp;3</a>).</p>
+</section>
+<section id="sec-phase-rule" class="level2" data-number="9">
+<h2 data-number="9" class="anchored" data-anchor-id="sec-phase-rule"><span class="header-section-number">9</span> Why the wrong answer is so tempting: the phase rule</h2>
+<p>For a binary at fixed <span class="math inline">\(T\)</span>, three phases can coexist only at a single pressure. A scan of flash results at 190 K and <span class="math inline">\(z = 0.5\)</span> (<a href="#fig-pscan" class="quarto-xref">Figure&nbsp;4</a>) finds the vapour-liquid-liquid pressure:</p>
+<p><span class="math display">\[
+P^{*} = 40.1428 \text{ bar}
+\]</span></p>
+<p>Below <span class="math inline">\(P^*\)</span>, the stable split is vapour + H₂S-rich liquid. Above <span class="math inline">\(P^*\)</span>, it is methane-rich liquid + H₂S-rich liquid. Michelsen’s 40 atm (40.53 bar) is only 0.39 bar above the line. At that pressure, the vapour-liquid split still exists as a local minimum of <span class="math inline">\(G\)</span>, slightly above the global one, so an algorithm without a proper stability test happily converges to it.</p>
+<div id="fig-pscan" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-pscan-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="fig-pressure-scan.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pscan-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Flash results at 190 K and <span class="math inline">\(z = 0.5\)</span> from 30 to 55 bar. The methane-rich phase jumps from a vapour (≈ 2 % H₂S) to a dense liquid (≈ 7.7 % H₂S) at the three-phase pressure <span class="math inline">\(P^* = 40.1428\)</span> bar. The H₂S-rich liquid hardly changes.
+</figcaption>
+</figure>
+</div>
+<p>Exactly at <span class="math inline">\(P^*\)</span>, a T–P flash of the binary is degenerate. The three phase compositions are fixed, but their amounts are not: any combination on the tie triangle satisfies the material balance with the same <span class="math inline">\(G\)</span>. To get a real three-phase region in T–P space you need a third component (<a href="#sec-ternary" class="quarto-xref">Section&nbsp;11</a>).</p>
+</section>
+<section id="the-general-algorithm" class="level2" data-number="10">
+<h2 data-number="10" class="anchored" data-anchor-id="the-general-algorithm"><span class="header-section-number">10</span> The general algorithm</h2>
+<p>The methane/H₂S case shows every decision a robust two-phase flash has to make.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    A["Input T, P, z"] --&gt; B["EOS of the feed&lt;br/&gt;lower-G root, d = ln z + ln φ(z)"]
+    B --&gt; C["Stability test of the feed&lt;br/&gt;vapour-like W = K_w z and liquid-like W = z/K_w&lt;br/&gt;iterate W ← exp(d − ln φ(w)) until tm converges"]
+    C --&gt;|"all tm ≥ 0"| S["Single phase"]
+    C --&gt;|"some tm &lt; 0"| D["Initial K from the negative trial(s)&lt;br/&gt;W_v/W_l, W_v/z or z/W_l"]
+    D --&gt; E["Split: Rachford–Rice, then K ← φ_x/φ_y&lt;br/&gt;accelerate or Newton; G must decrease"]
+    E --&gt; F["Check: equal fugacities, material balance,&lt;br/&gt;G below the feed"]
+    F --&gt; G["Stability test of the split&lt;br/&gt;several trials from each phase, same d"]
+    G --&gt;|"all non-trivial tm ≥ 0"| H["Equilibrium found"]
+    G --&gt;|"a trial with tm &lt; 0&lt;br/&gt;(new composition u)"| I["Replace the unstable phase by u&lt;br/&gt;K = u/x"]
+    I --&gt; E
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>The same logic in compact Python:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> flash_tp(eos, T, P, z):</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    d <span class="op">=</span> ln(z) <span class="op">+</span> ln_phi(eos, T, P, z)                 <span class="co"># feed chemical potentials</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    trials <span class="op">=</span> stability_trials(eos, T, P, d, starts<span class="op">=</span>[Kw<span class="op">*</span>z, z<span class="op">/</span>Kw])</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    neg <span class="op">=</span> [t <span class="cf">for</span> t <span class="kw">in</span> trials <span class="cf">if</span> t.tm <span class="op">&lt;</span> <span class="op">-</span><span class="fl">1e-8</span> <span class="kw">and</span> <span class="kw">not</span> t.trivial]</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> neg:</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> single_phase(z)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    K <span class="op">=</span> initial_K(neg, z)                            <span class="co"># Wv/Wl, Wv/z or z/Wl</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="va">True</span>:</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        x, y, beta <span class="op">=</span> split(eos, T, P, z, K)          <span class="co"># RR + SS (+ Newton), G decreasing</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        d <span class="op">=</span> ln(x) <span class="op">+</span> ln_phi(eos, T, P, x)             <span class="co"># tangent plane of the split</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        starts <span class="op">=</span> [Kw<span class="op">*</span>x, x<span class="op">/</span>Kw, Kw<span class="op">*</span>y, y<span class="op">/</span>Kw, pure_light, pure_heavy]</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> [t <span class="cf">for</span> t <span class="kw">in</span> stability_trials(eos, T, P, d, starts)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>               <span class="cf">if</span> t.tm <span class="op">&lt;</span> <span class="op">-</span><span class="fl">1e-8</span> <span class="kw">and</span> <span class="kw">not</span> same_as(t.w, x, y)]</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> new:</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> x, y, beta                        <span class="co"># verified equilibrium</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>        u <span class="op">=</span> <span class="bu">min</span>(new, key<span class="op">=</span><span class="kw">lambda</span> t: t.tm).w</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>        <span class="co"># replace the phase whose swap keeps the feed between the two phases (0 &lt; beta &lt; 1)</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>        K <span class="op">=</span> u <span class="op">/</span> x <span class="cf">if</span> rr_feasible(z, u <span class="op">/</span> x) <span class="cf">else</span> y <span class="op">/</span> u</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Things to remember:</p>
+<ol type="1">
+<li><strong>Wilson K values are only a starting point.</strong> Here they predicted one liquid phase.</li>
+<li><strong>Iterate the stability test to convergence.</strong> The first <span class="math inline">\(tm\)</span> was positive in every trial here.</li>
+<li><strong>Use the lower-Gibbs-energy root</strong> for every phase and trial composition. “Smallest root = liquid” fails in a three-root region.</li>
+<li><strong>Equal fugacities are necessary but not sufficient.</strong> The V–L split had fugacities equal to <span class="math inline">\(10^{-14}\)</span> and was still wrong.</li>
+<li><strong>Test the converged split for stability with several starting points</strong>, and discard trials that return to an existing phase.</li>
+<li><strong>A positive stationary point is a metastable phase</strong>, not a sign of instability.</li>
+<li><strong>Measure convergence in <span class="math inline">\(\ln K\)</span> (fugacity) space.</strong> It treats all components fairly and is symmetric in the phases.</li>
+</ol>
+</section>
+<section id="sec-ternary" class="level2" data-number="11">
+<h2 data-number="11" class="anchored" data-anchor-id="sec-ternary"><span class="header-section-number">11</span> Beyond the binary: a real three-phase region</h2>
+<p>Adding CO₂ turns the binary’s single three-phase pressure into a band. For Michelsen’s ternary, methane/CO₂/H₂S 50/10/40 with SRK, a three-phase flash (Michelsen’s <span class="math inline">\(Q\)</span>-function for the phase amounts, plus a stability test of every phase) gives at <strong>181 K and 28 bar</strong>:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th>H₂S-rich liquid</th>
+<th>methane-rich liquid</th>
+<th>vapour</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>amount</td>
+<td>0.5067</td>
+<td>0.2759</td>
+<td>0.2174</td>
+</tr>
+<tr class="even">
+<td>methane</td>
+<td>0.1353</td>
+<td>0.7983</td>
+<td>0.9714</td>
+</tr>
+<tr class="odd">
+<td>CO₂</td>
+<td>0.1365</td>
+<td>0.0967</td>
+<td>0.0192</td>
+</tr>
+<tr class="even">
+<td>H₂S</td>
+<td>0.7282</td>
+<td>0.1050</td>
+<td>0.0094</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(Z\)</span></td>
+<td>0.068</td>
+<td>0.094</td>
+<td>0.676</td>
+</tr>
+</tbody>
+</table>
+<p>Checks on this result:</p>
+<ul>
+<li>Fugacities agree in all three phases to <span class="math inline">\(|\Delta\ln f| &lt; 2\times10^{-11}\)</span>.</li>
+<li>The Gibbs energy is <span class="math inline">\(6.7\times10^{-4}\)</span> below the best two-phase answer.</li>
+<li>Every phase is stable against the other two.</li>
+<li>A scan of 79,800 compositions over the composition triangle found no point below the tangent plane.</li>
+</ul>
+<p>At 181 K, three phases exist from about 27.7 to 28.2 bar. Below that band the mixture is liquid + vapour, and above it two liquids, the same switch as in <a href="#fig-pscan" class="quarto-xref">Figure&nbsp;4</a>, now spread over a pressure range.</p>
+</section>
+<section id="references" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="references">References</h2>
+<ol type="1">
+<li>M. L. Michelsen, “The isothermal flash problem. Part I. Stability,” <em>Fluid Phase Equilibria</em> <strong>9</strong> (1982) 1–19.</li>
+<li>M. L. Michelsen, “The isothermal flash problem. Part II. Phase-split calculation,” <em>Fluid Phase Equilibria</em> <strong>9</strong> (1982) 21–40.</li>
+<li>M. L. Michelsen and J. M. Mollerup, <em>Thermodynamic Models: Fundamentals &amp; Computational Aspects</em>, 2nd ed., Tie-Line Publications (2007).</li>
+<li>G. Soave, “Equilibrium constants from a modified Redlich–Kwong equation of state,” <em>Chemical Engineering Science</em> <strong>27</strong> (1972) 1197–1203.</li>
+<li>H. H. Rachford and J. D. Rice, “Procedure for use of electronic digital computers in calculating flash vaporization hydrocarbon equilibrium,” <em>Journal of Petroleum Technology</em> <strong>4</strong>(10) (1952), section 1 p.&nbsp;19 and section 2 p.&nbsp;3.</li>
+<li>G. M. Wilson, “A modified Redlich–Kwong equation of state, application to general physical data calculations,” AIChE 65th National Meeting, Cleveland (1969).</li>
+<li>Equinor, NeqSim documentation, “TPflash algorithm”: <a href="https://github.com/equinor/neqsim/blob/master/docs/thermodynamicoperations/TPflash_algorithm.md" class="uri">https://github.com/equinor/neqsim/blob/master/docs/thermodynamicoperations/TPflash_algorithm.md</a></li>
+</ol>
+</section>
+<section id="sec-appendix-a" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="sec-appendix-a">Appendix A: Derivation of the stability update</h2>
+<p>This appendix proves the stationary condition used in <a href="#sec-update">Where the update formula comes from</a>. Temperature and pressure are fixed throughout, and <span class="math inline">\(d_i = \ln z_i + \ln\varphi_i(\mathbf z)\)</span> are constants of the feed.</p>
+<section id="step-by-step-differentiation" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="step-by-step-differentiation">Step-by-step differentiation</h3>
+<p>The modified tangent plane distance is</p>
+<p><span class="math display">\[
+tm(\mathbf W) = 1 + \sum_k W_k\left(\ln W_k + \ln\varphi_k(\mathbf w) - d_k - 1\right), \qquad \mathbf w = \frac{\mathbf W}{\sum_j W_j}
+\]</span></p>
+<p>Differentiate with respect to <span class="math inline">\(W_i\)</span>, applying the product rule to each term of the sum:</p>
+<p><span class="math display">\[
+\frac{\partial\, tm}{\partial W_i} = \frac{\partial}{\partial W_i}\left[1 + \sum_k W_k\left(\ln W_k + \ln\varphi_k(\mathbf w) - d_k - 1\right)\right]
+\]</span></p>
+<p><strong>1. The term <span class="math inline">\(W_k\ln W_k\)</span>.</strong> Only <span class="math inline">\(k = i\)</span> depends on <span class="math inline">\(W_i\)</span>:</p>
+<p><span class="math display">\[
+\frac{\partial}{\partial W_i}\left(\sum_k W_k\ln W_k\right) = \ln W_i + W_i\cdot\frac{1}{W_i} = \ln W_i + 1
+\]</span></p>
+<p><strong>2. The term <span class="math inline">\(-W_k(d_k + 1)\)</span>.</strong> The <span class="math inline">\(d_k\)</span> are constants:</p>
+<p><span class="math display">\[
+\frac{\partial}{\partial W_i}\left(-\sum_k W_k(d_k + 1)\right) = -(d_i + 1) = -d_i - 1
+\]</span></p>
+<p><strong>3. The term <span class="math inline">\(W_k\ln\varphi_k(\mathbf w)\)</span>.</strong> Here both factors depend on <span class="math inline">\(W_i\)</span>, because <span class="math inline">\(\mathbf w\)</span> depends on every <span class="math inline">\(W_j\)</span>:</p>
+<p><span class="math display">\[
+\frac{\partial}{\partial W_i}\left(\sum_k W_k\ln\varphi_k(\mathbf w)\right) =
+\underbrace{\ln\varphi_i(\mathbf w)}_{\text{differentiating } W_k} +
+\underbrace{\sum_k W_k\,\frac{\partial\ln\varphi_k(\mathbf w)}{\partial W_i}}_{\text{differentiating } \ln\varphi_k(\mathbf w)}
+\]</span></p>
+</section>
+<section id="applying-the-gibbsduhem-relation" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="applying-the-gibbsduhem-relation">Applying the Gibbs–Duhem relation</h3>
+<p>At fixed <span class="math inline">\(T\)</span> and <span class="math inline">\(P\)</span>, <span class="math inline">\(\ln\varphi_k\)</span> depends only on the mole fractions <span class="math inline">\(\mathbf w\)</span>, not on the total amount. Treating <span class="math inline">\(\mathbf W\)</span> as mole numbers, <span class="math inline">\(\ln\varphi_k\)</span> is therefore homogeneous of degree zero in <span class="math inline">\(\mathbf W\)</span>, and <span class="math inline">\(\sum_k W_k\ln\varphi_k\)</span> is the residual Gibbs energy <span class="math inline">\(G^{\text{res}}/RT\)</span>, homogeneous of degree one. The Gibbs–Duhem relation for the residual part then gives</p>
+<p><span class="math display">\[
+\sum_k W_k\,\frac{\partial\ln\varphi_k(\mathbf w)}{\partial W_i} = 0
+\]</span></p>
+<p>So the derivative simplifies to</p>
+<p><span class="math display">\[
+\frac{\partial\, tm}{\partial W_i} = (\ln W_i + 1) + (-d_i - 1) + \ln\varphi_i(\mathbf w) + 0
+\]</span></p>
+<p>and, combining like terms,</p>
+<p><span class="math display">\[
+\frac{\partial\, tm}{\partial W_i} = \ln W_i + \ln\varphi_i(\mathbf w) - d_i
+\]</span></p>
+</section>
+<section id="setting-the-derivative-to-zero" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="setting-the-derivative-to-zero">Setting the derivative to zero</h3>
+<p>A stationary point of <span class="math inline">\(tm\)</span> requires <span class="math inline">\(\partial\, tm/\partial W_i = 0\)</span> for every component:</p>
+<p><span class="math display">\[
+\ln W_i + \ln\varphi_i(\mathbf w) - d_i = 0
+\]</span></p>
+<p>Solving for <span class="math inline">\(W_i\)</span> gives the successive substitution update of the stability test,</p>
+<p><span class="math display">\[
+W_i = \exp\!\left[d_i - \ln\varphi_i(\mathbf w)\right]
+\]</span></p>
+</section>
+<section id="value-of-tm-at-the-stationary-point" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="value-of-tm-at-the-stationary-point">Value of <span class="math inline">\(tm\)</span> at the stationary point</h3>
+<p>Substituting <span class="math inline">\(\ln W_i + \ln\varphi_i(\mathbf w) - d_i = 0\)</span> back into <span class="math inline">\(tm\)</span>, each bracket reduces to <span class="math inline">\(-1\)</span>:</p>
+<p><span class="math display">\[
+tm^{*} = 1 + \sum_k W_k(0 - 1) = 1 - \sum_k W_k
+\]</span></p>
+<p>So a converged trial with <span class="math inline">\(\sum_k W_k &gt; 1\)</span> has <span class="math inline">\(tm^{*} &lt; 0\)</span>, and the phase being tested is unstable.</p>
+</section>
+</section>
+<section id="sec-appendix-b" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="sec-appendix-b">Appendix B: Why the convergence error uses squared log ratios</h2>
+<p>The phase split in <a href="#sec-split-equations">the split equations</a> is converged with</p>
+<p><span class="math display">\[
+\varepsilon = \sum_i\left[\ln\frac{K_i^{\text{new}}}{K_i^{\text{old}}}\right]^2
+\]</span></p>
+<section id="why-logarithms-ln-are-used" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="why-logarithms-ln-are-used">1. Why logarithms (<span class="math inline">\(\ln\)</span>) are used</h3>
+<p><strong>Scale invariance.</strong> <span class="math inline">\(K\)</span> values span several orders of magnitude across components and conditions, from about <span class="math inline">\(10^{-4}\)</span> for heavy hydrocarbons to <span class="math inline">\(10^{2}\)</span> for light gases. In this post alone, methane has <span class="math inline">\(K \approx 9\)</span> and H₂S has <span class="math inline">\(K \approx 0.02\)</span>. If you checked absolute differences such as <span class="math inline">\(\sum_i(K_i^{\text{new}} - K_i^{\text{old}})^2\)</span>, the heavy components would be effectively ignored and the light components would dominate the error.</p>
+<p><strong>Proportional change.</strong> The natural log turns multiplicative changes into additive ones:</p>
+<p><span class="math display">\[
+\ln\frac{K_i^{\text{new}}}{K_i^{\text{old}}} = \ln K_i^{\text{new}} - \ln K_i^{\text{old}}
+\]</span></p>
+<p>This measures the relative change from one iteration to the next, not the absolute difference. Moving from <span class="math inline">\(K = 0.01\)</span> to <span class="math inline">\(0.02\)</span> is the same relative step as moving from <span class="math inline">\(10\)</span> to <span class="math inline">\(20\)</span>: both give <span class="math inline">\(\ln 2 = 0.693\)</span>.</p>
+<p>In iteration 1 of the example:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><span class="math inline">\(K^{\text{old}} \to K^{\text{new}}\)</span></th>
+<th><span class="math inline">\((\Delta K)^2\)</span></th>
+<th><span class="math inline">\((\Delta\ln K)^2\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>methane</td>
+<td>9.063041 → 9.168801</td>
+<td>1.1 × 10⁻²</td>
+<td>1.35 × 10⁻⁴</td>
+</tr>
+<tr class="even">
+<td>H₂S</td>
+<td>0.0215443 → 0.0215479</td>
+<td>1.3 × 10⁻¹¹</td>
+<td>2.9 × 10⁻⁸</td>
+</tr>
+</tbody>
+</table>
+<p>With plain differences, H₂S looks almost a billion times better converged than methane. With logs, it is about 4,700 times better, which matches the real relative changes of 1.2 % and 0.017 %.</p>
+</section>
+<section id="why-it-is-squared-dots2" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="why-it-is-squared-dots2">2. Why it is squared (<span class="math inline">\([\dots]^2\)</span>)</h3>
+<p><strong>No sign cancellation.</strong> <span class="math inline">\(\ln(K^{\text{new}}/K^{\text{old}})\)</span> is positive or negative depending on whether a <span class="math inline">\(K\)</span> value rose or fell in that iteration. Squaring each component’s term stops positive and negative errors from cancelling when they are summed.</p>
+<p><strong>Least-squares norm.</strong> <span class="math inline">\(\varepsilon\)</span> is the squared Euclidean norm of the vector <span class="math inline">\(\Delta\ln\mathbf K\)</span>. It penalises large remaining errors heavily and decreases smoothly near convergence, like the norms or root-mean-square errors used in other multivariable convergence checks. With linear convergence, <span class="math inline">\(\varepsilon\)</span> falls by a constant factor per iteration, about 4 in this example (<a href="#fig-convergence" class="quarto-xref">Figure&nbsp;2</a>).</p>
+</section>
+<section id="what-the-error-means-thermodynamically" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="what-the-error-means-thermodynamically">3. What the error means thermodynamically</h3>
+<p><strong>It is the fugacity mismatch.</strong> The successive substitution update is <span class="math inline">\(K_i^{\text{new}} = \varphi_i^x/\varphi_i^y\)</span>, and the current phases satisfy <span class="math inline">\(K_i^{\text{old}} = y_i/x_i\)</span>. Therefore</p>
+<p><span class="math display">\[
+\ln K_i^{\text{new}} - \ln K_i^{\text{old}} = (\ln x_i + \ln\varphi_i^x) - (\ln y_i + \ln\varphi_i^y) = \ln f_i^{x} - \ln f_i^{y} = \frac{\mu_i^x - \mu_i^y}{RT}
+\]</span></p>
+<p>Each term of <span class="math inline">\(\varepsilon\)</span> is the squared difference in chemical potential of component <span class="math inline">\(i\)</span> between the two phases. Equilibrium means <span class="math inline">\(f_i^x = f_i^y\)</span>, so <span class="math inline">\(\varepsilon = 0\)</span> is exactly the equilibrium condition, not an approximation of it.</p>
+<p><strong>It does not depend on how the phases are labelled.</strong> Swapping the two phases turns every <span class="math inline">\(K\)</span> into <span class="math inline">\(1/K\)</span>. That only changes the sign of <span class="math inline">\(\ln K\)</span>, so <span class="math inline">\(\varepsilon\)</span> is unchanged. A plain difference of <span class="math inline">\(K\)</span> values gives a different error for the same physical state, depending on which phase is called <span class="math inline">\(x\)</span>.</p>
+<p><strong>It protects trace components.</strong> Suppose a trace component has <span class="math inline">\(K = 10^{-6}\)</span> and its true value is <span class="math inline">\(2\times10^{-6}\)</span>, an error of 100 %. The plain difference is only <span class="math inline">\(10^{-6}\)</span> and would report it as converged. The log difference is <span class="math inline">\(\ln 2 = 0.69\)</span> and correctly reports it as not converged.</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/www\.thermonerds\.com");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
