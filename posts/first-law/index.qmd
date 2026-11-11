@@ -4,6 +4,9 @@ title: "From the First Law to the Fundamental Relation"
 description: |
   Conservation of energy, the Second Law, and why thermodynamics is built on state functions rather than path functions.
 date: 2026-09-01
+image: thumb.png
+image-alt: |
+  Pressure-volume diagram with the area under the path shaded, labelled as the work integral.
 categories: [thermodynamics, first-law, second-law]
 # aliases:
 #   - /2026/10/the-blogger-slug.html

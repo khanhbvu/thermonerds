@@ -1,0 +1,258 @@
+/*-- scss:defaults --*/
+$grid-sidebar-width: 0px;   // this site has no left sidebar; without this
+                            // Quarto reserves 250px for one and the body is
+                            // pushed right, leaving a wide blank left gutter
+
+// Broadsheet — modelled on pkirkham.github.io: sans-serif headings over a
+// Georgia body (the inverse of the other themes here), deep navy links with no
+// underline, white page, no rules or shadows, and a card grid for the listing.
+//
+// Deliberately no web fonts. The original uses only system faces, which is
+// part of the look and means no Google Fonts request on any page load.
+$font-family-serif:       Georgia, Times, "Times New Roman", serif;
+$font-family-sans-serif:  "Helvetica Neue", "Segoe UI", Arial, Helvetica, sans-serif;
+$font-family-monospace:   "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+$font-family-base:        $font-family-serif;   // body is the serif
+$headings-font-family:    $font-family-sans-serif;
+$headings-font-weight:    700;
+
+$body-bg:                 #ffffff;
+$body-color:              #313130;   // measured off the original
+$link-color:              #0000a1;   // deep navy, the original's one accent
+$link-hover-color:        #0000d6;
+$border-color:            #dcdcda;
+
+$font-size-root:          17px;      // original is 16px; nudged up because the
+$line-height-base:        1.62;      // posts here run long and carry maths
+
+$code-bg:                 #f4f4f2;
+$code-color:              #313130;
+$pre-bg:                  #f7f7f5;
+$blockquote-border-color: #c8c8c4;
+$toc-color:               #71716f;
+$border-radius:           0;
+$border-radius-sm:        0;
+$border-radius-lg:        0;
+
+/*-- scss:rules --*/
+:root {
+  --tn-ink:   #313130;
+  --tn-muted: #71716f;   // the original's date grey
+  --tn-rule:  #dcdcda;
+  --tn-link:  #0000a1;
+}
+
+// ---------- headings: sans, bold, tight. The original sets its H1 at 36px
+// and leaves the rest small; article headings are scaled up here so a long
+// post still has a readable hierarchy.
+h1, h2, h3, h4, h5 {
+  font-family: $font-family-sans-serif;
+  color: var(--tn-ink);
+  line-height: 1.22;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+h1 { font-size: 2.15rem; font-weight: 700; letter-spacing: -.015em; }
+h2 { font-size: 1.42rem; font-weight: 700; margin-top: 2.3em; }
+h3 { font-size: 1.14rem; font-weight: 700; margin-top: 1.8em; }
+h4 { font-size: 1rem;    font-weight: 700; font-style: normal; }
+
+.quarto-title-block .subtitle,
+.subtitle {
+  font-family: $font-family-serif;
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--tn-muted);
+}
+
+// ---------- links. The original leaves body links unadorned; a faint
+// underline is kept here because these posts cite sources, and colour alone
+// is a weak signal between two dark inks. Navigation and card titles stay
+// clean, as they are on the original.
+main a, main a:visited {
+  color: var(--tn-link);
+  text-decoration: underline;
+  text-decoration-thickness: .04em;
+  text-underline-offset: .16em;
+  text-decoration-color: rgba(0, 0, 161, .33);
+}
+main a:hover { color: $link-hover-color; text-decoration-color: currentColor; }
+
+// ---------- masthead: uppercase, bold, sans, no bar colour, no shadow
+.navbar {
+  background: $body-bg !important;
+  border-bottom: 1px solid var(--tn-rule);
+  padding-top: .5rem;
+  padding-bottom: .5rem;
+}
+.navbar .navbar-brand, .navbar .navbar-title {
+  font-family: $font-family-sans-serif;
+  font-size: 1.18rem;
+  font-weight: 700;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+  color: #000 !important;
+}
+.navbar .nav-link {
+  font-family: $font-family-sans-serif;
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: #000 !important;
+}
+.navbar .nav-link:hover { color: var(--tn-link) !important; }
+
+// ---------- listing as a card grid (listing type: grid).
+// Borderless cards: image, grey serif date, navy sans title, serif excerpt.
+.quarto-grid-item.card,
+.quarto-grid-item {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0;
+}
+.quarto-grid-item .card-img-top,
+.quarto-grid-item img.thumbnail-image {
+  border: 0;
+  border-radius: 0;
+  margin-bottom: .75rem;
+  object-fit: cover;
+  width: 100%;
+}
+.quarto-grid-item .card-body { padding: 0; }
+.quarto-grid-item .listing-date,
+.quarto-grid-item .card-text.listing-date {
+  font-family: $font-family-serif;
+  font-size: .9rem;
+  color: var(--tn-muted);
+  text-transform: none;      // the original prints "October 20, 2023"
+  letter-spacing: normal;
+  margin-bottom: .2rem;
+}
+.quarto-grid-item .card-title,
+.quarto-grid-item .listing-title {
+  font-family: $font-family-sans-serif;
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.28;
+  margin: 0 0 .4rem;
+}
+.quarto-grid-item .card-title a,
+.quarto-grid-item .listing-title a {
+  color: var(--tn-link) !important;
+  text-decoration: none;
+}
+.quarto-grid-item .card-title a:hover { text-decoration: underline; }
+.quarto-grid-item .card-text,
+.quarto-grid-item .listing-description {
+  font-family: $font-family-serif;
+  font-size: .92rem;
+  line-height: 1.5;
+  color: var(--tn-ink);
+}
+.quarto-grid-item .listing-category,
+.quarto-grid-item .card-attribution { font-size: .72rem; }
+
+// ---------- listing as rows (listing type: default), in the same voice,
+// so the theme works whichever listing is configured
+.quarto-listing .listing-title,
+div.quarto-post .listing-title {
+  font-family: $font-family-sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 0;
+  margin-bottom: .3rem;
+}
+.quarto-listing .listing-title a,
+div.quarto-post .listing-title a { color: var(--tn-link) !important; text-decoration: none; }
+.quarto-listing .listing-title a:hover { text-decoration: underline; }
+div.quarto-post { padding: 1.6em 0; border-top: 1px solid var(--tn-rule); }
+div.quarto-post:first-child { border-top: 0; }
+.listing-date { font-family: $font-family-serif; font-size: .9rem; color: var(--tn-muted); }
+.listing-subtitle, div.quarto-post .body p { font-family: $font-family-serif; }
+.listing-category {
+  font-family: $font-family-sans-serif;
+  font-size: .68rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--tn-muted);
+  border: 1px solid var(--tn-rule); border-radius: 0;
+  padding: 1px 6px; background: transparent;
+}
+
+// ---------- prose, tables, code
+main blockquote {
+  border-left: 3px solid $blockquote-border-color;
+  padding-left: 1.1em;
+  font-style: italic;
+  color: #4a4a47;
+}
+main table { font-variant-numeric: tabular-nums; font-size: .92rem; }
+main thead th {
+  font-family: $font-family-sans-serif;
+  font-size: .8rem; font-weight: 700;
+  color: var(--tn-muted); white-space: nowrap;
+  border-bottom: 1px solid var(--tn-ink) !important;
+}
+main tbody tr { border-bottom: 1px solid var(--tn-rule); }
+main pre, main div.sourceCode { border: 1px solid var(--tn-rule); background: $pre-bg; }
+main pre code { font-size: .82rem; line-height: 1.55; }
+.footer, footer.footer {
+  background: $body-bg;
+  border-top: 1px solid var(--tn-rule);
+  font-size: .85rem;
+  color: var(--tn-muted);
+}
+
+// ---------- equations: a wide derivation scrolls in its own box, never
+//            widening the page. Quarto's stock themes do not do this.
+mjx-container { line-height: normal; }
+mjx-container[display="true"] {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  padding: .4em .1em;
+}
+mjx-container[display="true"]::-webkit-scrollbar { height: 6px; }
+mjx-container[display="true"]::-webkit-scrollbar-thumb { background: var(--tn-rule); }
+
+// ---------- containment: stop any single wide element widening the page.
+// Grid and flex children default to min-width:auto, which means they refuse
+// to shrink below their content. One long heading, TOC entry or equation then
+// pushes the whole layout wider than the viewport, a horizontal scrollbar
+// appears, and the centred column looks shifted left relative to other pages.
+// Making those children shrinkable is the fix.
+.page-columns > *,
+#quarto-content,
+main.content,
+.column-body,
+#quarto-document-content,
+#quarto-margin-sidebar,
+.quarto-title-block { min-width: 0; }
+
+#TOC, nav[role="doc-toc"], .sidebar nav { overflow-wrap: anywhere; }
+main table, main pre, main .cell-output-display { max-width: 100%; overflow-x: auto; }
+main img, main svg { max-width: 100%; height: auto; }
+
+// ---------- listing rows must line up with each other.
+// Quarto's default listing is a flex row: a date column and a body column
+// sized by flex-basis. A body child that demands width -- a display equation
+// in the preview is the usual culprit -- wins against that basis, because
+// flex children default to min-width:auto. The date column is squeezed, its
+// text wraps, and that row's title starts at a different x than its
+// neighbours. Pin the date column and let the body shrink instead.
+div.quarto-post { align-items: flex-start; }
+div.quarto-post .metadata { flex: 0 0 8rem; min-width: 8rem; }
+div.quarto-post .body { flex: 1 1 auto; min-width: 0; }
+div.quarto-post .thumbnail { min-width: 0; }
+
+// a preview should never render a full-size display equation
+div.quarto-post .body mjx-container,
+.quarto-grid-item mjx-container { max-width: 100%; overflow-x: auto; }
+div.quarto-post .body mjx-container[display="true"],
+.quarto-grid-item mjx-container[display="true"] { margin: .4em 0 !important; }
+
+@media (max-width: 620px) {
+  div.quarto-post { flex-direction: column; }
+  div.quarto-post .metadata { flex: 0 0 auto; min-width: 0; }
+}

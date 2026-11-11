@@ -4,6 +4,9 @@ description: |
   Legendre transforms from internal energy to Helmholtz and Gibbs, and why computational thermodynamics works in the Helmholtz domain.
 # TODO: replace the date and alias with the real ones from Blogger.
 date: 2026-09-15
+image: thumb.png
+image-alt: |
+  The four thermodynamic potentials U, H, A and G at the corners of a square, joined by plus-PV and minus-TS Legendre transforms.
 categories: [thermodynamics, helmholtz, gibbs, equations-of-state]
 # aliases:
 #   - /2026/10/the-blogger-slug.html

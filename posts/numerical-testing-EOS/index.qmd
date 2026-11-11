@@ -3,6 +3,9 @@ title: "Numerical Testing of an EOS Implementation"
 description: |
   A perturbation test that catches a wrong derivative whether you derived it by hand or let a computer do it, worked through on SRK.
 date: 2026-10-31
+image: thumb.png
+image-alt: |
+  Log-log plot of the two truncation errors: a correct derivative gives slope 2, a five percent error gives slope 1.
 categories: [thermodynamics, equations-of-state, srk, numerics, testing]
 ---
 

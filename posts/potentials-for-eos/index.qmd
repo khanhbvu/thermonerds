@@ -4,6 +4,9 @@ description: |
   Applying the Helmholtz framework to the ideal gas and to SRK: residual properties, the infinite-volume reference state, and the route to fugacity coefficients.
 # TODO: replace the date and alias with the real ones from Blogger.
 date: 2026-10-03
+image: thumb.png
+image-alt: |
+  Residual Helmholtz energy of the SRK mixture against molar volume, with the worked point at 500 cubic centimetres marked.
 categories: [thermodynamics, equations-of-state, srk, residual-properties, fugacity]
 # aliases:
 #   - /2026/10/the-blogger-slug.html

@@ -1,6 +1,6 @@
 # Themes
 
-Eight looks for thermonerds.com. Each is a self-contained Quarto SCSS theme:
+Nine looks for thermonerds.com. Each is a self-contained Quarto SCSS theme:
 Bootstrap variables in `scss:defaults`, everything else in `scss:rules`.
 
 ## Switching
@@ -27,6 +27,24 @@ Then `quarto preview`. No other file changes.
 | `theme-lab.scss` | Engineering report. Cool greys, one steel blue, the IBM Plex family throughout, equations in bordered boxes, striped tables, mono captions. |
 | `theme-monograph.scss` | Scholarly book. Spectral at 1.82 leading, deep green accent, small-caps heads, no boxes or cards anywhere. |
 | `theme-eink.scss` | An e-reader panel. Warm paper rather than white, soft near-black rather than true black, Literata, and no colour at all — links are underlined, code is greyscale, nothing is rounded or shadowed. |
+| `theme-broadsheet.scss` | Modelled on pkirkham.github.io. Sans-serif headings over a Georgia body — the inverse of the others here — deep navy links, white page, no rules or shadows, and card styling for a grid listing. System fonts only, so no web-font request. |
+
+## On the broadsheet one
+
+`theme-broadsheet.scss` is the only theme here that pairs a **serif body with
+sans-serif headings**; every other one keeps a single family or puts the serif
+in the headings. It also uses **no web fonts at all** — Georgia and the
+Helvetica/Segoe/Arial stack are on every machine already, which is part of the
+original's character and removes a request from every page load.
+
+It is the only theme styled for a **grid** listing as well as the default row
+listing, so it suits `type: grid` in `index.qmd`. A grid wants a thumbnail per
+post; posts without one render as a card with an empty image slot.
+
+Two deliberate departures from the site it copies: body text is 17px rather
+than 16px, because the posts here run long and carry maths, and body links keep
+a faint underline, because colour alone is a weak signal between two dark inks
+when a post cites sources.
 
 ## On the e-ink one
 

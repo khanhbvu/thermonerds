@@ -1,6 +1,14 @@
 project:
   type: website
   output-dir: _site
+  # A render list defines the FULL set of inputs, so the broad include has to
+  # come first and the exclusions after it. Without these two lines Quarto
+  # renders every .qmd it finds and `quarto publish` puts them on the live
+  # site, whether or not their source is committed.
+  render:
+    - "*.qmd"
+    - "!posts/pt-envelope/"
+    - "!posts/cubic-root-switching/"
 
 website:
   title: "Thermo Nerds"
@@ -27,6 +35,7 @@ format:
     #   themes/theme-lab.scss        engineering report: steel blue, boxed, striped
     #   themes/theme-monograph.scss  scholarly book: Spectral, airy, deep green
     #   themes/theme-eink.scss       e-reader panel: warm paper, greyscale, Literata
+    #   themes/theme-broadsheet.scss  sans headings over Georgia, navy links, card grid
     theme:
       - cosmo
       - themes/theme-preprint.scss

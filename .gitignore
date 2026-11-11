@@ -12,3 +12,11 @@ __pycache__/
 venv/
 
 **/*.quarto_ipynb
+
+# Posts kept off the public repo. The GitHub repo for this site is public, so
+# a committed .qmd is readable by anyone even when it is excluded from the
+# rendered site. Neither of these has ever been committed, so there is nothing
+# to purge from history -- these lines just keep `git add -A` from picking
+# them up.
+/posts/pt-envelope/
+/posts/cubic-root-switching/

@@ -1,2 +1,42 @@
-/* Theme lives in theme.scss. Keep this file for one-off tweaks that are
+/* Theme lives in themes/*.scss. Keep this file for one-off tweaks that are
    easier to write as plain CSS than as part of the theme. */
+
+/* ---------------------------------------------------------------------------
+   Widen the listing page only.
+
+   `page-layout: full` in index.qmd removes the sidebar restriction but does
+   NOT lift the cap on the body column: Quarto compiles the body track as
+   minmax(500px, calc(<body-width> + 50px - 3rem)), so with body-width: 840px
+   the content stops at 833px however wide the window is. Everything left over
+   goes into the two 5fr tracks either side, which is the dead space.
+
+   Raising body-width in _quarto.yml would fix the listing but widen articles
+   too, taking the posts to roughly 125 characters a line. This rule instead
+   targets .page-layout-full, which Quarto puts on the listing page and not on
+   articles (those get .page-layout-article), so the reading measure of every
+   post is untouched.
+
+   1400px is close to the reference site's own 1428px ceiling. Change that one
+   number to taste; below about 1100px the page is narrower than the window
+   anyway and the rule has no effect.
+
+   Caveat: this reproduces Quarto's named grid lines, so if a Quarto upgrade
+   renames or reorders them the rule stops applying and the page simply
+   reverts to the narrow layout — it will not break.
+--------------------------------------------------------------------------- */
+.quarto-container.page-layout-full {
+  grid-template-columns:
+    [screen-start] 1.5rem
+    [screen-start-inset] minmax(0, 1fr)
+    [page-start page-start-inset] 0px
+    [body-start-outset] 0px
+    [body-start] 1.5rem
+    [body-content-start] minmax(500px, 1400px)
+    [body-content-end] 1.5rem
+    [body-end] 33.6px
+    [body-end-outset] minmax(72px, 139.2px)
+    [page-end-inset] 33.6px
+    [page-end] minmax(0, 1fr)
+    [screen-end-inset] 1.5rem
+    [screen-end];
+}
