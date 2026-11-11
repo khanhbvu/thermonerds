@@ -40,3 +40,39 @@
     [screen-end-inset] 1.5rem
     [screen-end];
 }
+
+/* ---------------------------------------------------------------------------
+   Article pages: give the spare width to the table of contents, not the prose.
+
+   The body column is 833px, which at 19px Source Serif is 103 characters a
+   line -- already past the 45-75 band that reads comfortably, and at the limit
+   of what is tolerable. Widening it would make the posts harder to read, not
+   better, so it is left alone.
+
+   The margin track is widened instead. Measured on the flash post at 1536px,
+   going from 139px to 340px takes the TOC from 206px to 407px wide, drops its
+   height from 637px to 448px, cuts links that wrap onto two lines from 9 of 35
+   to 1 of 35, and moves the text 100px to the left. The prose measure does not
+   change.
+
+   This does not eliminate the margins on a very wide monitor, and nothing can:
+   filling 1920px would need a 1400px text column, about 170 characters a line.
+   The reference site has the same margins there -- its content caps at 1428px,
+   so it fills a 1536px window and leaves ~250px either side at 1920px.
+--------------------------------------------------------------------------- */
+.quarto-container.page-layout-article {
+  grid-template-columns:
+    [screen-start] 1.5rem
+    [screen-start-inset] minmax(0, 1fr)
+    [page-start page-start-inset] 0px
+    [body-start-outset] 0px
+    [body-start] 1.5rem
+    [body-content-start] minmax(500px, calc(890px - 3rem))
+    [body-content-end] 1.5rem
+    [body-end] 33.6px
+    [body-end-outset] minmax(72px, 340px)
+    [page-end-inset] 33.6px
+    [page-end] minmax(0, 1fr)
+    [screen-end-inset] 1.5rem
+    [screen-end];
+}
