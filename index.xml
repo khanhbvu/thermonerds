@@ -10,7 +10,1362 @@
 <atom:link href="https://www.thermonerds.com/index.xml" rel="self" type="application/rss+xml"/>
 <description>Phase behaviour, equations of state, and the numerics behind them</description>
 <generator>quarto-1.10.20</generator>
-<lastBuildDate>Wed, 04 Nov 2026 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sun, 08 Nov 2026 06:00:00 GMT</lastBuildDate>
+<item>
+  <title>Tracing a PT Phase Envelope: Methane / n-Butane</title>
+  <link>https://www.thermonerds.com/posts/pt-envelope/</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>A 50/50 methane / n-butane mixture, Peng–Robinson, k12 = 0. This post walks through every step of the continuation tracer that builds its phase envelope:</p>
+<ul>
+<li><p>the first point is seeded at 1 bar, with T from Wilson K-values by bisection, and polished by Newton;</p></li>
+<li><p>each later point is a linear extrapolation along the tangent (the slope of the curve), corrected back onto the curve by Newton.</p></li>
+</ul>
+<p>The result is a closed envelope with its critical point at 374.30 K, 97.20 bar, a cricondentherm of 384.08 K and a cricondenbar of 107.91 bar. It passes all five checks.</p>
+<section id="the-mixture-and-the-peng-robinson-parameters" class="level2">
+<h2 class="anchored" data-anchor-id="the-mixture-and-the-peng-robinson-parameters">1. The mixture and the Peng-Robinson parameters</h2>
+<p>The feed is z = (0.5, 0.5) methane / n-butane, k12 = 0, R = 8.314462618 J/(mol K). Every quantity is in SI units (Pa, m³/mol); pressures are quoted in bar.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>Tc, K</th>
+<th>Pc, bar</th>
+<th>omega</th>
+<th>m</th>
+<th>ac, Pa m⁶/mol²</th>
+<th>b, m³/mol</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>methane</td>
+<td>190.564</td>
+<td>45.992</td>
+<td>0.01142</td>
+<td>0.392217</td>
+<td>0.249581</td>
+<td>2.680232e-5</td>
+</tr>
+<tr class="even">
+<td>n-butane</td>
+<td>425.12</td>
+<td>37.96</td>
+<td>0.2008</td>
+<td>0.673442</td>
+<td>1.504906</td>
+<td>7.244345e-5</td>
+</tr>
+</tbody>
+</table>
+<p>The pure-component parameters:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Am_i%20=%200.37464%20+%201.54226%5C,%5Comega_i%20-%200.26992%5C,%5Comega_i%5E2,%20%5Cqquad%20a_%7Bc,i%7D%20=%200.45724%5C,%5Cfrac%7BR%5E2%20T_%7Bc,i%7D%5E2%7D%7BP_%7Bc,i%7D%7D,%20%5Cqquad%20b_i%20=%200.07780%5C,%5Cfrac%7BR%5C,T_%7Bc,i%7D%7D%7BP_%7Bc,i%7D%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Calpha_i(T)%20=%20%5Cleft%5B1%20+%20m_i%5Cleft(1%20-%20%5Csqrt%7BT/T_%7Bc,i%7D%7D%5Cright)%5Cright%5D%5E2,%20%5Cqquad%20a_i(T)%20=%20a_%7Bc,i%7D%5C,%5Calpha_i(T)%0A"></p>
+<p>At the seed temperature T = 118.23883 K (section 3): alpha = (1.173471, 1.737867), so a1 = 0.292876 and a2 = 2.615327 Pa m⁶/mol².</p>
+<p>The van der Waals mixing rules, for any phase composition x:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Aa_%7Bij%7D%20=%20%5Csqrt%7Ba_i%20a_j%7D%5C,(1-k_%7Bij%7D),%20%5Cqquad%20a_m%20=%20%5Csum_i%5Csum_j%20x_i%20x_j%20a_%7Bij%7D,%20%5Cqquad%20b_m%20=%20%5Csum_i%20x_i%20b_i%0A"></p>
+<p>For the feed at 118.23883 K: a12 = 0.875196, am = 1.164649 Pa m⁶/mol² and bm = 4.962288e-5 m³/mol. For the incipient vapour of section 3 (almost pure methane): am = 0.292877 and bm = 2.680233e-5.</p>
+<p>At a given (T, P) each phase has A = am P/(RT)^2 and B = bm P/(RT), and its Z is a root of the PR cubic:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AZ%5E3%20-%20(1-B)%5C,Z%5E2%20+%20(A%20-%203B%5E2%20-%202B)%5C,Z%20-%20(AB%20-%20B%5E2%20-%20B%5E3)%20=%200%0A"></p>
+<p>Its fugacity coefficients are:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cln%5Cvarphi_i%20=%20%5Cfrac%7Bb_i%7D%7Bb_m%7D(Z-1)%20-%20%5Cln(Z-B)%20-%20%5Cfrac%7BA%7D%7B2%5Csqrt%7B2%7D%5C,B%7D%5Cleft(%5Cfrac%7B2%5Csum_j%20x_j%20a_%7Bij%7D%7D%7Ba_m%7D%20-%20%5Cfrac%7Bb_i%7D%7Bb_m%7D%5Cright)%5Cln%5Cfrac%7BZ+(1+%5Csqrt%7B2%7D)B%7D%7BZ+(1-%5Csqrt%7B2%7D)B%7D%0A"></p>
+<p>When the cubic has three real roots, the phase takes the one with the lower Gibbs energy, the smaller sum of x_i ln phi_i.</p>
+</section>
+<section id="the-equations-the-tracer-solves" class="level2">
+<h2 class="anchored" data-anchor-id="the-equations-the-tracer-solves">2. The equations the tracer solves</h2>
+<p>At every envelope point the feed z is the bulk phase and a second phase y = K z appears in zero amount. On the bubble side y is the incipient vapour; on the dew side it is the incipient liquid. The same equations cover both. The unknowns are</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathbf%7Bu%7D%20=%20(%5Cln%20K_1,%5C%20%5Cln%20K_2,%5C%20%5Cln%20T,%5C%20%5Cln%20P)%0A"></p>
+<p>and the three residuals are fugacity equality for each component plus the sum of the incipient phase:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AR_i(%5Cmathbf%7Bu%7D)%20=%20%5Cln%20K_i%20+%20%5Cln%5Cvarphi_i(T,P,%5Cmathbf%7By%7D)%20-%20%5Cln%5Cvarphi_i(T,P,%5Cmathbf%7Bz%7D),%5Cquad%20i%20=%201,2%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AR_3(%5Cmathbf%7Bu%7D)%20=%20%5Csum_i%20z_i%20K_i%20-%201%0A"></p>
+<p>There are three equations and four unknowns, so the solutions form a curve: the envelope. Any single point is found by holding one of the four unknowns fixed (pinning it) and solving the remaining 3 × 3 system by Newton:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AJ_%7B%5Ctext%7Bfree%7D%7D%5C,%5CDelta%5Cmathbf%7Bu%7D_%7B%5Ctext%7Bfree%7D%7D%20=%20-%5Cmathbf%7BR%7D,%5Cqquad%20J%20=%20%5Cpartial%5Cmathbf%7BR%7D/%5Cpartial%5Cmathbf%7Bu%7D%5C%20(3%5Ctimes%204)%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?J_%7B%5Ctext%7Bfree%7D%7D"> is J with the pinned column removed. Two details matter for the numbers below. First, a step whose largest component is too large is scaled down, so the direction is kept and only the length is cut. Second, Newton stops when the norm of R falls below a tight tolerance.</p>
+<p>The tracer builds the curve in two moves:</p>
+<ol type="1">
+<li><p><strong>Seed.</strong> Hold ln P at 1 bar and solve for the first point (section 3).</p></li>
+<li><p><strong>Step.</strong> From a converged point, extrapolate linearly along the tangent of the curve, then correct back onto the curve by Newton (section 4). Repeat.</p></li>
+</ol>
+</section>
+<section id="point-1-the-seed-at-1-bar" class="level2">
+<h2 class="anchored" data-anchor-id="point-1-the-seed-at-1-bar">3. Point 1: the seed at 1 bar</h2>
+<p><strong>Wilson K-values.</strong> At fixed P = 1 bar, each K depends only on T:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AK_i(T)%20=%20%5Cfrac%7BP_%7Bc,i%7D%7D%7BP%7D%5C,%5Cexp%5C!%5Cleft%5B5.37%5C,(1+%5Comega_i)%5Cleft(1-%5Cfrac%7BT_%7Bc,i%7D%7D%7BT%7D%5Cright)%5Cright%5D%0A"></p>
+<p><strong>Bisection on the bubble condition.</strong> The seed temperature is the root of f(T) = Σ z_i K_i(T) − 1. The bracket is [20 K, 2·max Tc] = [20 K, 850.24 K]:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Af(20%5C%20%5Ctext%7BK%7D)%20=%20-1.000000,%20%5Cqquad%20f(850.24%5C%20%5Ctext%7BK%7D)%20=%20+2031.154%0A"></p>
+<p>At 20 K both K are numerically zero, so the sum is 1.8e-19 and everything is liquid; at 850.24 K the sum is 2032 and everything is vapour. The signs differ, so a root lies between. Each iteration takes the midpoint: if Σ z K &gt; 1 there the midpoint is too hot and becomes the upper bound, otherwise it becomes the lower bound.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Step</th>
+<th>lo, K</th>
+<th>hi, K</th>
+<th>midpoint, K</th>
+<th>Σ z K at midpoint</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>20.000</td>
+<td>850.240</td>
+<td>435.120</td>
+<td>5.0886e+2</td>
+<td>too hot, hi = mid</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>20.000</td>
+<td>435.120</td>
+<td>227.560</td>
+<td>5.5678e+1</td>
+<td>too hot, hi = mid</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>20.000</td>
+<td>227.560</td>
+<td>123.780</td>
+<td>1.2274</td>
+<td>too hot, hi = mid</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>20.000</td>
+<td>123.780</td>
+<td>71.890</td>
+<td>2.9364e-3</td>
+<td>too cold, lo = mid</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>71.890</td>
+<td>123.780</td>
+<td>97.835</td>
+<td>1.3365e-1</td>
+<td>too cold, lo = mid</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>97.835</td>
+<td>123.780</td>
+<td>110.808</td>
+<td>4.6116e-1</td>
+<td>too cold, lo = mid</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>110.808</td>
+<td>123.780</td>
+<td>117.294</td>
+<td>7.7300e-1</td>
+<td>too cold, lo = mid</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>117.294</td>
+<td>123.780</td>
+<td>120.537</td>
+<td>9.8014e-1</td>
+<td>too cold, lo = mid</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td>120.537</td>
+<td>123.780</td>
+<td>122.158</td>
+<td>1.0985</td>
+<td>too hot, hi = mid</td>
+</tr>
+<tr class="even">
+<td>10</td>
+<td>120.537</td>
+<td>122.158</td>
+<td>121.348</td>
+<td>1.0380</td>
+<td>too hot, hi = mid</td>
+</tr>
+<tr class="odd">
+<td>11</td>
+<td>120.537</td>
+<td>121.348</td>
+<td>120.942</td>
+<td>1.0088</td>
+<td>too hot, hi = mid</td>
+</tr>
+<tr class="even">
+<td>12</td>
+<td>120.537</td>
+<td>120.942</td>
+<td>120.740</td>
+<td>9.9437e-1</td>
+<td>too cold, lo = mid</td>
+</tr>
+</tbody>
+</table>
+<p>By step 3 the bracket is [20, 123.78]; by step 12 it is 0.4 K wide. Bisection halves the interval every iteration regardless of the function, so after 60 halvings the width is 830.24/2⁶⁰ ≈ 7e-16 K. The method is slow but cannot fail inside a sign-changing bracket.</p>
+<p><strong>Wilson’s answer.</strong> T₀ = 120.819155 K, with</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AK_1%20=%201.9999966,%5Cquad%20K_2%20=%203.357041%5Ctimes%2010%5E%7B-6%7D,%0A%5Cqquad%20%5Csum_i%20z_i%20K_i%20-%201%20=%206.7%5Ctimes%2010%5E%7B-16%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cln%20K_1%20=%200.6931455,%20%5Cqquad%20%5Cln%20K_2%20=%20-12.604451%0A"></p>
+<p>Note that K₁ has already landed on 2 = 1/z₁ to seven digits. With K₂ of order 10⁻⁶, the bubble condition 0.5 K₁ + 0.5 K₂ = 1 forces it. This stays true all the way to the converged seed, and it is a useful sanity check: at the cold end of a bubble line the incipient vapour is essentially the light component alone.</p>
+<p><strong>Newton with ln P pinned at 1 bar.</strong> Start from u₀ = (ln 1.9999966, ln 3.357041e-6, ln 120.819155, ln 10⁵ Pa) = (0.6931455, −12.604451, 4.7942948, 11.5129255). Because ln P is pinned, it never changes. The free unknowns are ln K₁, ln K₂ and ln T.</p>
+<p>What one iteration does. Each iteration takes the current u and makes five moves:</p>
+<ol type="1">
+<li><p><strong>Unpack u.</strong> Compute T = exp(ln T) and Kᵢ = exp(ln Kᵢ), then the incipient vapour yᵢ = zᵢ Kᵢ. The liquid is the feed, x = z.</p></li>
+<li><p><strong>Run Peng–Robinson twice, at (T, 1 bar).</strong> Do this once for the liquid z and once for the vapour y, with section 1’s formulas: αᵢ(T), aᵢ, then a_m and b_m for that composition, A and B, the cubic in Z (smallest root for the liquid, largest for the vapour), then ln φᵢ.</p></li>
+<li><p><strong>Residuals.</strong> R₁ = ln K₁ + ln φ₁ᵛ − ln φ₁ᴸ, R₂ = ln K₂ + ln φ₂ᵛ − ln φ₂ᴸ, and R₃ = y₁ + y₂ − 1. If the norm of R is below the tolerance, stop.</p></li>
+<li><p><strong>Jacobian and linear solve.</strong> <img src="https://latex.codecogs.com/png.latex?J_%7B%5Ctext%7Bfree%7D%7D"> holds the 3 × 3 derivatives of (R₁, R₂, R₃) with respect to (ln K₁, ln K₂, ln T). Solve <img src="https://latex.codecogs.com/png.latex?J_%7B%5Ctext%7Bfree%7D%7D"> Δu = −R for the full Newton step Δu.</p></li>
+<li><p><strong>Cap and update.</strong> If the largest component of Δu exceeds the cap, scale the whole step so that it sits at the cap. The direction is kept and only the length is cut. Add the step to (ln K₁, ln K₂, ln T).</p></li>
+</ol>
+<p>Seven iterations carry the Wilson guess to the seed. Below is the first one in full, then all seven side by side.</p>
+<section id="iteration-0-longhand" class="level3">
+<h3 class="anchored" data-anchor-id="iteration-0-longhand">Iteration 0, longhand</h3>
+<p><strong>Move 1, unpack.</strong> T = 120.819155 K, K = (1.9999966, 3.357041e-6), so</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathbf%7By%7D%20=%20%5Cmathbf%7BK%7D%5Cmathbf%7Bz%7D%20=%20(0.9999983,%5C%201.678520%5Ctimes%2010%5E%7B-6%7D),%0A%5Cqquad%20%5Ctextstyle%5Csum_i%20y_i%20=%201.0000000203%0A"></p>
+<p><strong>Move 2, Peng–Robinson twice at 120.819155 K and 1 bar.</strong> The temperature-dependent part is shared by both phases:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Calpha%20=%20(1.166218,%5C%201.727719),%20%5Cqquad%20a%20=%20(0.291066,%5C%202.600056)%5C%20%5Ctext%7BPa%20m%7D%5E6/%5Ctext%7Bmol%7D%5E2%0A"></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Phase</th>
+<th>Composition</th>
+<th>a_m</th>
+<th>b_m</th>
+<th>A</th>
+<th>B</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Liquid</td>
+<td>z = (0.5, 0.5)</td>
+<td>1.157748</td>
+<td>4.962288e-5</td>
+<td>0.1147293</td>
+<td>0.0049398</td>
+</tr>
+<tr class="even">
+<td>Vapour</td>
+<td>y = (0.9999983, 1.6785e-6)</td>
+<td>0.291068</td>
+<td>2.680239e-5</td>
+<td>0.0288439</td>
+<td>0.0026681</td>
+</tr>
+</tbody>
+</table>
+<p>Each cubic has three real roots here, so each phase has a choice to make. Listing every root with its Gibbs energy<sup>1</sup> shows how that choice is settled:</p>
+<p><strong>Liquid, z:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Z</th>
+<th>ln φ₁</th>
+<th>ln φ₂</th>
+<th>G<sup>res</sup>/RT</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>0.0054562</strong></td>
+<td>+0.843510</td>
+<td>−14.443153</td>
+<td><strong>−6.7998216</strong></td>
+<td>← used, lowest</td>
+</tr>
+<tr class="even">
+<td>0.1134202</td>
+<td>+1.293308</td>
+<td>−0.565000</td>
+<td>+0.3641538</td>
+<td>middle root, unstable</td>
+</tr>
+<tr class="odd">
+<td>0.8761838</td>
+<td>+0.010710</td>
+<td>−0.243098</td>
+<td>−0.1161936</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Vapour, y:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Z</th>
+<th>ln φ₁</th>
+<th>ln φ₂</th>
+<th>G<sup>res</sup>/RT</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0.0034875</td>
+<td>+0.654867</td>
+<td>−13.451857</td>
+<td>+0.6548431</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>0.0205701</td>
+<td>+1.791107</td>
+<td>−2.725370</td>
+<td>+1.7910998</td>
+<td>middle root, unstable</td>
+</tr>
+<tr class="odd">
+<td><strong>0.9732743</strong></td>
+<td>−0.026446</td>
+<td>−0.139185</td>
+<td><strong>−0.0264464</strong></td>
+<td>← used, lowest</td>
+</tr>
+</tbody>
+</table>
+<p>Neither decision is close: the chosen root is lower by 6.68 in G/RT for the liquid and by 0.51 for the vapour. G<sup>res</sup>/RT is the composition-weighted sum of the ln φ columns beside it, so for the liquid 0.5(0.843510) + 0.5(−14.443153) = −6.7998216. The middle root is highest in both tables, as it always is: it lies on the branch where ∂P/∂V &gt; 0 and is mechanically unstable.</p>
+<p>“Smallest root for the liquid, largest for the vapour” is a shortcut for that rule rather than a second rule. It agrees with the Gibbs comparison at every phase evaluation on this envelope — 108 evaluations over the 54 stored points, no disagreements — and in 56 of them the cubic has only one real root, so no choice arises at all. The shortcut is not safe in general: where the two outer roots approach equal Gibbs energy they exchange places, and code that assumes the largest root is the vapour will follow a metastable branch across that crossing.</p>
+<p><strong>Move 3, residuals.</strong></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AR_1%20=%200.6931455%20+%20(-0.026446)%20-%200.843510%20=%20-0.176810%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AR_2%20=%20-12.604451%20+%20(-0.139185)%20-%20(-14.443153)%20=%20+1.699517%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AR_3%20=%201.0000000203%20-%201%20=%202.03%5Ctimes%2010%5E%7B-8%7D,%0A%5Cqquad%20%5ClVert%5Cmathbf%7BR%7D%5CrVert%20=%201.71%0A"></p>
+<p>R₂ carries almost all of the error. The Wilson estimate put n-butane’s K-value about a factor of 10 too high, and 1.70 in ln terms is exactly that.</p>
+<p><strong>Move 4, Jacobian and solve.</strong> J is 3 × 4, but ln P is pinned, so its column is dropped and what is solved is the 3 × 3 block in (ln K₁, ln K₂, ln T). The nine entries come from three different places.</p>
+<p><em>The R₃ row is exact.</em> R₃ contains no fugacity coefficients at all, so its derivatives follow in two lines rather than from any thermodynamics. Written out in the unknowns themselves:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AR_3(%5Cmathbf%7Bu%7D)%20=%20z_1%20e%5E%7B%5Cln%20K_1%7D%20+%20z_2%20e%5E%7B%5Cln%20K_2%7D%20-%201%0A"></p>
+<p>The feed composition z is fixed data, not an unknown. Differentiating with respect to ln Kᵢ, only the i-th term survives — the other is constant in that variable — and the exponential is its own derivative:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20R_3%7D%7B%5Cpartial%20%5Cln%20K_i%7D%0A=%20%5Cfrac%7B%5Cpartial%7D%7B%5Cpartial%20%5Cln%20K_i%7D%5Cleft(z_i%20e%5E%7B%5Cln%20K_i%7D%5Cright)%0A=%20z_i%20e%5E%7B%5Cln%20K_i%7D%20=%20z_i%20K_i,%0A%5Cqquad%0A%5Cfrac%7B%5Cpartial%7D%7B%5Cpartial%20%5Cln%20K_i%7D%5Cleft(z_j%20e%5E%7B%5Cln%20K_j%7D%5Cright)%20=%200%20%5C%20%5C%20(j%20%5Cneq%20i)%0A"></p>
+<p>This is the general identity ∂q/∂ln q = q, and it is one of the reasons the unknowns are carried as logarithms: derivatives come back as the quantity itself, with no extra factors to track.</p>
+<p>Neither ln T nor ln P appears anywhere in that expression, so</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20R_3%7D%7B%5Cpartial%20%5Cln%20T%7D%20=%20%5Cfrac%7B%5Cpartial%20R_3%7D%7B%5Cpartial%20%5Cln%20P%7D%20=%200%0A"></p>
+<p>identically — not approximately, and not only at this point.</p>
+<p>This does not say that K is independent of temperature. The four components of u are independent coordinates, and a partial derivative holds the other three fixed. The temperature dependence of K is imposed by R₁ and R₂, which contain ln φ(T, P, ·). Along the envelope K does change with T, but that is a total derivative along the curve, and it is what the tangent vector of section 4 gives.</p>
+<p>The row is therefore (z₁K₁, z₂K₂, 0) = (0.9999983, 1.678520e-6, 0): the unnormalised incipient-phase amounts from move 1, read straight off. The zero in the third column is what makes the elimination below tractable by hand.</p>
+<p><em>The ln K block is the identity, almost.</em> In Rᵢ = ln Kᵢ + ln φᵢ(y) − ln φᵢ(z), the leading ln Kᵢ contributes exactly 1 on the diagonal and exactly 0 off it. The only correction is indirect: changing a K changes the incipient composition, which changes ln φ(y). With yᵢ = zᵢKᵢ / Σⱼ zⱼKⱼ,</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20y_i%7D%7B%5Cpartial%20%5Cln%20K_j%7D%20=%20y_i%5Cleft(%5Cdelta_%7Bij%7D%20-%20y_j%5Cright)%0A"></p>
+<p>and the chain rule through the composition, the complete entry is</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20R_i%7D%7B%5Cpartial%20%5Cln%20K_j%7D%0A=%20%5Cunderbrace%7B%5Cdelta_%7Bij%7D%7D_%7B%5Ctext%7Bfrom%20%7D%5Cln%20K_i%7D%0A%5C;+%5C;%20%5Cunderbrace%7B%5Csum_k%20%5Cfrac%7B%5Cpartial%20%5Cln%5Cvarphi_i%7D%7B%5Cpartial%20y_k%7D%5C,%0A%20%20%20%20%20%20%20%5Cfrac%7B%5Cpartial%20y_k%7D%7B%5Cpartial%20%5Cln%20K_j%7D%7D_%7B%5Ctext%7Bfrom%20%7D%5Cln%5Cvarphi_i(%5Cmathbf%7By%7D)%7D%0A%5C;-%5C;%20%5Cunderbrace%7B%5C;0%5C;%7D_%7B%5Ctext%7Bfrom%20%7D%5Cln%5Cvarphi_i(%5Cmathbf%7Bz%7D)%7D%0A=%20%5Cdelta_%7Bij%7D%20+%20%5Csum_k%20%5Cfrac%7B%5Cpartial%20%5Cln%5Cvarphi_i%7D%7B%5Cpartial%20y_k%7D%5C;%0A%20%20y_k%5Cleft(%5Cdelta_%7Bkj%7D%20-%20y_j%5Cright)%0A"></p>
+<p>The ln φᵢ(z) term drops out entirely because z is fixed data and carries no K dependence at all.</p>
+<p>Both factors can be evaluated at iteration 0, where y = (0.999998321480, 1.678520374e-6). Take the composition derivatives first. Instantiating yₖ(δₖⱼ − yⱼ) for each of the four (k, j) pairs — reading δₖⱼ as 1 when k = j and 0 otherwise:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>k, j</th>
+<th>yₖ(δₖⱼ − yⱼ) becomes</th>
+<th>value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>k = 1, j = 1</td>
+<td>y₁(1 − y₁)</td>
+<td>+1.678518e-6</td>
+</tr>
+<tr class="even">
+<td>k = 2, j = 1</td>
+<td>y₂(0 − y₁)</td>
+<td>−1.678518e-6</td>
+</tr>
+<tr class="odd">
+<td>k = 1, j = 2</td>
+<td>y₁(0 − y₂)</td>
+<td>−1.678518e-6</td>
+</tr>
+<tr class="even">
+<td>k = 2, j = 2</td>
+<td>y₂(1 − y₂)</td>
+<td>+1.678518e-6</td>
+</tr>
+</tbody>
+</table>
+<p>All four have the same magnitude, y₁y₂ = 1.678518e-6, because y₂ = 1 − y₁ makes y₁(1 − y₁) and y₂(1 − y₂) the same number. Next the fugacity-coefficient derivatives of the incipient vapour at 120.819155 K and 1 bar:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>∂ln φᵢ/∂yₖ</th>
+<th>k = 1</th>
+<th>k = 2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>i = 1, methane</td>
+<td>+2.074582e-7</td>
+<td>+6.203744e-7</td>
+</tr>
+<tr class="even">
+<td>i = 2, n-butane</td>
+<td>−0.123595673</td>
+<td>−0.369595346</td>
+</tr>
+</tbody>
+</table>
+<p>Appendix B derives these, and shows where the numbers come from.</p>
+<p>Now each entry of the block is the general formula with i and j fixed and the sum over k written out as two terms. For n-butane against ln K₁ (i = 2, j = 1):</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20R_2%7D%7B%5Cpartial%20%5Cln%20K_1%7D%0A=%20%5Cunderbrace%7B%5Cdelta_%7B21%7D%7D_%7B0%7D%0A+%20%5Cunderbrace%7B%5Cfrac%7B%5Cpartial%5Cln%5Cvarphi_2%7D%7B%5Cpartial%20y_1%7D%7D_%7B-0.123596%7D%0A%20%20%5Cunderbrace%7By_1(%5Cdelta_%7B11%7D-y_1)%7D_%7B+1.678518%5Ctimes%2010%5E%7B-6%7D%7D%0A+%20%5Cunderbrace%7B%5Cfrac%7B%5Cpartial%5Cln%5Cvarphi_2%7D%7B%5Cpartial%20y_2%7D%7D_%7B-0.369595%7D%0A%20%20%5Cunderbrace%7By_2(%5Cdelta_%7B21%7D-y_1)%7D_%7B-1.678518%5Ctimes%2010%5E%7B-6%7D%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A=%200%20-%202.074575%5Ctimes%2010%5E%7B-7%7D%20+%206.203723%5Ctimes%2010%5E%7B-7%7D%20=%20+4.129150%5Ctimes%2010%5E%7B-7%7D%0A"></p>
+<p>For n-butane against ln K₂ (i = 2, j = 2) the Kronecker delta switches on and both composition derivatives flip sign:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20R_2%7D%7B%5Cpartial%20%5Cln%20K_2%7D%0A=%20%5Cunderbrace%7B%5Cdelta_%7B22%7D%7D_%7B1%7D%0A+%20%5Cunderbrace%7B%5Cfrac%7B%5Cpartial%5Cln%5Cvarphi_2%7D%7B%5Cpartial%20y_1%7D%7D_%7B-0.123596%7D%0A%20%20%5Cunderbrace%7By_1(%5Cdelta_%7B12%7D-y_2)%7D_%7B-1.678518%5Ctimes%2010%5E%7B-6%7D%7D%0A+%20%5Cunderbrace%7B%5Cfrac%7B%5Cpartial%5Cln%5Cvarphi_2%7D%7B%5Cpartial%20y_2%7D%7D_%7B-0.369595%7D%0A%20%20%5Cunderbrace%7By_2(%5Cdelta_%7B22%7D-y_2)%7D_%7B+1.678518%5Ctimes%2010%5E%7B-6%7D%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A=%201%20+%202.074575%5Ctimes%2010%5E%7B-7%7D%20-%206.203723%5Ctimes%2010%5E%7B-7%7D%20=%200.999999587085%0A"></p>
+<p>Methane (i = 1) uses the same two composition derivatives against its own row of the ln φ table, whose entries are seven orders of magnitude smaller:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20R_1%7D%7B%5Cpartial%20%5Cln%20K_1%7D%0A=%20%5Cunderbrace%7B%5Cdelta_%7B11%7D%7D_%7B1%7D%0A+%20%5Cunderbrace%7B(+2.074582%5Ctimes%2010%5E%7B-7%7D)%7D_%7B%5Cpartial%5Cln%5Cvarphi_1/%5Cpartial%20y_1%7D%0A%20%20%5Cunderbrace%7B(+1.678518%5Ctimes%2010%5E%7B-6%7D)%7D_%7By_1(1-y_1)%7D%0A+%20%5Cunderbrace%7B(+6.203744%5Ctimes%2010%5E%7B-7%7D)%7D_%7B%5Cpartial%5Cln%5Cvarphi_1/%5Cpartial%20y_2%7D%0A%20%20%5Cunderbrace%7B(-1.678518%5Ctimes%2010%5E%7B-6%7D)%7D_%7By_2(0-y_1)%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A=%201%20+%203.482222%5Ctimes%2010%5E%7B-13%7D%20-%201.041309%5Ctimes%2010%5E%7B-12%7D%20=%201%20-%206.931%5Ctimes%2010%5E%7B-13%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20R_1%7D%7B%5Cpartial%20%5Cln%20K_2%7D%0A=%20%5Cunderbrace%7B%5Cdelta_%7B12%7D%7D_%7B0%7D%0A-%203.482222%5Ctimes%2010%5E%7B-13%7D%20+%201.041309%5Ctimes%2010%5E%7B-12%7D%20=%20+6.931%5Ctimes%2010%5E%7B-13%7D%0A"></p>
+<p>Collecting all four:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>∂Rᵢ/∂ln Kⱼ</th>
+<th>j = 1</th>
+<th>j = 2</th>
+<th>row sum</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>i = 1</td>
+<td>0.999999999999</td>
+<td>+6.931e-13</td>
+<td>1.000000000</td>
+</tr>
+<tr class="even">
+<td>i = 2</td>
+<td>+4.129150e-7</td>
+<td>0.999999587085</td>
+<td>1.000000000</td>
+</tr>
+</tbody>
+</table>
+<p>Only the difference of each row’s two ln φ derivatives matters. Each column of ∂yₖ/∂ln Kⱼ sums to zero, so adding a constant to all the ∂ln φᵢ/∂yₖ leaves the products unchanged, which is what makes the derivative well defined despite the Σ yₖ = 1 constraint. For a binary the block collapses to one scalar per row: that difference times y₁y₂, added on the diagonal and subtracted off it:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20R_i%7D%7B%5Cpartial%20%5Cln%20K_j%7D%20=%20%5Cdelta_%7Bij%7D%20%5Cpm%0A%5Cleft(%5Cfrac%7B%5Cpartial%20%5Cln%5Cvarphi_i%7D%7B%5Cpartial%20y_1%7D%20-%20%5Cfrac%7B%5Cpartial%20%5Cln%5Cvarphi_i%7D%7B%5Cpartial%20y_2%7D%5Cright)%20y_1%20y_2%0A"></p>
+<p>For n-butane that difference is +0.246000, giving ±0.246000 × 1.678518e-6 = ±4.129e-7; for methane it is −4.129162e-7, giving ∓6.931e-13.</p>
+<p>Each row of the block therefore sums to exactly 1, since the two entries differ only in that sign. That holds at every point on the envelope and is a free check on the Jacobian.</p>
+<p>Here y₁(1 − y₁) = y₂(1 − y₂) = 1.6785e-6. The incipient vapour is so nearly pure methane that neither K can shift its composition appreciably, so every correction in this block is below 10⁻⁶ and the block is the identity to six decimals.</p>
+<p>That is a property of this point, not of the equations. As the envelope climbs and the vapour picks up butane, the block moves away from the identity.</p>
+<p>The block is the 2 × 2 matrix of derivatives ∂Rᵢ/∂ln Kⱼ, written below on one line as [top row; bottom row] — the top row holding R₁’s two derivatives, the bottom row R₂’s:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Point</th>
+<th>T, K</th>
+<th>P, bar</th>
+<th>y₁</th>
+<th>the block</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>117.98</td>
+<td>0.98</td>
+<td>1.000000</td>
+<td>[1.0000 0.0000; 0.0000 1.0000]</td>
+</tr>
+<tr class="even">
+<td>20</td>
+<td>159.99</td>
+<td>9.05</td>
+<td>0.999950</td>
+<td>[1.0000 0.0000; 0.0001 0.9999]</td>
+</tr>
+<tr class="odd">
+<td>30</td>
+<td>218.16</td>
+<td>43.37</td>
+<td>0.994268</td>
+<td>[0.9998 0.0002; 0.0326 0.9674]</td>
+</tr>
+<tr class="even">
+<td>34</td>
+<td>261.97</td>
+<td>76.43</td>
+<td>0.961380</td>
+<td>[0.9917 0.0083; 0.2060 0.7940]</td>
+</tr>
+<tr class="odd">
+<td>38</td>
+<td>342.53</td>
+<td>107.91</td>
+<td>0.735408</td>
+<td>[0.7915 0.2085; 0.5796 0.4204]</td>
+</tr>
+<tr class="even">
+<td>40</td>
+<td>382.36</td>
+<td>84.49</td>
+<td>0.374740</td>
+<td>[0.4372 0.5628; 0.3373 0.6627]</td>
+</tr>
+<tr class="odd">
+<td>53</td>
+<td>253.38</td>
+<td>0.93</td>
+<td>0.004025</td>
+<td>[0.9985 0.0015; 0.0000 1.0000]</td>
+</tr>
+</tbody>
+</table>
+<p>At the cricondenbar, point 38, an entry the identity would set to zero is 0.58. Past the critical point the incipient liquid turns butane-rich, y₁ falls toward zero, and the block returns to the identity from the other side. So the near-identity belongs to the two cold ends, where one component owns the incipient phase, and the block is a full matrix in between.</p>
+<p>Nothing in the tracer turns on which it is — the corrector forms and solves the whole 3 × 3 system at every point either way. It only means the structure that made iteration 0 easy to follow by hand is local to the seed.</p>
+<p><em>The ln T column carries all the coupling, and the liquid supplies it.</em> Here nothing cancels, and the entry is a difference of two real derivatives:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20R_i%7D%7B%5Cpartial%20%5Cln%20T%7D%0A=%20%5Cleft%5B%5Cfrac%7B%5Cpartial%20%5Cln%5Cvarphi_i%7D%7B%5Cpartial%20%5Cln%20T%7D%5Cright%5D_%7B%5Cmathbf%7By%7D%7D%0A-%20%5Cleft%5B%5Cfrac%7B%5Cpartial%20%5Cln%5Cvarphi_i%7D%7B%5Cpartial%20%5Cln%20T%7D%5Cright%5D_%7B%5Cmathbf%7Bz%7D%7D%0A"></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>vapour y</th>
+<th>liquid z</th>
+<th>difference</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>methane</td>
+<td>+0.064827</td>
+<td>+8.143021</td>
+<td><strong>−8.078193</strong></td>
+</tr>
+<tr class="even">
+<td>n-butane</td>
+<td>+0.334712</td>
+<td>+28.007427</td>
+<td><strong>−27.672715</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The vapour contributes almost nothing. At 1 bar it is at Z = 0.973, near enough to ideal that its fugacity coefficients are weakly temperature-dependent. The liquid is at Z = 0.0055, dense and strongly non-ideal, and supplies 99% of both entries. n-butane’s entry is 3.4 times methane’s for the same reason its ln φ is −14.44 rather than +0.84: it is the heavy component, far below its critical temperature.</p>
+<p>Assembling:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AJ_%7B%5Ctext%7Bfree%7D%7D%20=%0A%5Cbegin%7Bpmatrix%7D%0A1%20&amp;%200%20&amp;%20-8.078193%5C%5C%0A0%20&amp;%201%20&amp;%20-27.672715%5C%5C%0A0.9999983%20&amp;%201.678520%5Ctimes%2010%5E%7B-6%7D%20&amp;%200%0A%5Cend%7Bpmatrix%7D%0A"></p>
+<p><em>The solve.</em> The system is not triangular — row 3 couples Δ₁ and Δ₂ — but rows 1 and 2 each contain only one ln K unknown, so both can be expressed in terms of the temperature step and substituted into row 3. Writing Δu = (Δ₁, Δ₂, Δ₃) and using J Δu = −R, rows 1 and 2 give</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5CDelta_1%20=%20-R_1%20+%208.078193%5C,%5CDelta_3,%20%5Cqquad%0A%5CDelta_2%20=%20-R_2%20+%2027.672715%5C,%5CDelta_3%0A"></p>
+<p>Substituting both into row 3 leaves one scalar equation for Δ₃:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cleft(0.9999983%20%5Ctimes%208.078193%20+%201.678520%5Ctimes%2010%5E%7B-6%7D%20%5Ctimes%2027.672715%5Cright)%5CDelta_3%0A=%20-R_3%20+%200.9999983%5C,R_1%20+%201.678520%5Ctimes%2010%5E%7B-6%7D%5C,R_2%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cleft(8.0781798%20+%200.0000464%5Cright)%5CDelta_3%20=%20-2.029%5Ctimes%2010%5E%7B-8%7D%20-%200.17681008%20+%202.85267%5Ctimes%2010%5E%7B-6%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A8.0782263%5C,%5CDelta_3%20=%20-0.17680725%20%5Cquad%5CLongrightarrow%5Cquad%20%5CDelta_3%20=%20-0.02188689%0A"></p>
+<p>Back-substituting:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5CDelta_1%20=%200.17681037%20+%208.078193%5C,(-0.02188689)%20=%200.17681037%20-%200.17680652%20=%20+3.85%5Ctimes%2010%5E%7B-6%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5CDelta_2%20=%20-1.69951679%20+%2027.672715%5C,(-0.02188689)%20=%20-1.69951679%20-%200.60566960%20=%20-2.305186%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5CDelta%5Cmathbf%7Bu%7D%20=%20(+3.85%5Ctimes%2010%5E%7B-6%7D,%5C%20-2.305186,%5C%20-0.02188689)%0A"></p>
+<p>(Carrying full precision rather than the six-figure intermediates above, the solver returns −2.3051874 for Δ₂; the chain agrees to six figures.)</p>
+<p>Two things follow. First, Δ₁ is the difference of two numbers that agree to four decimals, 0.17681037 and 0.17680652. The bubble condition pins K₁ at 1/z₁ tightly enough that the step barely moves it, which is why ln K₁ stays at 0.693147 in every row of the iteration table.</p>
+<p>Second, R₂ = 1.699517 against a unit diagonal would alone ask for a step of −1.70 in ln K₂. The system asks for −2.305. The extra −0.606 is the cooling the other two equations require, fed back through ∂R₂/∂ln T = −27.67: dropping ln T by 0.0219 raises R₂ by 27.672715 × 0.0218869 = 0.60567, and ln K₂ must fall further to cancel it. Appendix A.4 returns to this.</p>
+<p><strong>Move 5, cap and update.</strong> The largest component is 2.305187, above the cap of 0.5, so the whole step is scaled by</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Clambda%20=%20%5Cfrac%7B0.5%7D%7B2.305187%7D%20=%200.21690%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Clambda%5C,%5CDelta%5Cmathbf%7Bu%7D%20=%20(+1%5Ctimes%2010%5E%7B-6%7D,%5C%20-0.500000,%5C%20-0.0047470)%0A"></p>
+<p>giving ln K₂ = −13.104451 and T = 120.24695 K for iteration 1. The cap kept the direction, mostly ln K₂ with a small cooling, and cut only the length.</p>
+</section>
+<section id="the-seven-iterations" class="level3">
+<h3 class="anchored" data-anchor-id="the-seven-iterations">The seven iterations</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>it</th>
+<th>ln K₁</th>
+<th>ln K₂</th>
+<th>T, K</th>
+<th>R₁</th>
+<th>R₂</th>
+<th>norm of R</th>
+<th>λ</th>
+<th>applied Δ ln K₂</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>0.6931455</td>
+<td>−12.604451</td>
+<td>120.81915</td>
+<td>−1.768e-1</td>
+<td>+1.700</td>
+<td>1.71</td>
+<td>0.2169</td>
+<td>−0.500000</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>0.6931463</td>
+<td>−13.104451</td>
+<td>120.24695</td>
+<td>−1.383e-1</td>
+<td>+1.331</td>
+<td>1.34</td>
+<td>0.2770</td>
+<td>−0.500000</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>0.6931468</td>
+<td>−13.604451</td>
+<td>119.68124</td>
+<td>−9.990e-2</td>
+<td>+9.628e-1</td>
+<td>0.968</td>
+<td>0.3833</td>
+<td>−0.500000</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td>0.6931470</td>
+<td>−14.104451</td>
+<td>119.12208</td>
+<td>−6.150e-2</td>
+<td>+5.942e-1</td>
+<td>0.597</td>
+<td>0.6215</td>
+<td>−0.500000</td>
+</tr>
+<tr class="odd">
+<td>4</td>
+<td>0.6931471</td>
+<td>−14.604451</td>
+<td>118.56974</td>
+<td>−2.316e-2</td>
+<td>+2.252e-1</td>
+<td>0.226</td>
+<td>1.0000</td>
+<td>−0.304360</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td>0.6931470</td>
+<td>−14.908814</td>
+<td>118.23824</td>
+<td>+4.107e-5</td>
+<td>+1.265e-4</td>
+<td>1.33e-4</td>
+<td>1.0000</td>
+<td>+1.4e-5</td>
+</tr>
+<tr class="odd">
+<td>6</td>
+<td>0.6931470</td>
+<td>−14.908800</td>
+<td>118.23883</td>
+<td>+1.261e-10</td>
+<td>+3.880e-10</td>
+<td>4.08e-10</td>
+<td>—</td>
+<td>converged</td>
+</tr>
+</tbody>
+</table>
+<p>R₃ never exceeds 2.4e-7 along the way, so the table omits it; the bubble condition is essentially satisfied from the start and the work is all in the two fugacity equations.</p>
+<p><strong>The seed point.</strong> T₁ = 118.23883 K, P₁ = 1 bar, K₁ = 1.9999997, K₂ = 3.3511e-7. The vapour is y = K z = (0.99999983, 1.676e-7), almost pure methane.</p>
+<p>Wilson’s guess was 2.58 K too hot and had K₂ ten times too large; the converged seed is 118.23883 K against Wilson’s 120.819155 K.</p>
+<p>The Peng–Robinson phases at this point, from section 1’s formulas:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Phase</th>
+<th>Composition</th>
+<th>A</th>
+<th>B</th>
+<th>Real roots of the cubic</th>
+<th>Z used</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Liquid (feed)</td>
+<td>z = (0.5, 0.5)</td>
+<td>0.120505</td>
+<td>0.0050476</td>
+<td>0.0055579, 0.120678, 0.868717</td>
+<td>0.0055579 (lowest G)</td>
+</tr>
+<tr class="even">
+<td>Vapour (incipient)</td>
+<td>y = (0.99999983, 1.676e-7)</td>
+<td>0.0303037</td>
+<td>0.0027263</td>
+<td>0.0035245, 0.021945, 0.971804</td>
+<td>0.971804 (lowest G)</td>
+</tr>
+</tbody>
+</table>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>ln φ, liquid</th>
+<th>ln φ, vapour</th>
+<th>ln f, liquid (Pa)</th>
+<th>ln f, vapour (Pa)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>methane</td>
+<td>0.665266</td>
+<td>−0.027881</td>
+<td>11.4850439</td>
+<td>11.4850439</td>
+</tr>
+<tr class="even">
+<td>n-butane</td>
+<td>−15.055398</td>
+<td>−0.146597</td>
+<td>−4.2356193</td>
+<td>−4.2356193</td>
+</tr>
+</tbody>
+</table>
+<p>Root selection follows the same comparison as in iteration 0. The liquid’s three roots give G<sup>res</sup>/RT = −7.1950660, +0.3185239 and −0.1226359; the vapour’s give +0.4789526, +1.7353720 and −0.0278814.</p>
+<p>The fugacities are equal, and K is the ratio of the fugacity coefficients. For methane, K₁ = exp(0.665266 + 0.027881) = exp(0.693147) = 2.000000. For n-butane, K₂ = exp(−15.055398 + 0.146597) = exp(−14.908801) = 3.351e-7.</p>
+<p>The seed is stored as point 1 rather than point 0, because one backward step (section 5) adds a point in front of it.</p>
+</section>
+</section>
+<section id="point-2-one-continuation-step-from-the-seed" class="level2">
+<h2 class="anchored" data-anchor-id="point-2-one-continuation-step-from-the-seed">4. Point 2: one continuation step from the seed</h2>
+<p>The step has four parts: the slope (the tangent), the step length, the linear predictor and the Newton corrector.</p>
+<div id="fig-step" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Two panels. Left, five points on a near-straight line from 118.24 K and 1.00 bar up to 120.4 K and 1.165 bar, with a cross drawn inside each circle. Right, a schematic curve rising from point 1 with increasing slope, a dashed tangent leaving point 1 and running below the curve, a cross marking the predictor on that tangent, and an arrow rising from the cross to point 2 on the curve.">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-step-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://www.thermonerds.com/posts/pt-envelope/fig-step.png" class="img-fluid figure-img" alt="Two panels. Left, five points on a near-straight line from 118.24 K and 1.00 bar up to 120.4 K and 1.165 bar, with a cross drawn inside each circle. Right, a schematic curve rising from point 1 with increasing slope, a dashed tangent leaving point 1 and running below the curve, a cross marking the predictor on that tangent, and an arrow rising from the cross to point 2 on the curve.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-step-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: One step, drawn two ways. Left, to scale: the predictor (×) and the corrected point (○) differ by less than one pixel, so the two markers overlap. Right, not to scale: only the gap between predictor and corrected point is enlarged, so that the tangent, the step along it and the correction can be told apart.
+</figcaption>
+</figure>
+</div>
+<p>The left panel of Figure&nbsp;1 is drawn to scale. The predictor and the corrected point differ by 0.00025 K and 5e-6 bar, while the axis spans about 2.5 K, so the difference is smaller than one pixel and the two markers overlap.</p>
+<p>The correction is still required. At the predictor the residuals are max abs R = 6.4e-5, which is not zero, so the predictor is not a point on the envelope. Omitting the corrector would leave every point slightly off the curve and the deviation would accumulate over the 54 steps, instead of being removed at each step.</p>
+<p>The right panel lays the same step out so the parts can be named: point 1 on the curve, the tangent leaving it as a straight line, the step of length ds running along that line to the predictor, and the corrector bringing the predictor back to the curve at point 2. That is the sequence the next four subsections work through one at a time.</p>
+<p>It is not a magnification. Zooming in on point 2 would eventually separate the predictor from the corrected point, but it would shrink the step and the curve by the same factor, and the picture would become two straight lines lying on top of each other. Only the predictor-to-corrected gap is enlarged here; everything else keeps roughly its real proportion.</p>
+<p>The gap is small because a linear extrapolation over an arclength ds leaves an error of order ds². At ds = 0.05 that error is 0.00025 K and 5e-6 bar, and one Newton iteration removes it.</p>
+<p><strong>Tangent (the slope).</strong> The tangent t satisfies J t = 0: moving along t keeps all three residuals at zero to first order. For a 3 × 4 matrix, the null vector is given by signed 3 × 3 minors. Component j is (−1)^j times the determinant of J with column j deleted, counting j from 0:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ac_j%20=%20(-1)%5Ej%20%5Cdet%20J_%7B%5B:,%5C,%5Cneq%20j%5D%7D,%5Cqquad%20%5Cmathbf%7Bt%7D%20=%20%5Cpm%5C,%5Cmathbf%7Bc%7D/%5ClVert%5Cmathbf%7Bc%7D%5CrVert%0A"></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th>ln K₁</th>
+<th>ln K₂</th>
+<th>ln T</th>
+<th>ln P</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Minors c</td>
+<td>3.4308e-6</td>
+<td>−20.475580</td>
+<td>−0.968470</td>
+<td>−8.302610</td>
+</tr>
+<tr class="even">
+<td>t = −c / 22.116072</td>
+<td>−1.551e-7</td>
+<td>0.925824</td>
+<td>0.043790</td>
+<td>0.375411</td>
+</tr>
+</tbody>
+</table>
+<p>The norm is 22.116072. The sign is a choice: the forward trace must climb in pressure, so the ln P component of t must be positive, and c is flipped. Check the R₃ row: 0.99999983 × (−1.551e-7) + 1.676e-7 × 0.925824 = 0.</p>
+<p>In the P–T plane the tangent is the slope of the envelope at point 1:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7BdP%7D%7BdT%7D%20=%20%5Cfrac%7Bt_%7B%5Cln%20P%7D%7D%7Bt_%7B%5Cln%20T%7D%7D%5Ccdot%5Cfrac%7BP%7D%7BT%7D%20=%20%5Cfrac%7B0.375411%7D%7B0.043790%7D%5Ccdot%5Cfrac%7B1%5C%20%5Ctext%7Bbar%7D%7D%7B118.23883%5C%20%5Ctext%7BK%7D%7D%20=%200.072505%5C%20%5Ctext%7Bbar/K%7D%0A"></p>
+<p>Which variable is pinned. Far from the critical point the corrector pins the unknown that changes fastest along t. That is ln K₂ (0.926), not T (0.044) or P (0.375). Near the critical point (max abs ln K &lt; 0.6) it pins the ln K with the largest magnitude instead.</p>
+<p><strong>Step length.</strong> Steps are measured as arclength ds in u, starting short. ds is a distance in the four-dimensional unknown vector, not in the P–T plane, and the two are not proportional. Figure&nbsp;2 resolves the first step into its components.</p>
+<div id="fig-step-components" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Horizontal bar chart of the four components of the step. ln K2 is the longest at plus 0.0463, ln P next at plus 0.0188, ln T much shorter at plus 0.0022, and ln K1 effectively zero at minus 7.8 times ten to the minus nine.">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-step-components-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://www.thermonerds.com/posts/pt-envelope/fig-step-components.png" class="img-fluid figure-img" alt="Horizontal bar chart of the four components of the step. ln K2 is the longest at plus 0.0463, ln P next at plus 0.0188, ln T much shorter at plus 0.0022, and ln K1 effectively zero at minus 7.8 times ten to the minus nine.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-step-components-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Resolving one step of arclength ds = 0.05 into its four components. Almost all of it is a change in the incipient composition.
+</figcaption>
+</figure>
+</div>
+<p>Of the unit tangent, 0.926 lies along ln K₂, 0.375 along ln P, 0.044 along ln T and nothing along ln K₁. The step is mostly a change in the incipient composition: n-butane’s K-value rising from 10⁻⁷. What appears in the P–T plane, 0.26 K and 0.019 bar, is a projection of it.</p>
+<p>This is why the pinned variable is ln K₂ rather than T or P. The rule picks the fastest-moving unknown, which here is not a state variable. Pinning T would fix the coordinate that moves least and leave the corrector free to slide along the direction the curve runs in.</p>
+<p><strong>Predictor: linear extrapolation:</strong> u_pred = u₁ + ds · t:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>ln K₁</th>
+<th>ln K₂</th>
+<th>ln T</th>
+<th>ln P</th>
+<th>T, K</th>
+<th>P, bar</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Point 1, u₁</td>
+<td>0.6931470</td>
+<td>−14.9088002</td>
+<td>4.7727066</td>
+<td>11.5129255</td>
+<td>118.23883</td>
+<td>1.0000000</td>
+</tr>
+<tr class="even">
+<td>+ ds·t</td>
+<td>−7.8e-9</td>
+<td>+0.0462912</td>
+<td>+0.0021895</td>
+<td>+0.0187705</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Predictor</td>
+<td>0.6931470</td>
+<td>−14.8625090</td>
+<td>4.7748961</td>
+<td>11.5316960</td>
+<td>118.49800</td>
+<td>1.0189478</td>
+</tr>
+</tbody>
+</table>
+<p>In T and P the predictor is T₁ exp(ds · t_lnT) = 118.49800 K and P₁ exp(ds · t_lnP) = 1.0189478 bar.</p>
+<p>Section 2 defined the envelope as the set where R = 0, so leaving the curve and breaking the residuals are the same event. Point 1 satisfies all three equations to below tolerance; the predictor, reached by a straight step off a curved set, does not. Evaluating R there gives max abs R = 6.4e-5. That is what the corrector removes.</p>
+<p><strong>Corrector: Newton with ln K₂ held at −14.8625090.</strong> The free unknowns are ln K₁, ln T and ln P.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Iteration</th>
+<th>ln K₁</th>
+<th>ln T</th>
+<th>ln P</th>
+<th>T, K</th>
+<th>P, bar</th>
+<th>max abs R</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0 (predictor)</td>
+<td>0.69314701</td>
+<td>4.7748961</td>
+<td>11.5316960</td>
+<td>118.49800</td>
+<td>1.0189478</td>
+<td>6.4e-5</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>0.69314701</td>
+<td>4.7748982</td>
+<td>11.5316908</td>
+<td>118.49825</td>
+<td>1.0189425</td>
+<td>6.9e-11</td>
+</tr>
+</tbody>
+</table>
+<p>One Newton step is enough: max abs R falls from 6.4e-5 to 6.9e-11, and with the residuals back at zero the point is back on the curve. The predictor was off by only 0.00025 K and 5e-6 bar, because a short step on a nearly straight stretch leaves an error of order ds².</p>
+<p>Which zero it finds is settled by the pin. R = 0 describes the whole envelope, not a single point on it, so driving the residuals to zero is not by itself a well-posed problem. Holding ln K₂ at its predicted −14.8625090 leaves three equations in three free unknowns, and that has an isolated solution: the point of the curve carrying that particular ln K₂.</p>
+<p>Each corrected point then faces four acceptance tests before it is kept: that it has not collapsed onto the trivial K = 1 solution, that it has not jumped to a different part of the curve, that it moved forward along the tangent rather than doubling back, and that the residuals are properly converged. Point 2 passes all four. A point that fails any of them is rejected, and the step is retried shorter.</p>
+<p><strong>Point 2.</strong> 118.49825 K, 1.0189425 bar, K = (1.9999996, 3.5099e-7).</p>
+<p><strong>Next step length.</strong> The step length adapts. A corrector that converges on the first try earns a longer next step, up to a ceiling; a failed corrector or a failed acceptance test shortens it and retries, for a limited number of attempts before the trace gives up on that direction.</p>
+</section>
+<section id="point-3-point-0-and-the-rest-of-the-envelope" class="level2">
+<h2 class="anchored" data-anchor-id="point-3-point-0-and-the-rest-of-the-envelope">5. Point 3, point 0 and the rest of the envelope</h2>
+<p>Point 3 repeats section 4 from point 2 with ds = 0.0625. The tangent is (−1.625e-7, 0.925892, 0.043878, 0.375231), the slope dP/dT is 0.073535 bar/K, ln K₂ is again the pinned variable, and one Newton iteration takes the predictor to 118.82405 K and 1.0431126 bar. The next step length is 0.078125.</p>
+<p><strong>Point 0, the backward trace.</strong> The full envelope is two traces from the same seed. The backward trace (direction −1) takes the opposite sign of the same tangent, t = (1.551e-7, −0.925824, −0.043790, −0.375411). Its predictor is at 117.98023 K, 0.9814045 bar, and one Newton step gives 117.98047 K, 0.9813995 bar. That is below the 1-bar floor, so the backward trace stops there (limit-P-low). The stored curve is the backward trace reversed, then the forward trace: point 0 is this backward point, point 1 the seed, then points 2, 3 and onward.</p>
+<p><strong>The rest of the forward trace.</strong> The same steps repeat 52 times, with no retries, the step length growing until it reaches its ceiling. Points 2, 3 and 4 above are exactly the tracer’s stored points 2, 3 and 4, to every printed digit.</p>
+<p><strong>Passing the critical point.</strong> Near the critical point every ln K goes to zero. The pin switches to the ln K with the largest magnitude, here ln K₂. The tracer also has a special jump reserved for very tight crossings. Here it is not needed: one ordinary step carries the trace across, to point 40 on the dew side. Every ln K changes sign there. This is the longest step, 0.62 in u. The forward trace ends on the dew side at 253.38 K, 0.93 bar, again at the 1-bar floor.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://www.thermonerds.com/posts/pt-envelope/envelope.png" class="img-fluid figure-img" alt="Two panels. Left, a closed PT phase envelope from about 118 K and 1 bar, rising along the bubble branch through a cricondenbar near 108 bar at 343 K, past the critical point at 374 K and 97 bar, round the cricondentherm at 384 K, and down the dew branch to about 253 K and 0.93 bar. Right, a zoom on the first five points, lying on a near-straight line from 118.0 K, 0.98 bar to 119.75 K, 1.11 bar."></p>
+<figcaption>The traced envelope. Left: all 54 stored points. Right: the seed and the first steps, with each linear predictor (x) sitting under the corrected point (dot) - at this scale the corrector moves them too little to separate.</figcaption>
+</figure>
+</div>
+<p>The tracer stores 54 points. Points 0–39 are bubble points (K₁ &gt; 1, incipient vapour) and points 40–53 are dew points (K₁ &lt; 1, incipient liquid). Selected points:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Point</th>
+<th>T, K</th>
+<th>P, bar</th>
+<th>K₁ (methane)</th>
+<th>K₂ (n-butane)</th>
+<th>max abs R</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>117.980</td>
+<td>0.9814</td>
+<td>2.000000</td>
+<td>3.20e-7</td>
+<td>6.1e-11</td>
+</tr>
+<tr class="even">
+<td>1 (seed)</td>
+<td>118.239</td>
+<td>1.0000</td>
+<td>2.000000</td>
+<td>3.35e-7</td>
+<td>3.9e-10</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>118.498</td>
+<td>1.0189</td>
+<td>2.000000</td>
+<td>3.51e-7</td>
+<td>6.9e-11</td>
+</tr>
+<tr class="even">
+<td>7</td>
+<td>121.223</td>
+<td>1.2346</td>
+<td>1.999999</td>
+<td>5.64e-7</td>
+<td>1.0e-12</td>
+</tr>
+<tr class="odd">
+<td>15</td>
+<td>140.247</td>
+<td>3.7902</td>
+<td>1.999990</td>
+<td>9.73e-6</td>
+<td>4.1e-14</td>
+</tr>
+<tr class="even">
+<td>22</td>
+<td>169.203</td>
+<td>12.6191</td>
+<td>1.999742</td>
+<td>2.58e-4</td>
+<td>2.8e-13</td>
+</tr>
+<tr class="odd">
+<td>26</td>
+<td>190.522</td>
+<td>23.8190</td>
+<td>1.998289</td>
+<td>1.71e-3</td>
+<td>1.5e-12</td>
+</tr>
+<tr class="even">
+<td>30</td>
+<td>218.163</td>
+<td>43.3685</td>
+<td>1.988535</td>
+<td>0.011465</td>
+<td>2.8e-12</td>
+</tr>
+<tr class="odd">
+<td>34</td>
+<td>261.975</td>
+<td>76.4321</td>
+<td>1.922761</td>
+<td>0.077239</td>
+<td>1.8e-15</td>
+</tr>
+<tr class="even">
+<td>37</td>
+<td>318.490</td>
+<td>104.4098</td>
+<td>1.673208</td>
+<td>0.326792</td>
+<td>7.8e-13</td>
+</tr>
+<tr class="odd">
+<td>41</td>
+<td>383.564</td>
+<td>67.0413</td>
+<td>0.507837</td>
+<td>1.492163</td>
+<td>5.8e-15</td>
+</tr>
+<tr class="even">
+<td>45</td>
+<td>342.792</td>
+<td>18.7437</td>
+<td>0.107913</td>
+<td>1.892087</td>
+<td>1.6e-10</td>
+</tr>
+<tr class="odd">
+<td>49</td>
+<td>293.220</td>
+<td>4.3428</td>
+<td>0.028133</td>
+<td>1.971867</td>
+<td>7.4e-13</td>
+</tr>
+<tr class="even">
+<td>53</td>
+<td>253.384</td>
+<td>0.9291</td>
+<td>0.008051</td>
+<td>1.991949</td>
+<td>8.9e-13</td>
+</tr>
+</tbody>
+</table>
+<p>At the cold bubble end, K₁ tends to 2 = 1/z₁: the vapour is almost pure methane, and K₂ tends to 0. At the warm dew end the incipient liquid is almost pure n-butane, so K₂ tends to 2 instead.</p>
+</section>
+<section id="verification" class="level2">
+<h2 class="anchored" data-anchor-id="verification">6. Verification</h2>
+<p>Three quantities are not traced points. The critical point, the cricondentherm and the cricondenbar all generally fall <em>between</em> stored points, so reading them off the curve gives an estimate whose error is set by the step length. Each is solved separately instead, with the interpolated value used only as a starting guess.</p>
+<p>The difference is not cosmetic. Interpolating the critical point from where ln K changes sign, between points 39 and 40, is out by 1.02 K and 2.33 bar, because the trace takes a long step across the crossing. The cricondentherm sits in a stretch where the trace steps 16 K and 17 bar between neighbours, and the hottest stored point misses it by 0.52 K. The cricondenbar happens to land almost on a stored point, so there refining changes the fourth decimal.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Quantity</th>
+<th>Best traced point</th>
+<th>Solved</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Critical point</td>
+<td>373.274 K, 94.876 bar</td>
+<td>374.2981 K, 97.2038 bar</td>
+</tr>
+<tr class="even">
+<td>Cricondentherm</td>
+<td>383.5641 K</td>
+<td>384.0805 K, at 73.479 bar</td>
+</tr>
+<tr class="odd">
+<td>Cricondenbar</td>
+<td>107.91149 bar</td>
+<td>107.91163 bar, at 342.673 K</td>
+</tr>
+</tbody>
+</table>
+<p>The finished curve then goes through five checks: saturation at every stored point, continuity along the path, the critical point, the two extremes, and whether the envelope closes. They are read-only — each reports PASS, WARN or FAIL and never moves, adds or removes a point, so a curve that passes the tracer’s own acceptance tests can still fail one. All five pass here, in 0.01 s, with a worst residual of 9.3e-10 over the 54 points and a median of 9.1e-13.</p>
+<p>The phase properties in sections 1 and 3 (A, B, the cubic roots, ln φ and ln f) come from a separate, from-scratch Peng–Robinson script with its own cubic solver and none of the tracer’s code.</p>
+</section>
+<section id="appendix-a.-from-newtons-method-for-fx-to-j_textfree-δu-r" class="level2">
+<h2 class="anchored" data-anchor-id="appendix-a.-from-newtons-method-for-fx-to-j_textfree-δu-r">Appendix A. From Newton’s method for f(x) to <img src="https://latex.codecogs.com/png.latex?J_%7B%5Ctext%7Bfree%7D%7D"> Δu = −R</h2>
+<p>The corrector equation <img src="https://latex.codecogs.com/png.latex?J_%7B%5Ctext%7Bfree%7D%7D"> Δu = −R is Newton’s method for one equation f(x) = 0, extended to several equations, with one unknown held fixed so that the system is square.</p>
+<section id="a.1-one-equation-one-unknown" class="level3">
+<h3 class="anchored" data-anchor-id="a.1-one-equation-one-unknown">A.1 One equation, one unknown</h3>
+<p>Near the current guess xₖ, replace f by its tangent line and set that to zero:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Af(x_k%20+%20%5CDelta%20x)%20%5Capprox%20f(x_k)%20+%20f'(x_k)%5C,%5CDelta%20x%20=%200%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Af'(x_k)%5C,%5CDelta%20x%20=%20-f(x_k)%20%5Cquad%5CLongrightarrow%5Cquad%20x_%7Bk+1%7D%20=%20x_k%20-%20%5Cfrac%7Bf(x_k)%7D%7Bf'(x_k)%7D%0A"></p>
+</section>
+<section id="a.2-several-equations" class="level3">
+<h3 class="anchored" data-anchor-id="a.2-several-equations">A.2 Several equations</h3>
+<p>Each residual Rᵢ gets its own linear (Taylor) approximation in all the unknowns:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AR_i(%5Cmathbf%7Bu%7D%20+%20%5CDelta%5Cmathbf%7Bu%7D)%20%5Capprox%20R_i(%5Cmathbf%7Bu%7D)%20+%20%5Csum_j%20%5Cfrac%7B%5Cpartial%20R_i%7D%7B%5Cpartial%20u_j%7D%5C,%5CDelta%20u_j%0A"></p>
+<p>The derivatives ∂Rᵢ/∂uⱼ form the Jacobian J, which plays the role of f′. Setting every linear approximation to zero at once gives</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AJ%5C,%5CDelta%5Cmathbf%7Bu%7D%20=%20-%5Cmathbf%7BR%7D%0A"></p>
+<p>This has the same form as f′ Δx = −f.&nbsp;You cannot divide by a matrix, so you solve the linear system instead.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>One variable</th>
+<th>Several variables</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>f(x)</td>
+<td>R(u), three residuals</td>
+</tr>
+<tr class="even">
+<td>f′(x)</td>
+<td>J = ∂R/∂u</td>
+</tr>
+<tr class="odd">
+<td>Δx = −f / f′</td>
+<td>solve J Δu = −R</td>
+</tr>
+<tr class="even">
+<td>x ← x + Δx</td>
+<td>u ← u + Δu</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="a.3-why-j_textfree-three-equations-four-unknowns" class="level3">
+<h3 class="anchored" data-anchor-id="a.3-why-j_textfree-three-equations-four-unknowns">A.3 Why <img src="https://latex.codecogs.com/png.latex?J_%7B%5Ctext%7Bfree%7D%7D">: three equations, four unknowns</h3>
+<p>With u = (ln K₁, ln K₂, ln T, ln P), J is 3 × 4. Three equations in four unknowns have infinitely many solutions, and that set of solutions is the envelope curve itself. Newton needs a square system, so one unknown is held fixed: ln P at the seed (section 3), and during tracing the unknown that changes fastest (section 4). A fixed unknown has Δu = 0, so its column drops out of J, and what remains is the square matrix <img src="https://latex.codecogs.com/png.latex?J_%7B%5Ctext%7Bfree%7D%7D">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AJ_%7B%5Ctext%7Bfree%7D%7D%5C,%5CDelta%5Cmathbf%7Bu%7D_%7B%5Ctext%7Bfree%7D%7D%20=%20-%5Cmathbf%7BR%7D%0A"></p>
+<p>Equivalently, append a fourth equation that fixes the pinned unknown, for example ln P − ln 10⁵ = 0. Its Jacobian row is (0, 0, 0, 1), and the 4 × 4 system gives the same step. The Python corrector solves the reduced 3 × 3 system, and the C++ core does the same.</p>
+</section>
+<section id="a.4-what-the-coupling-adds-with-the-seed-numbers" class="level3">
+<h3 class="anchored" data-anchor-id="a.4-what-the-coupling-adds-with-the-seed-numbers">A.4 What the coupling adds, with the seed numbers</h3>
+<p>Suppose only R₂ and ln K₂ were involved. Plain one-variable Newton would give</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5CDelta%5Cln%20K_2%20=%20-%5Cfrac%7BR_2%7D%7B%5Cpartial%20R_2/%5Cpartial%5Cln%20K_2%7D%20=%20-%5Cfrac%7B1.6995%7D%7B1.0%7D%20=%20-1.70%0A"></p>
+<p>The full system gives −2.305 (section 3, iteration 0). The extra −0.6 comes from coupling. The other equations also want T to drop, by Δln T = −0.0219. Through ∂R₂/∂ln T = −27.67, that cooling raises R₂ by 27.67 × 0.0219 = 0.606, and ln K₂ has to fall further to cancel it. The matrix form handles all three equations and their cross-effects in one step, which separate one-variable Newton on each equation cannot do.</p>
+</section>
+<section id="a.5-the-step-cap-is-damped-newton" class="level3">
+<h3 class="anchored" data-anchor-id="a.5-the-step-cap-is-damped-newton">A.5 The step cap is damped Newton</h3>
+<p>The update actually applied is</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathbf%7Bu%7D%20%5Cleftarrow%20%5Cmathbf%7Bu%7D%20+%20%5Clambda%5C,%5CDelta%5Cmathbf%7Bu%7D,%5Cqquad%20%5Clambda%20=%20%5Cmin%5C!%5Cleft(1,%5C%20%5Cfrac%7B%5CDelta_%7B%5Cmax%7D%7D%7B%5Cmax_j%20%5Clvert%5CDelta%20u_j%5Crvert%7D%5Cright)%0A"></p>
+<p>This is the multi-variable form of damped Newton, xₖ₊₁ = xₖ − λ f/f′. Every component is scaled by the same λ, so the direction of the step is kept and only its length is cut. Because every unknown is a logarithm, 0.5 means a factor of at most e^0.5 = 1.65 per iteration in K, T or P. The cap guards against a nearly singular J near the critical point, against the cubic switching roots after a large jump in T or P, and against landing on the trivial solution K = 1.</p>
+<p>Once λ = 1, the iteration is pure Newton again. It converges quadratically for the same reason as in one variable: the linear model is wrong only by terms of order Δu². That is the 0.226 → 1.33e-4 → 4.08e-10 sequence in section 3.</p>
+</section>
+</section>
+<section id="appendix-b.-the-composition-derivative-partiallnvarphi_ipartial-x_k" class="level2">
+<h2 class="anchored" data-anchor-id="appendix-b.-the-composition-derivative-partiallnvarphi_ipartial-x_k">Appendix B. The composition derivative <img src="https://latex.codecogs.com/png.latex?%5Cpartial%5Cln%5Cvarphi_i/%5Cpartial%20x_k"></h2>
+<p>This is the one derivative in <img src="https://latex.codecogs.com/png.latex?J_%7B%5Ctext%7Bfree%7D%7D"> that is not a one-liner, because composition reaches ln φ through five channels — four explicit and one implicit.</p>
+<section id="b.1-the-expression-grouped" class="level3">
+<h3 class="anchored" data-anchor-id="b.1-the-expression-grouped">B.1 The expression, grouped</h3>
+<p>Write the Peng–Robinson fugacity coefficient of section 1 as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cln%5Cvarphi_i%20=%20%5Cbar%20B_i%5C,(Z-1)%20-%20%5Cln(Z-B)%0A-%20%5Cfrac%7BA%7D%7B2%5Csqrt%7B2%7D%5C,B%7D%5Cleft(%5Cbar%20A_i%20-%20%5Cbar%20B_i%5Cright)%20q%0A"></p>
+<p>with the three composition-dependent groups</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbar%20A_i%20=%20%5Cfrac%7B2%5Csum_j%20x_j%20a_%7Bij%7D%7D%7Ba_m%7D,%20%5Cqquad%0A%5Cbar%20B_i%20=%20%5Cfrac%7Bb_i%7D%7Bb_m%7D,%20%5Cqquad%0Aq%20=%20%5Cln%5Cfrac%7BZ+(1+%5Csqrt%7B2%7D)B%7D%7BZ+(1-%5Csqrt%7B2%7D)B%7D%0A"></p>
+<p>Perturbing one mole fraction moves a_m and b_m, hence A and B, hence Āᵢ, B̄ᵢ and q — and it moves Z, which is not given by a formula at all but by the cubic.</p>
+</section>
+<section id="b.2-the-explicit-pieces" class="level3">
+<h3 class="anchored" data-anchor-id="b.2-the-explicit-pieces">B.2 The explicit pieces</h3>
+<p>Differentiating the mixing rules directly:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20a_m%7D%7B%5Cpartial%20x_k%7D%20=%202%5Csum_j%20x_j%20a_%7Bkj%7D,%20%5Cqquad%0A%5Cfrac%7B%5Cpartial%20b_m%7D%7B%5Cpartial%20x_k%7D%20=%20b_k%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20A%7D%7B%5Cpartial%20x_k%7D%20=%20%5Cfrac%7BA%7D%7Ba_m%7D%5Cfrac%7B%5Cpartial%20a_m%7D%7B%5Cpartial%20x_k%7D,%20%5Cqquad%0A%5Cfrac%7B%5Cpartial%20B%7D%7B%5Cpartial%20x_k%7D%20=%20%5Cfrac%7BB%5C,b_k%7D%7Bb_m%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cbar%20A_i%7D%7B%5Cpartial%20x_k%7D%20=%20%5Cfrac%7B2a_%7Bik%7D%7D%7Ba_m%7D%0A-%20%5Cfrac%7B%5Cbar%20A_i%7D%7Ba_m%7D%5Cfrac%7B%5Cpartial%20a_m%7D%7B%5Cpartial%20x_k%7D,%20%5Cqquad%0A%5Cfrac%7B%5Cpartial%20%5Cbar%20B_i%7D%7B%5Cpartial%20x_k%7D%20=%20-%5Cfrac%7B%5Cbar%20B_i%5C,b_k%7D%7Bb_m%7D%0A"></p>
+</section>
+<section id="b.3-the-implicit-piece-partial-zpartial-x_k" class="level3">
+<h3 class="anchored" data-anchor-id="b.3-the-implicit-piece-partial-zpartial-x_k">B.3 The implicit piece: <img src="https://latex.codecogs.com/png.latex?%5Cpartial%20Z/%5Cpartial%20x_k"></h3>
+<p>Z is a root of the cubic, so it has no closed form worth differentiating. Treat the cubic as F(Z, A, B) = 0 and differentiate implicitly:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AF_Z%20=%203Z%5E2%20-%202(1-B)Z%20+%20(A%20-%203B%5E2%20-%202B),%20%5Cqquad%20F_A%20=%20Z%20-%20B%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AF_B%20=%20Z%5E2%20-%20(6B+2)Z%20-%20(A%20-%202B%20-%203B%5E2)%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20Z%7D%7B%5Cpartial%20x_k%7D%0A=%20-%5C,%5Cfrac%7BF_A%5C,%5Cdfrac%7B%5Cpartial%20A%7D%7B%5Cpartial%20x_k%7D%20+%20F_B%5C,%5Cdfrac%7B%5Cpartial%20B%7D%7B%5Cpartial%20x_k%7D%7D%7BF_Z%7D%0A"></p>
+<p>This is the step that makes the derivative awkward, and the reason many codes reach for finite differences here instead. Note that <img src="https://latex.codecogs.com/png.latex?F_Z%20=%200"> exactly at a double root — which is the critical point, and is why this quantity degrades there.</p>
+</section>
+<section id="b.4-assembling" class="level3">
+<h3 class="anchored" data-anchor-id="b.4-assembling">B.4 Assembling</h3>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cln%5Cvarphi_i%7D%7B%5Cpartial%20x_k%7D%0A=%20%5Cfrac%7B%5Cpartial%20%5Cbar%20B_i%7D%7B%5Cpartial%20x_k%7D(Z-1)%20+%20%5Cbar%20B_i%20%5Cfrac%7B%5Cpartial%20Z%7D%7B%5Cpartial%20x_k%7D%0A-%20%5Cfrac%7B1%7D%7BZ-B%7D%5Cleft(%5Cfrac%7B%5Cpartial%20Z%7D%7B%5Cpartial%20x_k%7D%20-%20%5Cfrac%7B%5Cpartial%20B%7D%7B%5Cpartial%20x_k%7D%5Cright)%0A-%20%5Cfrac%7B%5Cpartial%7D%7B%5Cpartial%20x_k%7D%5Cleft%5B%5Cfrac%7BA(%5Cbar%20A_i-%5Cbar%20B_i)q%7D%7B2%5Csqrt%7B2%7DB%7D%5Cright%5D%0A"></p>
+<p>where the last bracket expands by the product rule into three terms, using</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20q%7D%7B%5Cpartial%20x_k%7D%0A=%20%5Cfrac%7B%5Cpartial%20Z/%5Cpartial%20x_k%20+%20(1+%5Csqrt%7B2%7D)%5C,%5Cpartial%20B/%5Cpartial%20x_k%7D%7BZ+(1+%5Csqrt%7B2%7D)B%7D%0A-%20%5Cfrac%7B%5Cpartial%20Z/%5Cpartial%20x_k%20+%20(1-%5Csqrt%7B2%7D)%5C,%5Cpartial%20B/%5Cpartial%20x_k%7D%7BZ+(1-%5Csqrt%7B2%7D)B%7D%0A"></p>
+<p>The composition is treated as a set of independent variables and is never renormalised, so this is the unconstrained derivative. That is what the chain rule in move 4 requires: the vector it is contracted with sums to zero, which cancels the constant the Σ xₖ = 1 constraint would otherwise leave undetermined.</p>
+</section>
+<section id="b.5-the-numbers-in-section-3" class="level3">
+<h3 class="anchored" data-anchor-id="b.5-the-numbers-in-section-3">B.5 The numbers in section 3</h3>
+<p>Evaluated at the incipient vapour of iteration 0, with Z = 0.9732743, A = 0.0288439 and B = 0.0026681, the relations above give:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>k</th>
+<th>∂A/∂xₖ</th>
+<th>∂B/∂xₖ</th>
+<th>∂Z/∂xₖ</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1 (methane)</td>
+<td>0.0576877</td>
+<td>0.002668102</td>
+<td>−0.0576041</td>
+</tr>
+<tr class="even">
+<td>2 (n-butane)</td>
+<td>0.1724165</td>
+<td>0.007211559</td>
+<td>−0.1730240</td>
+</tr>
+</tbody>
+</table>
+<p>Feeding these through B.4 gives the table used in move 4:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>∂ln φᵢ/∂xₖ</th>
+<th>k = 1</th>
+<th>k = 2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>i = 1, methane</td>
+<td>+2.074582272e-7</td>
+<td>+6.203744300e-7</td>
+</tr>
+<tr class="even">
+<td>i = 2, n-butane</td>
+<td>−0.123595673</td>
+<td>−0.369595346</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="b.6-two-checks-and-when-differencing-fails" class="level3">
+<h3 class="anchored" data-anchor-id="b.6-two-checks-and-when-differencing-fails">B.6 Two checks, and when differencing fails</h3>
+<p>The obvious test is central differences on ln φ itself. It works for one row here and not the other:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>methane, k = 1</th>
+<th>methane, k = 2</th>
+<th>n-butane, k = 1</th>
+<th>n-butane, k = 2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>analytic</td>
+<td>+2.074582e-7</td>
+<td>+6.203744e-7</td>
+<td>−0.123595673</td>
+<td>−0.369595346</td>
+</tr>
+<tr class="even">
+<td>central, h = 1e-5</td>
+<td>+2.074636e-7</td>
+<td>+6.203716e-7</td>
+<td>−0.123595673</td>
+<td>−0.369595346</td>
+</tr>
+<tr class="odd">
+<td>central, h = 1e-6</td>
+<td>+2.077592e-7</td>
+<td>+6.202157e-7</td>
+<td>−0.123595672</td>
+<td>−0.369595346</td>
+</tr>
+<tr class="even">
+<td>central, h = 1e-7</td>
+<td>+2.063280e-7</td>
+<td>+6.187585e-7</td>
+<td>−0.123595683</td>
+<td>−0.369595338</td>
+</tr>
+</tbody>
+</table>
+<p>The n-butane row differences cleanly: nine decimals, stable at every step size. The methane row does not. It is of order 10⁻⁷, so differencing ln φ₁ — a quantity of order 10⁻² — throws away most of the significant digits, and the fourth figure moves with the step. No step size fixes it: shrink h and subtractive cancellation gets worse, grow it and truncation error does. This is the reason to carry an analytic derivative. The perturbation test in <a href="../numerical-testing-EOS/">Numerical Testing of an EOS Implementation</a> is the systematic version of the same check.</p>
+<p>The second test is free and exact. At constant T and P the fugacity coefficients are not independent:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Csum_i%20x_i%20%5Cfrac%7B%5Cpartial%20%5Cln%5Cvarphi_i%7D%7B%5Cpartial%20x_k%7D%20=%200%0A"></p>
+<p>Evaluated on the table above, the two column sums come out 2.4e-14 and 7.1e-14. For a binary the relation fixes one row completely from the other,</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cln%5Cvarphi_1%7D%7B%5Cpartial%20x_k%7D%20=%20-%5Cfrac%7By_2%7D%7By_1%7D%5Cfrac%7B%5Cpartial%20%5Cln%5Cvarphi_2%7D%7B%5Cpartial%20x_k%7D%0A"></p>
+<p>which holds to nine figures:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th>k = 1</th>
+<th>k = 2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>−(y₂/y₁) ∂ln φ₂/∂xₖ</td>
+<td>+2.074582034e-7</td>
+<td>+6.203743590e-7</td>
+</tr>
+<tr class="even">
+<td>∂ln φ₁/∂xₖ</td>
+<td>+2.074582272e-7</td>
+<td>+6.203744300e-7</td>
+</tr>
+</tbody>
+</table>
+<p>This is the cheapest possible test on any implementation of the derivative — no reference values needed, and it holds at every composition. It also explains a coincidence in move 4: n-butane’s difference column is +0.246000 and methane’s is −4.129162e-7, sharing their digits because the second is just −(y₂/y₁) times the first.</p>
+
+
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Only the <em>residual</em> Gibbs energy, G<sup>res</sup>/RT = Σᵢ xᵢ ln φᵢ, is needed for the comparison. The ideal-gas contribution to G is identical for every root at the same T, P and composition, so it cancels and cannot change which root wins.↩︎</p></li>
+</ol>
+</section></div> ]]></description>
+  <category>thermodynamics</category>
+  <category>equations-of-state</category>
+  <category>peng-robinson</category>
+  <category>phase-envelope</category>
+  <category>numerical-methods</category>
+  <category>continuation</category>
+  <guid>https://www.thermonerds.com/posts/pt-envelope/</guid>
+  <pubDate>Sun, 08 Nov 2026 06:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Two Liquids, Not a Vapour: A Fully Worked Flash Calculation for Methane/H₂S</title>
   <dc:creator>Khanh B. Vu</dc:creator>

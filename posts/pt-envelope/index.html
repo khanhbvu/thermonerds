@@ -1,0 +1,2521 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.20">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-11-08">
+<meta name="description" content="Every step of a continuation tracer, worked on a 50/50 methane / n-butane mixture with Peng-Robinson: the residual system, the Wilson seed, the tangent predictor and Newton corrector, seed selection, and the critical point and both extremes solved rather than read off the curve.">
+
+<title>Tracing a PT Phase Envelope: Methane / n-Butane – Thermo Nerds</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-a5677c8584ae24b67293f1cbb7ea1013.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-b74a631b2987075d6beb88d4fe861e1b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<!-- Reader controls: colour themes and text size, in the navbar beside the site
+     title. Palettes, the mix() helper and the font-size scaling are taken from
+     the ReadMode extension (readmode/content.js, readmode/popup.js); the
+     storage layer is localStorage rather than chrome.storage, and the CSS
+     targets this site's own elements instead of ReadMode's blanket override,
+     which would fight MathJax and the in-post calculator. -->
+<style>
+  .rm-btn {
+    margin-left: auto; display: inline-flex; align-items: center; gap: .35rem;
+    padding: .2rem .55rem; font: inherit; font-size: .82rem; line-height: 1.2;
+    cursor: pointer; color: inherit; background: transparent;
+    border: 1px solid currentColor; border-radius: 3px; opacity: .72;
+  }
+  .rm-btn:hover, .rm-btn[aria-expanded="true"] { opacity: 1; }
+  .rm-btn .rm-aa { font-size: .95rem; font-weight: 600; }
+  /* no margin-left:auto here: Quarto's brand container carries mx-auto, and a
+     second auto margin would split the free space three ways and pull the
+     title off centre. The brand's own margin-right:auto already pushes this
+     element to the right edge. */
+  .rm-wrap { position: relative; display: flex; }
+  .rm-panel {
+    /* Rendered as a child of <body>, not of the navbar. Inside the navbar its
+       z-index is trapped in the navbar's stacking context, so page content can
+       paint over the panel's lower half and swallow taps there -- which on a
+       phone is exactly where the Reset button sits. Position and height are
+       set from JS against visualViewport. */
+    position: fixed; z-index: 2147483000;
+    width: 20rem; max-width: calc(100vw - 1rem); padding: .85rem .9rem;
+    overflow-y: auto; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    font-size: .82rem; line-height: 1.45; text-align: left;
+    background: var(--rm-bg, #fff); color: var(--rm-text, inherit);
+    border: 1px solid rgba(128,128,128,.45); border-radius: 4px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.14);
+  }
+  .rm-panel[hidden] { display: none; }
+  .rm-grouplabel {
+    margin: .55rem 0 .3rem; font-size: .68rem; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; opacity: .6;
+  }
+  .rm-grouplabel:first-child { margin-top: 0; }
+  .rm-themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: .3rem; }
+  .rm-theme {
+    display: flex; flex-direction: column; align-items: center; gap: .18rem;
+    padding: .25rem .1rem; font: inherit; font-size: .62rem; line-height: 1.1;
+    cursor: pointer; color: inherit; background: transparent;
+    border: 1px solid transparent; border-radius: 3px; text-align: center;
+  }
+  .rm-theme:hover { border-color: rgba(128,128,128,.5); }
+  .rm-btn, .rm-theme, .rm-reset { touch-action: manipulation; }
+  .rm-reset { min-height: 2.4rem; }
+  .rm-theme { min-height: 2.9rem; }
+  .rm-theme[aria-pressed="true"] { border-color: currentColor; font-weight: 700; }
+  .rm-sw {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 1.75rem; font-size: .78rem; font-weight: 600;
+    border: 1px solid rgba(128,128,128,.45); border-radius: 2px;
+  }
+  .rm-row {
+    display: flex; align-items: center; gap: .5rem;
+    margin-top: .8rem; padding-top: .7rem; border-top: 1px solid rgba(128,128,128,.3);
+  }
+  .rm-row label { flex: 0 0 auto; font-size: .72rem; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase; opacity: .7; }
+  .rm-row input[type=range] { flex: 1 1 auto; min-width: 0; }
+  .rm-val { flex: 0 0 2.6rem; text-align: right; font-variant-numeric: tabular-nums; }
+  .rm-reset {
+    margin-top: .6rem; padding: .22rem .6rem; font: inherit; font-size: .72rem;
+    cursor: pointer; color: inherit; background: transparent;
+    border: 1px solid rgba(128,128,128,.5); border-radius: 3px;
+  }
+  .rm-reset:hover { border-color: currentColor; }
+  @media (max-width: 420px) { .rm-panel { width: calc(100vw - 1.5rem); } }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- palettes, verbatim from readmode/content.js ----
+  var THEMES = {
+    dark:     { bg: '#1b1c1f', text: '#dcdcdc', link: '#8ab4f8', dark: true },
+    dim:      { bg: '#2b2d31', text: '#c9cbd0', link: '#9cc0ff', dark: true },
+    warm:     { bg: '#1f1a14', text: '#e8d5b5', link: '#f0a95b', dark: true },
+    sepia:    { bg: '#f4ecd8', text: '#433422', link: '#8a4b0f' },
+    ivory:    { bg: '#f6f1e7', text: '#292820', link: '#8a4b0f' },
+    beige:    { bg: '#f2eee8', text: '#2e2a25', link: '#7a4519' },
+    sage:     { bg: '#eaf0e8', text: '#263329', link: '#1f6640' },
+    bluegray: { bg: '#edf2f7', text: '#1f2933', link: '#1d4ed8' },
+    charcoal: { bg: '#24272b', text: '#e0e0e0', link: '#8ab4f8', dark: true },
+    cream:    { bg: '#fbf7ee', text: '#2a2722', link: '#1a5bb8' },
+    light:    { bg: '#ffffff', text: '#1f1f1f', link: '#0b57d0' },
+    mint:     { bg: '#e6f2e8', text: '#1d2b20', link: '#0a6640' },
+    contrast:         { bg: '#000000', text: '#ffff00', link: '#00ff7f', dark: true, strong: true },
+    'contrast-white': { bg: '#000000', text: '#ffffff', link: '#7fd4ff', dark: true, strong: true },
+    'contrast-light': { bg: '#ffffff', text: '#000000', link: '#0000ee', strong: true }
+  };
+  var GROUPS = [
+    ['Light', [['ivory','Ivory'],['beige','Beige'],['sepia','Sepia'],['cream','Cream'],
+               ['sage','Sage'],['mint','Mint'],['bluegray','Blue-gray'],['light','White']]],
+    ['Dark', [['charcoal','Charcoal'],['dark','Dark'],['dim','Dim'],['warm','Warm night']]],
+    ['High contrast', [['contrast','Yellow'],['contrast-white','White'],['contrast-light','Black']]]
+  ];
+
+  // blend two hex colours, for borders and code panels (readmode/content.js)
+  function mix(hex, toward, amount) {
+    var a = parseInt(hex.slice(1), 16), b = parseInt(toward.slice(1), 16);
+    var ch = function (n, s) { return (n >> s) & 255; };
+    var m = function (s) { return Math.round(ch(a, s) + (ch(b, s) - ch(a, s)) * amount); };
+    return '#' + ((1 << 24) | (m(16) << 16) | (m(8) << 8) | m(0)).toString(16).slice(1);
+  }
+
+  var KEY = 'thermonerds-reader';
+  var DEF = { theme: 'off', fontSize: 100 };
+
+  function load() {
+    try {
+      var v = JSON.parse(localStorage.getItem(KEY));
+      if (v && typeof v === 'object') {
+        return { theme: THEMES[v.theme] ? v.theme : 'off',
+                 fontSize: (v.fontSize >= 80 && v.fontSize <= 250) ? v.fontSize : 100 };
+      }
+    } catch (e) {}                     // private window, blocked storage, bad JSON
+    return { theme: DEF.theme, fontSize: DEF.fontSize };
+  }
+  function store(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+
+  var state = load();
+
+  // Every selector is prefixed with html[data-rm], which adds one class-level
+  // unit of specificity. The site themes style listing titles as
+  // `.quarto-listing .listing-title a { ... !important }` (two classes); an
+  // unprefixed `.listing-title a` loses that tie and a dark theme would leave
+  // black titles on a black page. The prefix wins regardless of source order.
+  function css(s) {
+    var out = '';
+    var t = THEMES[s.theme];
+    var H = 'html[data-rm] ';
+    if (t) {
+      var border = t.strong ? t.text : mix(t.bg, t.text, 0.22);
+      var panel  = mix(t.bg, t.text, t.strong ? 0.12 : 0.07);
+      var muted  = mix(t.bg, t.text, 0.62);
+      var TXT = 'color:' + t.text + ' !important';
+      out +=
+        'html[data-rm]{--rm-bg:' + t.bg + ';--rm-text:' + t.text + ';--rm-link:' + t.link +
+          ';--rm-panel:' + panel + ';--rm-border:' + border + ';--rm-muted:' + muted +
+          ';color-scheme:' + (t.dark ? 'dark' : 'light') + '}' +
+        'html[data-rm],html[data-rm] body{background:' + t.bg + ' !important;' + TXT + '}' +
+        H + ':is(main,.quarto-container,#quarto-content,#quarto-document-content,' +
+            '.page-columns,.quarto-title-block,footer,.footer,.sidebar,#quarto-margin-sidebar)' +
+            '{background:transparent !important;' + TXT + '}' +
+        H + ':is(h1,h2,h3,h4,h5,h6,p,li,dd,dt,td,th,figcaption,strong,em,blockquote,code,pre)' +
+            '{' + TXT + '}' +
+        // listing titles: matched at higher specificity than the themes' own rule
+        H + ':is(.quarto-listing,div.quarto-post) :is(.listing-title,.listing-title a)' +
+            '{' + TXT + '}' +
+        H + ':is(.listing-title,.listing-title a,.listing-subtitle){' + TXT + '}' +
+        H + ':is(.listing-date,.listing-category,.quarto-title-meta-heading,' +
+            '.quarto-category,nav[role="doc-toc"] a,#TOC a){color:' + muted + ' !important}' +
+        H + ':is(nav[role="doc-toc"],#TOC) a:is(:hover,.active){' + TXT + '}' +
+        H + 'main :is(a,a:visited){color:' + t.link + ' !important}' +
+        H + ':is(.quarto-listing,div.quarto-post) .listing-title a:hover{color:' + t.link + ' !important}' +
+        H + '.navbar{background:' + panel + ' !important;border-bottom:1px solid ' + border + ' !important}' +
+        H + '.navbar :is(.navbar-brand,.nav-link,.navbar-title,.menu-text){' + TXT + '}' +
+        H + 'main :is(pre,code,div.sourceCode,kbd,.cell-output){background:' + panel + ' !important;' + TXT + '}' +
+        H + 'main :is(pre,code,.sourceCode) span{color:inherit !important}' +
+        H + ':is(main table,main th,main td,main tr,hr,blockquote,div.quarto-post,' +
+            '.quarto-title-block,main pre,main div.sourceCode){border-color:' + border + ' !important}' +
+        H + 'blockquote{border-left-color:' + border + ' !important}' +
+        H + 'mjx-container{' + TXT + '}' +
+        // the in-post calculator draws itself from neutral greys, so only its
+        // editable cells need telling which surface they sit on
+        H + ':is(.xl-t td.in input,.xl-drive input[type=number]){' + TXT + '}' +
+        H + ':is(.xl-t td.ca,.xl-t tr.xl-h th,.xl-t td.fo){background:' + panel + ' !important}';
+    }
+    if (s.fontSize && s.fontSize !== 100) {
+      // Scales body text without zooming images; nested items reset so sizes
+      // don't compound. (readmode/content.js)
+      out +=
+        'html[data-rm-size] main :is(p,li,blockquote,dd,dt,td,th,figcaption,label)' +
+          '{font-size:' + s.fontSize + '% !important}' +
+        'html[data-rm-size] main :is(li p,li li,blockquote p,td p,li label,td label)' +
+          '{font-size:100% !important}';
+    }
+    return out;
+  }
+
+  // Applied from <head>, before first paint, so a remembered theme never flashes.
+  var tag = document.createElement('style');
+  tag.id = 'rm-style';
+  if (THEMES[state.theme]) document.documentElement.setAttribute('data-rm', state.theme);
+  if (state.fontSize !== 100) document.documentElement.setAttribute('data-rm-size', String(state.fontSize));
+  tag.textContent = css(state);
+  (document.head || document.documentElement).appendChild(tag);
+
+  function apply() {
+    var el = document.documentElement;
+    if (THEMES[state.theme]) el.setAttribute('data-rm', state.theme);
+    else el.removeAttribute('data-rm');
+    if (state.fontSize !== 100) el.setAttribute('data-rm-size', String(state.fontSize));
+    else el.removeAttribute('data-rm-size');
+    tag.textContent = css(state);
+    store(state);
+  }
+
+  // ---- controls, once the navbar exists ----
+  function build() {
+    // Prefer the existing nav list: adding an item there moves the brand no
+    // more than another nav link would. Appending to .navbar-container instead
+    // hands the brand's own mx-auto fresh free space to redistribute, which
+    // visibly shifts the title.
+    // .quarto-navbar-tools sits outside the collapsible menu, so the control
+    // stays reachable on a phone, where navbar-expand-lg hides .navbar-collapse
+    // behind the hamburger.
+    var tools = document.querySelector('.navbar .quarto-navbar-tools');
+    var list = tools ? null : document.querySelector('.navbar .navbar-nav');
+    var bar = tools || list ||
+              document.querySelector('.navbar .navbar-container') ||
+              document.querySelector('.navbar > .container-fluid') ||
+              document.querySelector('.navbar');
+    if (!bar) return;
+
+    var wrap = document.createElement(list ? 'li' : 'div');
+    wrap.className = list ? 'nav-item rm-wrap' : 'rm-wrap';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'rm-btn';
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-label', 'Reading options: colour theme and text size');
+    btn.innerHTML = '<span class="rm-aa">Aa</span><span>Reading</span>';
+
+    var panel = document.createElement('div');
+    panel.className = 'rm-panel';
+    panel.hidden = true;
+    panel.setAttribute('role', 'group');
+    panel.setAttribute('aria-label', 'Reading options');
+
+    var html = '';
+    for (var g = 0; g < GROUPS.length; g++) {
+      html += '<div class="rm-grouplabel">' + GROUPS[g][0] + '</div><div class="rm-themes">';
+      var list = GROUPS[g][1];
+      for (var i = 0; i < list.length; i++) {
+        var id = list[i][0], t = THEMES[id];
+        html += '<button type="button" class="rm-theme" data-v="' + id + '">' +
+                '<span class="rm-sw" style="background:' + t.bg + ';color:' + t.text + '">Aa</span>' +
+                list[i][1] + '</button>';
+      }
+      html += '</div>';
+    }
+    html += '<div class="rm-grouplabel">Site</div><div class="rm-themes">' +
+            '<button type="button" class="rm-theme" data-v="off">' +
+            '<span class="rm-sw" style="background:transparent">Aa</span>Default</button></div>' +
+            '<div class="rm-row"><label for="rm-size">Text size</label>' +
+            '<input type="range" id="rm-size" min="80" max="250" step="10">' +
+            '<span class="rm-val" id="rm-sizeval"></span></div>' +
+            '<button type="button" class="rm-reset">Reset to default</button>';
+    panel.innerHTML = html;
+
+    wrap.appendChild(btn);
+    bar.appendChild(wrap);
+    document.body.appendChild(panel);   // outside the navbar's stacking context
+
+    var size = panel.querySelector('#rm-size');
+    var sizeVal = panel.querySelector('#rm-sizeval');
+
+    function sync() {
+      var all = panel.querySelectorAll('.rm-theme');
+      for (var i = 0; i < all.length; i++) {
+        all[i].setAttribute('aria-pressed', all[i].getAttribute('data-v') === state.theme ? 'true' : 'false');
+      }
+      size.value = state.fontSize;
+      sizeVal.textContent = state.fontSize + '%';
+    }
+
+    panel.addEventListener('click', function (e) {
+      var sw = e.target.closest('.rm-theme');
+      if (sw) { state.theme = sw.getAttribute('data-v'); apply(); sync(); return; }
+      if (e.target.closest('.rm-reset')) {
+        state.theme = DEF.theme; state.fontSize = DEF.fontSize; apply(); sync();
+      }
+    });
+    size.addEventListener('input', function () {
+      state.fontSize = +size.value; apply(); sync();
+    });
+
+    // Positioned from JS against visualViewport rather than vh: on Android
+    // Chrome 100vh is the URL-bar-hidden height, so a vh-sized panel runs below
+    // the visible area and its last control cannot be reached or tapped.
+    function place() {
+      var vp = window.visualViewport;
+      var vh = vp ? vp.height : window.innerHeight;
+      var vw = vp ? vp.width  : window.innerWidth;
+      var bb = btn.getBoundingClientRect();
+      var nb = document.querySelector('.navbar');
+      var nbb = nb ? nb.getBoundingClientRect().bottom : 0;
+      var top = Math.round(Math.max(bb.bottom, nbb, 0) + 6);
+      if (top > vh - 120) top = Math.max(6, vh - 120);   // always leave room
+      panel.style.top = top + 'px';
+      panel.style.maxHeight = Math.max(140, Math.round(vh - top - 10)) + 'px';
+      panel.style.left = 'auto';
+      panel.style.right = Math.round(Math.max(8, vw - bb.right)) + 'px';
+      if (panel.getBoundingClientRect().left < 8) panel.style.right = '8px';
+    }
+    function open(v) {
+      panel.hidden = !v;
+      if (v) place();                 // measured while visible, before paint
+      btn.setAttribute('aria-expanded', v ? 'true' : 'false');
+    }
+    function replace() { if (!panel.hidden) place(); }
+    window.addEventListener('resize', replace);
+    window.addEventListener('scroll', replace, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', replace);
+      window.visualViewport.addEventListener('scroll', replace);
+    }
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      open(panel.hidden);
+    });
+    panel.addEventListener('click', function (e) { e.stopPropagation(); });
+    document.addEventListener('click', function () { open(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !panel.hidden) { open(false); btn.focus(); }
+    });
+
+    sync();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', build);
+  } else {
+    build();
+  }
+})();
+</script>
+<!-- Cloudflare Web Analytics. Free, cookieless, and reports Country, Path,
+     Referer, Device type, Browser and OS in the Cloudflare dashboard under
+     Analytics & Logs -> Web Analytics.
+
+     This is the manual beacon rather than Cloudflare's automatic injection,
+     because thermonerds.com is DNS-only (grey cloud) in Cloudflare -- it has to
+     be, or GitHub cannot issue the Let's Encrypt certificate for the custom
+     domain. Automatic injection only reaches proxied traffic; the manual
+     snippet works on any host, GitHub Pages included.
+
+     The token is a public site identifier, not a secret: it ships in the
+     source of every page.
+
+     Expect undercounting. The beacon is blocked by most ad blockers and by
+     Firefox strict mode, which a thermodynamics readership uses more than
+     average. Read it as a trend, not a census. -->
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&quot;token&quot;: &quot;0da600393c414e5b8085be10af9c399c&quot;}"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400">
+<script>
+  window.MathJax = {
+    loader: { load: ['[tex]/mhchem'] },
+    tex: {
+      packages: { '[+]': ['mhchem'] },
+      tags: 'ams',
+      tagSide: 'right',
+      macros: {
+        Vm:   "V_{m}",
+        kij:  "k_{ij}",
+        Rgas: "R"
+      }
+    }
+  };
+</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Thermo Nerds</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#the-mixture-and-the-peng-robinson-parameters" id="toc-the-mixture-and-the-peng-robinson-parameters" class="nav-link active" data-scroll-target="#the-mixture-and-the-peng-robinson-parameters">1. The mixture and the Peng-Robinson parameters</a></li>
+  <li><a href="#the-equations-the-tracer-solves" id="toc-the-equations-the-tracer-solves" class="nav-link" data-scroll-target="#the-equations-the-tracer-solves">2. The equations the tracer solves</a></li>
+  <li><a href="#point-1-the-seed-at-1-bar" id="toc-point-1-the-seed-at-1-bar" class="nav-link" data-scroll-target="#point-1-the-seed-at-1-bar">3. Point 1: the seed at 1 bar</a>
+  <ul class="collapse">
+  <li><a href="#iteration-0-longhand" id="toc-iteration-0-longhand" class="nav-link" data-scroll-target="#iteration-0-longhand">Iteration 0, longhand</a></li>
+  <li><a href="#the-seven-iterations" id="toc-the-seven-iterations" class="nav-link" data-scroll-target="#the-seven-iterations">The seven iterations</a></li>
+  </ul></li>
+  <li><a href="#point-2-one-continuation-step-from-the-seed" id="toc-point-2-one-continuation-step-from-the-seed" class="nav-link" data-scroll-target="#point-2-one-continuation-step-from-the-seed">4. Point 2: one continuation step from the seed</a></li>
+  <li><a href="#point-3-point-0-and-the-rest-of-the-envelope" id="toc-point-3-point-0-and-the-rest-of-the-envelope" class="nav-link" data-scroll-target="#point-3-point-0-and-the-rest-of-the-envelope">5. Point 3, point 0 and the rest of the envelope</a></li>
+  <li><a href="#verification" id="toc-verification" class="nav-link" data-scroll-target="#verification">6. Verification</a></li>
+  <li><a href="#appendix-a.-from-newtons-method-for-fx-to-j_textfree-δu-r" id="toc-appendix-a.-from-newtons-method-for-fx-to-j_textfree-δu-r" class="nav-link" data-scroll-target="#appendix-a.-from-newtons-method-for-fx-to-j_textfree-δu-r">Appendix A. From Newton’s method for f(x) to <span class="math inline">\(J_{\text{free}}\)</span> Δu = −R</a>
+  <ul class="collapse">
+  <li><a href="#a.1-one-equation-one-unknown" id="toc-a.1-one-equation-one-unknown" class="nav-link" data-scroll-target="#a.1-one-equation-one-unknown">A.1 One equation, one unknown</a></li>
+  <li><a href="#a.2-several-equations" id="toc-a.2-several-equations" class="nav-link" data-scroll-target="#a.2-several-equations">A.2 Several equations</a></li>
+  <li><a href="#a.3-why-j_textfree-three-equations-four-unknowns" id="toc-a.3-why-j_textfree-three-equations-four-unknowns" class="nav-link" data-scroll-target="#a.3-why-j_textfree-three-equations-four-unknowns">A.3 Why <span class="math inline">\(J_{\text{free}}\)</span>: three equations, four unknowns</a></li>
+  <li><a href="#a.4-what-the-coupling-adds-with-the-seed-numbers" id="toc-a.4-what-the-coupling-adds-with-the-seed-numbers" class="nav-link" data-scroll-target="#a.4-what-the-coupling-adds-with-the-seed-numbers">A.4 What the coupling adds, with the seed numbers</a></li>
+  <li><a href="#a.5-the-step-cap-is-damped-newton" id="toc-a.5-the-step-cap-is-damped-newton" class="nav-link" data-scroll-target="#a.5-the-step-cap-is-damped-newton">A.5 The step cap is damped Newton</a></li>
+  </ul></li>
+  <li><a href="#appendix-b.-the-composition-derivative-partiallnvarphi_ipartial-x_k" id="toc-appendix-b.-the-composition-derivative-partiallnvarphi_ipartial-x_k" class="nav-link" data-scroll-target="#appendix-b.-the-composition-derivative-partiallnvarphi_ipartial-x_k">Appendix B. The composition derivative <span class="math inline">\(\partial\ln\varphi_i/\partial x_k\)</span></a>
+  <ul class="collapse">
+  <li><a href="#b.1-the-expression-grouped" id="toc-b.1-the-expression-grouped" class="nav-link" data-scroll-target="#b.1-the-expression-grouped">B.1 The expression, grouped</a></li>
+  <li><a href="#b.2-the-explicit-pieces" id="toc-b.2-the-explicit-pieces" class="nav-link" data-scroll-target="#b.2-the-explicit-pieces">B.2 The explicit pieces</a></li>
+  <li><a href="#b.3-the-implicit-piece-partial-zpartial-x_k" id="toc-b.3-the-implicit-piece-partial-zpartial-x_k" class="nav-link" data-scroll-target="#b.3-the-implicit-piece-partial-zpartial-x_k">B.3 The implicit piece: <span class="math inline">\(\partial Z/\partial x_k\)</span></a></li>
+  <li><a href="#b.4-assembling" id="toc-b.4-assembling" class="nav-link" data-scroll-target="#b.4-assembling">B.4 Assembling</a></li>
+  <li><a href="#b.5-the-numbers-in-section-3" id="toc-b.5-the-numbers-in-section-3" class="nav-link" data-scroll-target="#b.5-the-numbers-in-section-3">B.5 The numbers in section 3</a></li>
+  <li><a href="#b.6-two-checks-and-when-differencing-fails" id="toc-b.6-two-checks-and-when-differencing-fails" class="nav-link" data-scroll-target="#b.6-two-checks-and-when-differencing-fails">B.6 Two checks, and when differencing fails</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Tracing a PT Phase Envelope: Methane / n-Butane</h1>
+  <div class="quarto-categories">
+    <div class="quarto-category">thermodynamics</div>
+    <div class="quarto-category">equations-of-state</div>
+    <div class="quarto-category">peng-robinson</div>
+    <div class="quarto-category">phase-envelope</div>
+    <div class="quarto-category">numerical-methods</div>
+    <div class="quarto-category">continuation</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    <p>Every step of a continuation tracer, worked on a 50/50 methane / n-butane mixture with Peng-Robinson: the residual system, the Wilson seed, the tangent predictor and Newton corrector, seed selection, and the critical point and both extremes solved rather than read off the curve.</p>
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">November 8, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>A 50/50 methane / n-butane mixture, Peng–Robinson, k12 = 0. This post walks through every step of the continuation tracer that builds its phase envelope:</p>
+<ul>
+<li><p>the first point is seeded at 1 bar, with T from Wilson K-values by bisection, and polished by Newton;</p></li>
+<li><p>each later point is a linear extrapolation along the tangent (the slope of the curve), corrected back onto the curve by Newton.</p></li>
+</ul>
+<p>The result is a closed envelope with its critical point at 374.30 K, 97.20 bar, a cricondentherm of 384.08 K and a cricondenbar of 107.91 bar. It passes all five checks.</p>
+<section id="the-mixture-and-the-peng-robinson-parameters" class="level2">
+<h2 class="anchored" data-anchor-id="the-mixture-and-the-peng-robinson-parameters">1. The mixture and the Peng-Robinson parameters</h2>
+<p>The feed is z = (0.5, 0.5) methane / n-butane, k12 = 0, R = 8.314462618 J/(mol K). Every quantity is in SI units (Pa, m³/mol); pressures are quoted in bar.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>Tc, K</th>
+<th>Pc, bar</th>
+<th>omega</th>
+<th>m</th>
+<th>ac, Pa m⁶/mol²</th>
+<th>b, m³/mol</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>methane</td>
+<td>190.564</td>
+<td>45.992</td>
+<td>0.01142</td>
+<td>0.392217</td>
+<td>0.249581</td>
+<td>2.680232e-5</td>
+</tr>
+<tr class="even">
+<td>n-butane</td>
+<td>425.12</td>
+<td>37.96</td>
+<td>0.2008</td>
+<td>0.673442</td>
+<td>1.504906</td>
+<td>7.244345e-5</td>
+</tr>
+</tbody>
+</table>
+<p>The pure-component parameters:</p>
+<p><span class="math display">\[
+m_i = 0.37464 + 1.54226\,\omega_i - 0.26992\,\omega_i^2, \qquad a_{c,i} = 0.45724\,\frac{R^2 T_{c,i}^2}{P_{c,i}}, \qquad b_i = 0.07780\,\frac{R\,T_{c,i}}{P_{c,i}}
+\]</span></p>
+<p><span class="math display">\[
+\alpha_i(T) = \left[1 + m_i\left(1 - \sqrt{T/T_{c,i}}\right)\right]^2, \qquad a_i(T) = a_{c,i}\,\alpha_i(T)
+\]</span></p>
+<p>At the seed temperature T = 118.23883 K (section 3): alpha = (1.173471, 1.737867), so a1 = 0.292876 and a2 = 2.615327 Pa m⁶/mol².</p>
+<p>The van der Waals mixing rules, for any phase composition x:</p>
+<p><span class="math display">\[
+a_{ij} = \sqrt{a_i a_j}\,(1-k_{ij}), \qquad a_m = \sum_i\sum_j x_i x_j a_{ij}, \qquad b_m = \sum_i x_i b_i
+\]</span></p>
+<p>For the feed at 118.23883 K: a12 = 0.875196, am = 1.164649 Pa m⁶/mol² and bm = 4.962288e-5 m³/mol. For the incipient vapour of section 3 (almost pure methane): am = 0.292877 and bm = 2.680233e-5.</p>
+<p>At a given (T, P) each phase has A = am P/(RT)^2 and B = bm P/(RT), and its Z is a root of the PR cubic:</p>
+<p><span class="math display">\[
+Z^3 - (1-B)\,Z^2 + (A - 3B^2 - 2B)\,Z - (AB - B^2 - B^3) = 0
+\]</span></p>
+<p>Its fugacity coefficients are:</p>
+<p><span class="math display">\[
+\ln\varphi_i = \frac{b_i}{b_m}(Z-1) - \ln(Z-B) - \frac{A}{2\sqrt{2}\,B}\left(\frac{2\sum_j x_j a_{ij}}{a_m} - \frac{b_i}{b_m}\right)\ln\frac{Z+(1+\sqrt{2})B}{Z+(1-\sqrt{2})B}
+\]</span></p>
+<p>When the cubic has three real roots, the phase takes the one with the lower Gibbs energy, the smaller sum of x_i ln phi_i.</p>
+</section>
+<section id="the-equations-the-tracer-solves" class="level2">
+<h2 class="anchored" data-anchor-id="the-equations-the-tracer-solves">2. The equations the tracer solves</h2>
+<p>At every envelope point the feed z is the bulk phase and a second phase y = K z appears in zero amount. On the bubble side y is the incipient vapour; on the dew side it is the incipient liquid. The same equations cover both. The unknowns are</p>
+<p><span class="math display">\[
+\mathbf{u} = (\ln K_1,\ \ln K_2,\ \ln T,\ \ln P)
+\]</span></p>
+<p>and the three residuals are fugacity equality for each component plus the sum of the incipient phase:</p>
+<p><span class="math display">\[
+R_i(\mathbf{u}) = \ln K_i + \ln\varphi_i(T,P,\mathbf{y}) - \ln\varphi_i(T,P,\mathbf{z}),\quad i = 1,2
+\]</span></p>
+<p><span class="math display">\[
+R_3(\mathbf{u}) = \sum_i z_i K_i - 1
+\]</span></p>
+<p>There are three equations and four unknowns, so the solutions form a curve: the envelope. Any single point is found by holding one of the four unknowns fixed (pinning it) and solving the remaining 3 × 3 system by Newton:</p>
+<p><span class="math display">\[
+J_{\text{free}}\,\Delta\mathbf{u}_{\text{free}} = -\mathbf{R},\qquad J = \partial\mathbf{R}/\partial\mathbf{u}\ (3\times 4)
+\]</span></p>
+<p><span class="math inline">\(J_{\text{free}}\)</span> is J with the pinned column removed. Two details matter for the numbers below. First, a step whose largest component is too large is scaled down, so the direction is kept and only the length is cut. Second, Newton stops when the norm of R falls below a tight tolerance.</p>
+<p>The tracer builds the curve in two moves:</p>
+<ol type="1">
+<li><p><strong>Seed.</strong> Hold ln P at 1 bar and solve for the first point (section 3).</p></li>
+<li><p><strong>Step.</strong> From a converged point, extrapolate linearly along the tangent of the curve, then correct back onto the curve by Newton (section 4). Repeat.</p></li>
+</ol>
+</section>
+<section id="point-1-the-seed-at-1-bar" class="level2">
+<h2 class="anchored" data-anchor-id="point-1-the-seed-at-1-bar">3. Point 1: the seed at 1 bar</h2>
+<p><strong>Wilson K-values.</strong> At fixed P = 1 bar, each K depends only on T:</p>
+<p><span class="math display">\[
+K_i(T) = \frac{P_{c,i}}{P}\,\exp\!\left[5.37\,(1+\omega_i)\left(1-\frac{T_{c,i}}{T}\right)\right]
+\]</span></p>
+<p><strong>Bisection on the bubble condition.</strong> The seed temperature is the root of f(T) = Σ z_i K_i(T) − 1. The bracket is [20 K, 2·max Tc] = [20 K, 850.24 K]:</p>
+<p><span class="math display">\[
+f(20\ \text{K}) = -1.000000, \qquad f(850.24\ \text{K}) = +2031.154
+\]</span></p>
+<p>At 20 K both K are numerically zero, so the sum is 1.8e-19 and everything is liquid; at 850.24 K the sum is 2032 and everything is vapour. The signs differ, so a root lies between. Each iteration takes the midpoint: if Σ z K &gt; 1 there the midpoint is too hot and becomes the upper bound, otherwise it becomes the lower bound.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Step</th>
+<th>lo, K</th>
+<th>hi, K</th>
+<th>midpoint, K</th>
+<th>Σ z K at midpoint</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>20.000</td>
+<td>850.240</td>
+<td>435.120</td>
+<td>5.0886e+2</td>
+<td>too hot, hi = mid</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>20.000</td>
+<td>435.120</td>
+<td>227.560</td>
+<td>5.5678e+1</td>
+<td>too hot, hi = mid</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>20.000</td>
+<td>227.560</td>
+<td>123.780</td>
+<td>1.2274</td>
+<td>too hot, hi = mid</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>20.000</td>
+<td>123.780</td>
+<td>71.890</td>
+<td>2.9364e-3</td>
+<td>too cold, lo = mid</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>71.890</td>
+<td>123.780</td>
+<td>97.835</td>
+<td>1.3365e-1</td>
+<td>too cold, lo = mid</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>97.835</td>
+<td>123.780</td>
+<td>110.808</td>
+<td>4.6116e-1</td>
+<td>too cold, lo = mid</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>110.808</td>
+<td>123.780</td>
+<td>117.294</td>
+<td>7.7300e-1</td>
+<td>too cold, lo = mid</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>117.294</td>
+<td>123.780</td>
+<td>120.537</td>
+<td>9.8014e-1</td>
+<td>too cold, lo = mid</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td>120.537</td>
+<td>123.780</td>
+<td>122.158</td>
+<td>1.0985</td>
+<td>too hot, hi = mid</td>
+</tr>
+<tr class="even">
+<td>10</td>
+<td>120.537</td>
+<td>122.158</td>
+<td>121.348</td>
+<td>1.0380</td>
+<td>too hot, hi = mid</td>
+</tr>
+<tr class="odd">
+<td>11</td>
+<td>120.537</td>
+<td>121.348</td>
+<td>120.942</td>
+<td>1.0088</td>
+<td>too hot, hi = mid</td>
+</tr>
+<tr class="even">
+<td>12</td>
+<td>120.537</td>
+<td>120.942</td>
+<td>120.740</td>
+<td>9.9437e-1</td>
+<td>too cold, lo = mid</td>
+</tr>
+</tbody>
+</table>
+<p>By step 3 the bracket is [20, 123.78]; by step 12 it is 0.4 K wide. Bisection halves the interval every iteration regardless of the function, so after 60 halvings the width is 830.24/2⁶⁰ ≈ 7e-16 K. The method is slow but cannot fail inside a sign-changing bracket.</p>
+<p><strong>Wilson’s answer.</strong> T₀ = 120.819155 K, with</p>
+<p><span class="math display">\[
+K_1 = 1.9999966,\quad K_2 = 3.357041\times 10^{-6},
+\qquad \sum_i z_i K_i - 1 = 6.7\times 10^{-16}
+\]</span></p>
+<p><span class="math display">\[
+\ln K_1 = 0.6931455, \qquad \ln K_2 = -12.604451
+\]</span></p>
+<p>Note that K₁ has already landed on 2 = 1/z₁ to seven digits. With K₂ of order 10⁻⁶, the bubble condition 0.5 K₁ + 0.5 K₂ = 1 forces it. This stays true all the way to the converged seed, and it is a useful sanity check: at the cold end of a bubble line the incipient vapour is essentially the light component alone.</p>
+<p><strong>Newton with ln P pinned at 1 bar.</strong> Start from u₀ = (ln 1.9999966, ln 3.357041e-6, ln 120.819155, ln 10⁵ Pa) = (0.6931455, −12.604451, 4.7942948, 11.5129255). Because ln P is pinned, it never changes. The free unknowns are ln K₁, ln K₂ and ln T.</p>
+<p>What one iteration does. Each iteration takes the current u and makes five moves:</p>
+<ol type="1">
+<li><p><strong>Unpack u.</strong> Compute T = exp(ln T) and Kᵢ = exp(ln Kᵢ), then the incipient vapour yᵢ = zᵢ Kᵢ. The liquid is the feed, x = z.</p></li>
+<li><p><strong>Run Peng–Robinson twice, at (T, 1 bar).</strong> Do this once for the liquid z and once for the vapour y, with section 1’s formulas: αᵢ(T), aᵢ, then a_m and b_m for that composition, A and B, the cubic in Z (smallest root for the liquid, largest for the vapour), then ln φᵢ.</p></li>
+<li><p><strong>Residuals.</strong> R₁ = ln K₁ + ln φ₁ᵛ − ln φ₁ᴸ, R₂ = ln K₂ + ln φ₂ᵛ − ln φ₂ᴸ, and R₃ = y₁ + y₂ − 1. If the norm of R is below the tolerance, stop.</p></li>
+<li><p><strong>Jacobian and linear solve.</strong> <span class="math inline">\(J_{\text{free}}\)</span> holds the 3 × 3 derivatives of (R₁, R₂, R₃) with respect to (ln K₁, ln K₂, ln T). Solve <span class="math inline">\(J_{\text{free}}\)</span> Δu = −R for the full Newton step Δu.</p></li>
+<li><p><strong>Cap and update.</strong> If the largest component of Δu exceeds the cap, scale the whole step so that it sits at the cap. The direction is kept and only the length is cut. Add the step to (ln K₁, ln K₂, ln T).</p></li>
+</ol>
+<p>Seven iterations carry the Wilson guess to the seed. Below is the first one in full, then all seven side by side.</p>
+<section id="iteration-0-longhand" class="level3">
+<h3 class="anchored" data-anchor-id="iteration-0-longhand">Iteration 0, longhand</h3>
+<p><strong>Move 1, unpack.</strong> T = 120.819155 K, K = (1.9999966, 3.357041e-6), so</p>
+<p><span class="math display">\[
+\mathbf{y} = \mathbf{K}\mathbf{z} = (0.9999983,\ 1.678520\times 10^{-6}),
+\qquad \textstyle\sum_i y_i = 1.0000000203
+\]</span></p>
+<p><strong>Move 2, Peng–Robinson twice at 120.819155 K and 1 bar.</strong> The temperature-dependent part is shared by both phases:</p>
+<p><span class="math display">\[
+\alpha = (1.166218,\ 1.727719), \qquad a = (0.291066,\ 2.600056)\ \text{Pa m}^6/\text{mol}^2
+\]</span></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Phase</th>
+<th>Composition</th>
+<th>a_m</th>
+<th>b_m</th>
+<th>A</th>
+<th>B</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Liquid</td>
+<td>z = (0.5, 0.5)</td>
+<td>1.157748</td>
+<td>4.962288e-5</td>
+<td>0.1147293</td>
+<td>0.0049398</td>
+</tr>
+<tr class="even">
+<td>Vapour</td>
+<td>y = (0.9999983, 1.6785e-6)</td>
+<td>0.291068</td>
+<td>2.680239e-5</td>
+<td>0.0288439</td>
+<td>0.0026681</td>
+</tr>
+</tbody>
+</table>
+<p>Each cubic has three real roots here, so each phase has a choice to make. Listing every root with its Gibbs energy<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> shows how that choice is settled:</p>
+<p><strong>Liquid, z:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Z</th>
+<th>ln φ₁</th>
+<th>ln φ₂</th>
+<th>G<sup>res</sup>/RT</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>0.0054562</strong></td>
+<td>+0.843510</td>
+<td>−14.443153</td>
+<td><strong>−6.7998216</strong></td>
+<td>← used, lowest</td>
+</tr>
+<tr class="even">
+<td>0.1134202</td>
+<td>+1.293308</td>
+<td>−0.565000</td>
+<td>+0.3641538</td>
+<td>middle root, unstable</td>
+</tr>
+<tr class="odd">
+<td>0.8761838</td>
+<td>+0.010710</td>
+<td>−0.243098</td>
+<td>−0.1161936</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Vapour, y:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Z</th>
+<th>ln φ₁</th>
+<th>ln φ₂</th>
+<th>G<sup>res</sup>/RT</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0.0034875</td>
+<td>+0.654867</td>
+<td>−13.451857</td>
+<td>+0.6548431</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>0.0205701</td>
+<td>+1.791107</td>
+<td>−2.725370</td>
+<td>+1.7910998</td>
+<td>middle root, unstable</td>
+</tr>
+<tr class="odd">
+<td><strong>0.9732743</strong></td>
+<td>−0.026446</td>
+<td>−0.139185</td>
+<td><strong>−0.0264464</strong></td>
+<td>← used, lowest</td>
+</tr>
+</tbody>
+</table>
+<p>Neither decision is close: the chosen root is lower by 6.68 in G/RT for the liquid and by 0.51 for the vapour. G<sup>res</sup>/RT is the composition-weighted sum of the ln φ columns beside it, so for the liquid 0.5(0.843510) + 0.5(−14.443153) = −6.7998216. The middle root is highest in both tables, as it always is: it lies on the branch where ∂P/∂V &gt; 0 and is mechanically unstable.</p>
+<p>“Smallest root for the liquid, largest for the vapour” is a shortcut for that rule rather than a second rule. It agrees with the Gibbs comparison at every phase evaluation on this envelope — 108 evaluations over the 54 stored points, no disagreements — and in 56 of them the cubic has only one real root, so no choice arises at all. The shortcut is not safe in general: where the two outer roots approach equal Gibbs energy they exchange places, and code that assumes the largest root is the vapour will follow a metastable branch across that crossing.</p>
+<p><strong>Move 3, residuals.</strong></p>
+<p><span class="math display">\[
+R_1 = 0.6931455 + (-0.026446) - 0.843510 = -0.176810
+\]</span></p>
+<p><span class="math display">\[
+R_2 = -12.604451 + (-0.139185) - (-14.443153) = +1.699517
+\]</span></p>
+<p><span class="math display">\[
+R_3 = 1.0000000203 - 1 = 2.03\times 10^{-8},
+\qquad \lVert\mathbf{R}\rVert = 1.71
+\]</span></p>
+<p>R₂ carries almost all of the error. The Wilson estimate put n-butane’s K-value about a factor of 10 too high, and 1.70 in ln terms is exactly that.</p>
+<p><strong>Move 4, Jacobian and solve.</strong> J is 3 × 4, but ln P is pinned, so its column is dropped and what is solved is the 3 × 3 block in (ln K₁, ln K₂, ln T). The nine entries come from three different places.</p>
+<p><em>The R₃ row is exact.</em> R₃ contains no fugacity coefficients at all, so its derivatives follow in two lines rather than from any thermodynamics. Written out in the unknowns themselves:</p>
+<p><span class="math display">\[
+R_3(\mathbf{u}) = z_1 e^{\ln K_1} + z_2 e^{\ln K_2} - 1
+\]</span></p>
+<p>The feed composition z is fixed data, not an unknown. Differentiating with respect to ln Kᵢ, only the i-th term survives — the other is constant in that variable — and the exponential is its own derivative:</p>
+<p><span class="math display">\[
+\frac{\partial R_3}{\partial \ln K_i}
+= \frac{\partial}{\partial \ln K_i}\left(z_i e^{\ln K_i}\right)
+= z_i e^{\ln K_i} = z_i K_i,
+\qquad
+\frac{\partial}{\partial \ln K_i}\left(z_j e^{\ln K_j}\right) = 0 \ \ (j \neq i)
+\]</span></p>
+<p>This is the general identity ∂q/∂ln q = q, and it is one of the reasons the unknowns are carried as logarithms: derivatives come back as the quantity itself, with no extra factors to track.</p>
+<p>Neither ln T nor ln P appears anywhere in that expression, so</p>
+<p><span class="math display">\[
+\frac{\partial R_3}{\partial \ln T} = \frac{\partial R_3}{\partial \ln P} = 0
+\]</span></p>
+<p>identically — not approximately, and not only at this point.</p>
+<p>This does not say that K is independent of temperature. The four components of u are independent coordinates, and a partial derivative holds the other three fixed. The temperature dependence of K is imposed by R₁ and R₂, which contain ln φ(T, P, ·). Along the envelope K does change with T, but that is a total derivative along the curve, and it is what the tangent vector of section 4 gives.</p>
+<p>The row is therefore (z₁K₁, z₂K₂, 0) = (0.9999983, 1.678520e-6, 0): the unnormalised incipient-phase amounts from move 1, read straight off. The zero in the third column is what makes the elimination below tractable by hand.</p>
+<p><em>The ln K block is the identity, almost.</em> In Rᵢ = ln Kᵢ + ln φᵢ(y) − ln φᵢ(z), the leading ln Kᵢ contributes exactly 1 on the diagonal and exactly 0 off it. The only correction is indirect: changing a K changes the incipient composition, which changes ln φ(y). With yᵢ = zᵢKᵢ / Σⱼ zⱼKⱼ,</p>
+<p><span class="math display">\[
+\frac{\partial y_i}{\partial \ln K_j} = y_i\left(\delta_{ij} - y_j\right)
+\]</span></p>
+<p>and the chain rule through the composition, the complete entry is</p>
+<p><span class="math display">\[
+\frac{\partial R_i}{\partial \ln K_j}
+= \underbrace{\delta_{ij}}_{\text{from }\ln K_i}
+\;+\; \underbrace{\sum_k \frac{\partial \ln\varphi_i}{\partial y_k}\,
+       \frac{\partial y_k}{\partial \ln K_j}}_{\text{from }\ln\varphi_i(\mathbf{y})}
+\;-\; \underbrace{\;0\;}_{\text{from }\ln\varphi_i(\mathbf{z})}
+= \delta_{ij} + \sum_k \frac{\partial \ln\varphi_i}{\partial y_k}\;
+  y_k\left(\delta_{kj} - y_j\right)
+\]</span></p>
+<p>The ln φᵢ(z) term drops out entirely because z is fixed data and carries no K dependence at all.</p>
+<p>Both factors can be evaluated at iteration 0, where y = (0.999998321480, 1.678520374e-6). Take the composition derivatives first. Instantiating yₖ(δₖⱼ − yⱼ) for each of the four (k, j) pairs — reading δₖⱼ as 1 when k = j and 0 otherwise:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>k, j</th>
+<th>yₖ(δₖⱼ − yⱼ) becomes</th>
+<th>value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>k = 1, j = 1</td>
+<td>y₁(1 − y₁)</td>
+<td>+1.678518e-6</td>
+</tr>
+<tr class="even">
+<td>k = 2, j = 1</td>
+<td>y₂(0 − y₁)</td>
+<td>−1.678518e-6</td>
+</tr>
+<tr class="odd">
+<td>k = 1, j = 2</td>
+<td>y₁(0 − y₂)</td>
+<td>−1.678518e-6</td>
+</tr>
+<tr class="even">
+<td>k = 2, j = 2</td>
+<td>y₂(1 − y₂)</td>
+<td>+1.678518e-6</td>
+</tr>
+</tbody>
+</table>
+<p>All four have the same magnitude, y₁y₂ = 1.678518e-6, because y₂ = 1 − y₁ makes y₁(1 − y₁) and y₂(1 − y₂) the same number. Next the fugacity-coefficient derivatives of the incipient vapour at 120.819155 K and 1 bar:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>∂ln φᵢ/∂yₖ</th>
+<th>k = 1</th>
+<th>k = 2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>i = 1, methane</td>
+<td>+2.074582e-7</td>
+<td>+6.203744e-7</td>
+</tr>
+<tr class="even">
+<td>i = 2, n-butane</td>
+<td>−0.123595673</td>
+<td>−0.369595346</td>
+</tr>
+</tbody>
+</table>
+<p>Appendix B derives these, and shows where the numbers come from.</p>
+<p>Now each entry of the block is the general formula with i and j fixed and the sum over k written out as two terms. For n-butane against ln K₁ (i = 2, j = 1):</p>
+<p><span class="math display">\[
+\frac{\partial R_2}{\partial \ln K_1}
+= \underbrace{\delta_{21}}_{0}
++ \underbrace{\frac{\partial\ln\varphi_2}{\partial y_1}}_{-0.123596}
+  \underbrace{y_1(\delta_{11}-y_1)}_{+1.678518\times 10^{-6}}
++ \underbrace{\frac{\partial\ln\varphi_2}{\partial y_2}}_{-0.369595}
+  \underbrace{y_2(\delta_{21}-y_1)}_{-1.678518\times 10^{-6}}
+\]</span></p>
+<p><span class="math display">\[
+= 0 - 2.074575\times 10^{-7} + 6.203723\times 10^{-7} = +4.129150\times 10^{-7}
+\]</span></p>
+<p>For n-butane against ln K₂ (i = 2, j = 2) the Kronecker delta switches on and both composition derivatives flip sign:</p>
+<p><span class="math display">\[
+\frac{\partial R_2}{\partial \ln K_2}
+= \underbrace{\delta_{22}}_{1}
++ \underbrace{\frac{\partial\ln\varphi_2}{\partial y_1}}_{-0.123596}
+  \underbrace{y_1(\delta_{12}-y_2)}_{-1.678518\times 10^{-6}}
++ \underbrace{\frac{\partial\ln\varphi_2}{\partial y_2}}_{-0.369595}
+  \underbrace{y_2(\delta_{22}-y_2)}_{+1.678518\times 10^{-6}}
+\]</span></p>
+<p><span class="math display">\[
+= 1 + 2.074575\times 10^{-7} - 6.203723\times 10^{-7} = 0.999999587085
+\]</span></p>
+<p>Methane (i = 1) uses the same two composition derivatives against its own row of the ln φ table, whose entries are seven orders of magnitude smaller:</p>
+<p><span class="math display">\[
+\frac{\partial R_1}{\partial \ln K_1}
+= \underbrace{\delta_{11}}_{1}
++ \underbrace{(+2.074582\times 10^{-7})}_{\partial\ln\varphi_1/\partial y_1}
+  \underbrace{(+1.678518\times 10^{-6})}_{y_1(1-y_1)}
++ \underbrace{(+6.203744\times 10^{-7})}_{\partial\ln\varphi_1/\partial y_2}
+  \underbrace{(-1.678518\times 10^{-6})}_{y_2(0-y_1)}
+\]</span></p>
+<p><span class="math display">\[
+= 1 + 3.482222\times 10^{-13} - 1.041309\times 10^{-12} = 1 - 6.931\times 10^{-13}
+\]</span></p>
+<p><span class="math display">\[
+\frac{\partial R_1}{\partial \ln K_2}
+= \underbrace{\delta_{12}}_{0}
+- 3.482222\times 10^{-13} + 1.041309\times 10^{-12} = +6.931\times 10^{-13}
+\]</span></p>
+<p>Collecting all four:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>∂Rᵢ/∂ln Kⱼ</th>
+<th>j = 1</th>
+<th>j = 2</th>
+<th>row sum</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>i = 1</td>
+<td>0.999999999999</td>
+<td>+6.931e-13</td>
+<td>1.000000000</td>
+</tr>
+<tr class="even">
+<td>i = 2</td>
+<td>+4.129150e-7</td>
+<td>0.999999587085</td>
+<td>1.000000000</td>
+</tr>
+</tbody>
+</table>
+<p>Only the difference of each row’s two ln φ derivatives matters. Each column of ∂yₖ/∂ln Kⱼ sums to zero, so adding a constant to all the ∂ln φᵢ/∂yₖ leaves the products unchanged, which is what makes the derivative well defined despite the Σ yₖ = 1 constraint. For a binary the block collapses to one scalar per row: that difference times y₁y₂, added on the diagonal and subtracted off it:</p>
+<p><span class="math display">\[
+\frac{\partial R_i}{\partial \ln K_j} = \delta_{ij} \pm
+\left(\frac{\partial \ln\varphi_i}{\partial y_1} - \frac{\partial \ln\varphi_i}{\partial y_2}\right) y_1 y_2
+\]</span></p>
+<p>For n-butane that difference is +0.246000, giving ±0.246000 × 1.678518e-6 = ±4.129e-7; for methane it is −4.129162e-7, giving ∓6.931e-13.</p>
+<p>Each row of the block therefore sums to exactly 1, since the two entries differ only in that sign. That holds at every point on the envelope and is a free check on the Jacobian.</p>
+<p>Here y₁(1 − y₁) = y₂(1 − y₂) = 1.6785e-6. The incipient vapour is so nearly pure methane that neither K can shift its composition appreciably, so every correction in this block is below 10⁻⁶ and the block is the identity to six decimals.</p>
+<p>That is a property of this point, not of the equations. As the envelope climbs and the vapour picks up butane, the block moves away from the identity.</p>
+<p>The block is the 2 × 2 matrix of derivatives ∂Rᵢ/∂ln Kⱼ, written below on one line as [top row; bottom row] — the top row holding R₁’s two derivatives, the bottom row R₂’s:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Point</th>
+<th>T, K</th>
+<th>P, bar</th>
+<th>y₁</th>
+<th>the block</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>117.98</td>
+<td>0.98</td>
+<td>1.000000</td>
+<td>[1.0000 0.0000; 0.0000 1.0000]</td>
+</tr>
+<tr class="even">
+<td>20</td>
+<td>159.99</td>
+<td>9.05</td>
+<td>0.999950</td>
+<td>[1.0000 0.0000; 0.0001 0.9999]</td>
+</tr>
+<tr class="odd">
+<td>30</td>
+<td>218.16</td>
+<td>43.37</td>
+<td>0.994268</td>
+<td>[0.9998 0.0002; 0.0326 0.9674]</td>
+</tr>
+<tr class="even">
+<td>34</td>
+<td>261.97</td>
+<td>76.43</td>
+<td>0.961380</td>
+<td>[0.9917 0.0083; 0.2060 0.7940]</td>
+</tr>
+<tr class="odd">
+<td>38</td>
+<td>342.53</td>
+<td>107.91</td>
+<td>0.735408</td>
+<td>[0.7915 0.2085; 0.5796 0.4204]</td>
+</tr>
+<tr class="even">
+<td>40</td>
+<td>382.36</td>
+<td>84.49</td>
+<td>0.374740</td>
+<td>[0.4372 0.5628; 0.3373 0.6627]</td>
+</tr>
+<tr class="odd">
+<td>53</td>
+<td>253.38</td>
+<td>0.93</td>
+<td>0.004025</td>
+<td>[0.9985 0.0015; 0.0000 1.0000]</td>
+</tr>
+</tbody>
+</table>
+<p>At the cricondenbar, point 38, an entry the identity would set to zero is 0.58. Past the critical point the incipient liquid turns butane-rich, y₁ falls toward zero, and the block returns to the identity from the other side. So the near-identity belongs to the two cold ends, where one component owns the incipient phase, and the block is a full matrix in between.</p>
+<p>Nothing in the tracer turns on which it is — the corrector forms and solves the whole 3 × 3 system at every point either way. It only means the structure that made iteration 0 easy to follow by hand is local to the seed.</p>
+<p><em>The ln T column carries all the coupling, and the liquid supplies it.</em> Here nothing cancels, and the entry is a difference of two real derivatives:</p>
+<p><span class="math display">\[
+\frac{\partial R_i}{\partial \ln T}
+= \left[\frac{\partial \ln\varphi_i}{\partial \ln T}\right]_{\mathbf{y}}
+- \left[\frac{\partial \ln\varphi_i}{\partial \ln T}\right]_{\mathbf{z}}
+\]</span></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>vapour y</th>
+<th>liquid z</th>
+<th>difference</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>methane</td>
+<td>+0.064827</td>
+<td>+8.143021</td>
+<td><strong>−8.078193</strong></td>
+</tr>
+<tr class="even">
+<td>n-butane</td>
+<td>+0.334712</td>
+<td>+28.007427</td>
+<td><strong>−27.672715</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The vapour contributes almost nothing. At 1 bar it is at Z = 0.973, near enough to ideal that its fugacity coefficients are weakly temperature-dependent. The liquid is at Z = 0.0055, dense and strongly non-ideal, and supplies 99% of both entries. n-butane’s entry is 3.4 times methane’s for the same reason its ln φ is −14.44 rather than +0.84: it is the heavy component, far below its critical temperature.</p>
+<p>Assembling:</p>
+<p><span class="math display">\[
+J_{\text{free}} =
+\begin{pmatrix}
+1 &amp; 0 &amp; -8.078193\\
+0 &amp; 1 &amp; -27.672715\\
+0.9999983 &amp; 1.678520\times 10^{-6} &amp; 0
+\end{pmatrix}
+\]</span></p>
+<p><em>The solve.</em> The system is not triangular — row 3 couples Δ₁ and Δ₂ — but rows 1 and 2 each contain only one ln K unknown, so both can be expressed in terms of the temperature step and substituted into row 3. Writing Δu = (Δ₁, Δ₂, Δ₃) and using J Δu = −R, rows 1 and 2 give</p>
+<p><span class="math display">\[
+\Delta_1 = -R_1 + 8.078193\,\Delta_3, \qquad
+\Delta_2 = -R_2 + 27.672715\,\Delta_3
+\]</span></p>
+<p>Substituting both into row 3 leaves one scalar equation for Δ₃:</p>
+<p><span class="math display">\[
+\left(0.9999983 \times 8.078193 + 1.678520\times 10^{-6} \times 27.672715\right)\Delta_3
+= -R_3 + 0.9999983\,R_1 + 1.678520\times 10^{-6}\,R_2
+\]</span></p>
+<p><span class="math display">\[
+\left(8.0781798 + 0.0000464\right)\Delta_3 = -2.029\times 10^{-8} - 0.17681008 + 2.85267\times 10^{-6}
+\]</span></p>
+<p><span class="math display">\[
+8.0782263\,\Delta_3 = -0.17680725 \quad\Longrightarrow\quad \Delta_3 = -0.02188689
+\]</span></p>
+<p>Back-substituting:</p>
+<p><span class="math display">\[
+\Delta_1 = 0.17681037 + 8.078193\,(-0.02188689) = 0.17681037 - 0.17680652 = +3.85\times 10^{-6}
+\]</span></p>
+<p><span class="math display">\[
+\Delta_2 = -1.69951679 + 27.672715\,(-0.02188689) = -1.69951679 - 0.60566960 = -2.305186
+\]</span></p>
+<p><span class="math display">\[
+\Delta\mathbf{u} = (+3.85\times 10^{-6},\ -2.305186,\ -0.02188689)
+\]</span></p>
+<p>(Carrying full precision rather than the six-figure intermediates above, the solver returns −2.3051874 for Δ₂; the chain agrees to six figures.)</p>
+<p>Two things follow. First, Δ₁ is the difference of two numbers that agree to four decimals, 0.17681037 and 0.17680652. The bubble condition pins K₁ at 1/z₁ tightly enough that the step barely moves it, which is why ln K₁ stays at 0.693147 in every row of the iteration table.</p>
+<p>Second, R₂ = 1.699517 against a unit diagonal would alone ask for a step of −1.70 in ln K₂. The system asks for −2.305. The extra −0.606 is the cooling the other two equations require, fed back through ∂R₂/∂ln T = −27.67: dropping ln T by 0.0219 raises R₂ by 27.672715 × 0.0218869 = 0.60567, and ln K₂ must fall further to cancel it. Appendix A.4 returns to this.</p>
+<p><strong>Move 5, cap and update.</strong> The largest component is 2.305187, above the cap of 0.5, so the whole step is scaled by</p>
+<p><span class="math display">\[
+\lambda = \frac{0.5}{2.305187} = 0.21690
+\]</span></p>
+<p><span class="math display">\[
+\lambda\,\Delta\mathbf{u} = (+1\times 10^{-6},\ -0.500000,\ -0.0047470)
+\]</span></p>
+<p>giving ln K₂ = −13.104451 and T = 120.24695 K for iteration 1. The cap kept the direction, mostly ln K₂ with a small cooling, and cut only the length.</p>
+</section>
+<section id="the-seven-iterations" class="level3">
+<h3 class="anchored" data-anchor-id="the-seven-iterations">The seven iterations</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>it</th>
+<th>ln K₁</th>
+<th>ln K₂</th>
+<th>T, K</th>
+<th>R₁</th>
+<th>R₂</th>
+<th>norm of R</th>
+<th>λ</th>
+<th>applied Δ ln K₂</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>0.6931455</td>
+<td>−12.604451</td>
+<td>120.81915</td>
+<td>−1.768e-1</td>
+<td>+1.700</td>
+<td>1.71</td>
+<td>0.2169</td>
+<td>−0.500000</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>0.6931463</td>
+<td>−13.104451</td>
+<td>120.24695</td>
+<td>−1.383e-1</td>
+<td>+1.331</td>
+<td>1.34</td>
+<td>0.2770</td>
+<td>−0.500000</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>0.6931468</td>
+<td>−13.604451</td>
+<td>119.68124</td>
+<td>−9.990e-2</td>
+<td>+9.628e-1</td>
+<td>0.968</td>
+<td>0.3833</td>
+<td>−0.500000</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td>0.6931470</td>
+<td>−14.104451</td>
+<td>119.12208</td>
+<td>−6.150e-2</td>
+<td>+5.942e-1</td>
+<td>0.597</td>
+<td>0.6215</td>
+<td>−0.500000</td>
+</tr>
+<tr class="odd">
+<td>4</td>
+<td>0.6931471</td>
+<td>−14.604451</td>
+<td>118.56974</td>
+<td>−2.316e-2</td>
+<td>+2.252e-1</td>
+<td>0.226</td>
+<td>1.0000</td>
+<td>−0.304360</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td>0.6931470</td>
+<td>−14.908814</td>
+<td>118.23824</td>
+<td>+4.107e-5</td>
+<td>+1.265e-4</td>
+<td>1.33e-4</td>
+<td>1.0000</td>
+<td>+1.4e-5</td>
+</tr>
+<tr class="odd">
+<td>6</td>
+<td>0.6931470</td>
+<td>−14.908800</td>
+<td>118.23883</td>
+<td>+1.261e-10</td>
+<td>+3.880e-10</td>
+<td>4.08e-10</td>
+<td>—</td>
+<td>converged</td>
+</tr>
+</tbody>
+</table>
+<p>R₃ never exceeds 2.4e-7 along the way, so the table omits it; the bubble condition is essentially satisfied from the start and the work is all in the two fugacity equations.</p>
+<p><strong>The seed point.</strong> T₁ = 118.23883 K, P₁ = 1 bar, K₁ = 1.9999997, K₂ = 3.3511e-7. The vapour is y = K z = (0.99999983, 1.676e-7), almost pure methane.</p>
+<p>Wilson’s guess was 2.58 K too hot and had K₂ ten times too large; the converged seed is 118.23883 K against Wilson’s 120.819155 K.</p>
+<p>The Peng–Robinson phases at this point, from section 1’s formulas:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Phase</th>
+<th>Composition</th>
+<th>A</th>
+<th>B</th>
+<th>Real roots of the cubic</th>
+<th>Z used</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Liquid (feed)</td>
+<td>z = (0.5, 0.5)</td>
+<td>0.120505</td>
+<td>0.0050476</td>
+<td>0.0055579, 0.120678, 0.868717</td>
+<td>0.0055579 (lowest G)</td>
+</tr>
+<tr class="even">
+<td>Vapour (incipient)</td>
+<td>y = (0.99999983, 1.676e-7)</td>
+<td>0.0303037</td>
+<td>0.0027263</td>
+<td>0.0035245, 0.021945, 0.971804</td>
+<td>0.971804 (lowest G)</td>
+</tr>
+</tbody>
+</table>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>ln φ, liquid</th>
+<th>ln φ, vapour</th>
+<th>ln f, liquid (Pa)</th>
+<th>ln f, vapour (Pa)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>methane</td>
+<td>0.665266</td>
+<td>−0.027881</td>
+<td>11.4850439</td>
+<td>11.4850439</td>
+</tr>
+<tr class="even">
+<td>n-butane</td>
+<td>−15.055398</td>
+<td>−0.146597</td>
+<td>−4.2356193</td>
+<td>−4.2356193</td>
+</tr>
+</tbody>
+</table>
+<p>Root selection follows the same comparison as in iteration 0. The liquid’s three roots give G<sup>res</sup>/RT = −7.1950660, +0.3185239 and −0.1226359; the vapour’s give +0.4789526, +1.7353720 and −0.0278814.</p>
+<p>The fugacities are equal, and K is the ratio of the fugacity coefficients. For methane, K₁ = exp(0.665266 + 0.027881) = exp(0.693147) = 2.000000. For n-butane, K₂ = exp(−15.055398 + 0.146597) = exp(−14.908801) = 3.351e-7.</p>
+<p>The seed is stored as point 1 rather than point 0, because one backward step (section 5) adds a point in front of it.</p>
+</section>
+</section>
+<section id="point-2-one-continuation-step-from-the-seed" class="level2">
+<h2 class="anchored" data-anchor-id="point-2-one-continuation-step-from-the-seed">4. Point 2: one continuation step from the seed</h2>
+<p>The step has four parts: the slope (the tangent), the step length, the linear predictor and the Newton corrector.</p>
+<div id="fig-step" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Two panels. Left, five points on a near-straight line from 118.24 K and 1.00 bar up to 120.4 K and 1.165 bar, with a cross drawn inside each circle. Right, a schematic curve rising from point 1 with increasing slope, a dashed tangent leaving point 1 and running below the curve, a cross marking the predictor on that tangent, and an arrow rising from the cross to point 2 on the curve.">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-step-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="fig-step.png" class="img-fluid figure-img" alt="Two panels. Left, five points on a near-straight line from 118.24 K and 1.00 bar up to 120.4 K and 1.165 bar, with a cross drawn inside each circle. Right, a schematic curve rising from point 1 with increasing slope, a dashed tangent leaving point 1 and running below the curve, a cross marking the predictor on that tangent, and an arrow rising from the cross to point 2 on the curve.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-step-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: One step, drawn two ways. Left, to scale: the predictor (×) and the corrected point (○) differ by less than one pixel, so the two markers overlap. Right, not to scale: only the gap between predictor and corrected point is enlarged, so that the tangent, the step along it and the correction can be told apart.
+</figcaption>
+</figure>
+</div>
+<p>The left panel of <a href="#fig-step" class="quarto-xref">Figure&nbsp;1</a> is drawn to scale. The predictor and the corrected point differ by 0.00025 K and 5e-6 bar, while the axis spans about 2.5 K, so the difference is smaller than one pixel and the two markers overlap.</p>
+<p>The correction is still required. At the predictor the residuals are max abs R = 6.4e-5, which is not zero, so the predictor is not a point on the envelope. Omitting the corrector would leave every point slightly off the curve and the deviation would accumulate over the 54 steps, instead of being removed at each step.</p>
+<p>The right panel lays the same step out so the parts can be named: point 1 on the curve, the tangent leaving it as a straight line, the step of length ds running along that line to the predictor, and the corrector bringing the predictor back to the curve at point 2. That is the sequence the next four subsections work through one at a time.</p>
+<p>It is not a magnification. Zooming in on point 2 would eventually separate the predictor from the corrected point, but it would shrink the step and the curve by the same factor, and the picture would become two straight lines lying on top of each other. Only the predictor-to-corrected gap is enlarged here; everything else keeps roughly its real proportion.</p>
+<p>The gap is small because a linear extrapolation over an arclength ds leaves an error of order ds². At ds = 0.05 that error is 0.00025 K and 5e-6 bar, and one Newton iteration removes it.</p>
+<p><strong>Tangent (the slope).</strong> The tangent t satisfies J t = 0: moving along t keeps all three residuals at zero to first order. For a 3 × 4 matrix, the null vector is given by signed 3 × 3 minors. Component j is (−1)^j times the determinant of J with column j deleted, counting j from 0:</p>
+<p><span class="math display">\[
+c_j = (-1)^j \det J_{[:,\,\neq j]},\qquad \mathbf{t} = \pm\,\mathbf{c}/\lVert\mathbf{c}\rVert
+\]</span></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th>ln K₁</th>
+<th>ln K₂</th>
+<th>ln T</th>
+<th>ln P</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Minors c</td>
+<td>3.4308e-6</td>
+<td>−20.475580</td>
+<td>−0.968470</td>
+<td>−8.302610</td>
+</tr>
+<tr class="even">
+<td>t = −c / 22.116072</td>
+<td>−1.551e-7</td>
+<td>0.925824</td>
+<td>0.043790</td>
+<td>0.375411</td>
+</tr>
+</tbody>
+</table>
+<p>The norm is 22.116072. The sign is a choice: the forward trace must climb in pressure, so the ln P component of t must be positive, and c is flipped. Check the R₃ row: 0.99999983 × (−1.551e-7) + 1.676e-7 × 0.925824 = 0.</p>
+<p>In the P–T plane the tangent is the slope of the envelope at point 1:</p>
+<p><span class="math display">\[
+\frac{dP}{dT} = \frac{t_{\ln P}}{t_{\ln T}}\cdot\frac{P}{T} = \frac{0.375411}{0.043790}\cdot\frac{1\ \text{bar}}{118.23883\ \text{K}} = 0.072505\ \text{bar/K}
+\]</span></p>
+<p>Which variable is pinned. Far from the critical point the corrector pins the unknown that changes fastest along t. That is ln K₂ (0.926), not T (0.044) or P (0.375). Near the critical point (max abs ln K &lt; 0.6) it pins the ln K with the largest magnitude instead.</p>
+<p><strong>Step length.</strong> Steps are measured as arclength ds in u, starting short. ds is a distance in the four-dimensional unknown vector, not in the P–T plane, and the two are not proportional. <a href="#fig-step-components" class="quarto-xref">Figure&nbsp;2</a> resolves the first step into its components.</p>
+<div id="fig-step-components" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Horizontal bar chart of the four components of the step. ln K2 is the longest at plus 0.0463, ln P next at plus 0.0188, ln T much shorter at plus 0.0022, and ln K1 effectively zero at minus 7.8 times ten to the minus nine.">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-step-components-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="fig-step-components.png" class="img-fluid figure-img" alt="Horizontal bar chart of the four components of the step. ln K2 is the longest at plus 0.0463, ln P next at plus 0.0188, ln T much shorter at plus 0.0022, and ln K1 effectively zero at minus 7.8 times ten to the minus nine.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-step-components-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Resolving one step of arclength ds = 0.05 into its four components. Almost all of it is a change in the incipient composition.
+</figcaption>
+</figure>
+</div>
+<p>Of the unit tangent, 0.926 lies along ln K₂, 0.375 along ln P, 0.044 along ln T and nothing along ln K₁. The step is mostly a change in the incipient composition: n-butane’s K-value rising from 10⁻⁷. What appears in the P–T plane, 0.26 K and 0.019 bar, is a projection of it.</p>
+<p>This is why the pinned variable is ln K₂ rather than T or P. The rule picks the fastest-moving unknown, which here is not a state variable. Pinning T would fix the coordinate that moves least and leave the corrector free to slide along the direction the curve runs in.</p>
+<p><strong>Predictor: linear extrapolation:</strong> u_pred = u₁ + ds · t:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>ln K₁</th>
+<th>ln K₂</th>
+<th>ln T</th>
+<th>ln P</th>
+<th>T, K</th>
+<th>P, bar</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Point 1, u₁</td>
+<td>0.6931470</td>
+<td>−14.9088002</td>
+<td>4.7727066</td>
+<td>11.5129255</td>
+<td>118.23883</td>
+<td>1.0000000</td>
+</tr>
+<tr class="even">
+<td>+ ds·t</td>
+<td>−7.8e-9</td>
+<td>+0.0462912</td>
+<td>+0.0021895</td>
+<td>+0.0187705</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Predictor</td>
+<td>0.6931470</td>
+<td>−14.8625090</td>
+<td>4.7748961</td>
+<td>11.5316960</td>
+<td>118.49800</td>
+<td>1.0189478</td>
+</tr>
+</tbody>
+</table>
+<p>In T and P the predictor is T₁ exp(ds · t_lnT) = 118.49800 K and P₁ exp(ds · t_lnP) = 1.0189478 bar.</p>
+<p>Section 2 defined the envelope as the set where R = 0, so leaving the curve and breaking the residuals are the same event. Point 1 satisfies all three equations to below tolerance; the predictor, reached by a straight step off a curved set, does not. Evaluating R there gives max abs R = 6.4e-5. That is what the corrector removes.</p>
+<p><strong>Corrector: Newton with ln K₂ held at −14.8625090.</strong> The free unknowns are ln K₁, ln T and ln P.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Iteration</th>
+<th>ln K₁</th>
+<th>ln T</th>
+<th>ln P</th>
+<th>T, K</th>
+<th>P, bar</th>
+<th>max abs R</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0 (predictor)</td>
+<td>0.69314701</td>
+<td>4.7748961</td>
+<td>11.5316960</td>
+<td>118.49800</td>
+<td>1.0189478</td>
+<td>6.4e-5</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>0.69314701</td>
+<td>4.7748982</td>
+<td>11.5316908</td>
+<td>118.49825</td>
+<td>1.0189425</td>
+<td>6.9e-11</td>
+</tr>
+</tbody>
+</table>
+<p>One Newton step is enough: max abs R falls from 6.4e-5 to 6.9e-11, and with the residuals back at zero the point is back on the curve. The predictor was off by only 0.00025 K and 5e-6 bar, because a short step on a nearly straight stretch leaves an error of order ds².</p>
+<p>Which zero it finds is settled by the pin. R = 0 describes the whole envelope, not a single point on it, so driving the residuals to zero is not by itself a well-posed problem. Holding ln K₂ at its predicted −14.8625090 leaves three equations in three free unknowns, and that has an isolated solution: the point of the curve carrying that particular ln K₂.</p>
+<p>Each corrected point then faces four acceptance tests before it is kept: that it has not collapsed onto the trivial K = 1 solution, that it has not jumped to a different part of the curve, that it moved forward along the tangent rather than doubling back, and that the residuals are properly converged. Point 2 passes all four. A point that fails any of them is rejected, and the step is retried shorter.</p>
+<p><strong>Point 2.</strong> 118.49825 K, 1.0189425 bar, K = (1.9999996, 3.5099e-7).</p>
+<p><strong>Next step length.</strong> The step length adapts. A corrector that converges on the first try earns a longer next step, up to a ceiling; a failed corrector or a failed acceptance test shortens it and retries, for a limited number of attempts before the trace gives up on that direction.</p>
+</section>
+<section id="point-3-point-0-and-the-rest-of-the-envelope" class="level2">
+<h2 class="anchored" data-anchor-id="point-3-point-0-and-the-rest-of-the-envelope">5. Point 3, point 0 and the rest of the envelope</h2>
+<p>Point 3 repeats section 4 from point 2 with ds = 0.0625. The tangent is (−1.625e-7, 0.925892, 0.043878, 0.375231), the slope dP/dT is 0.073535 bar/K, ln K₂ is again the pinned variable, and one Newton iteration takes the predictor to 118.82405 K and 1.0431126 bar. The next step length is 0.078125.</p>
+<p><strong>Point 0, the backward trace.</strong> The full envelope is two traces from the same seed. The backward trace (direction −1) takes the opposite sign of the same tangent, t = (1.551e-7, −0.925824, −0.043790, −0.375411). Its predictor is at 117.98023 K, 0.9814045 bar, and one Newton step gives 117.98047 K, 0.9813995 bar. That is below the 1-bar floor, so the backward trace stops there (limit-P-low). The stored curve is the backward trace reversed, then the forward trace: point 0 is this backward point, point 1 the seed, then points 2, 3 and onward.</p>
+<p><strong>The rest of the forward trace.</strong> The same steps repeat 52 times, with no retries, the step length growing until it reaches its ceiling. Points 2, 3 and 4 above are exactly the tracer’s stored points 2, 3 and 4, to every printed digit.</p>
+<p><strong>Passing the critical point.</strong> Near the critical point every ln K goes to zero. The pin switches to the ln K with the largest magnitude, here ln K₂. The tracer also has a special jump reserved for very tight crossings. Here it is not needed: one ordinary step carries the trace across, to point 40 on the dew side. Every ln K changes sign there. This is the longest step, 0.62 in u. The forward trace ends on the dew side at 253.38 K, 0.93 bar, again at the 1-bar floor.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="envelope.png" class="img-fluid figure-img" alt="Two panels. Left, a closed PT phase envelope from about 118 K and 1 bar, rising along the bubble branch through a cricondenbar near 108 bar at 343 K, past the critical point at 374 K and 97 bar, round the cricondentherm at 384 K, and down the dew branch to about 253 K and 0.93 bar. Right, a zoom on the first five points, lying on a near-straight line from 118.0 K, 0.98 bar to 119.75 K, 1.11 bar."></p>
+<figcaption>The traced envelope. Left: all 54 stored points. Right: the seed and the first steps, with each linear predictor (x) sitting under the corrected point (dot) - at this scale the corrector moves them too little to separate.</figcaption>
+</figure>
+</div>
+<p>The tracer stores 54 points. Points 0–39 are bubble points (K₁ &gt; 1, incipient vapour) and points 40–53 are dew points (K₁ &lt; 1, incipient liquid). Selected points:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Point</th>
+<th>T, K</th>
+<th>P, bar</th>
+<th>K₁ (methane)</th>
+<th>K₂ (n-butane)</th>
+<th>max abs R</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>117.980</td>
+<td>0.9814</td>
+<td>2.000000</td>
+<td>3.20e-7</td>
+<td>6.1e-11</td>
+</tr>
+<tr class="even">
+<td>1 (seed)</td>
+<td>118.239</td>
+<td>1.0000</td>
+<td>2.000000</td>
+<td>3.35e-7</td>
+<td>3.9e-10</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>118.498</td>
+<td>1.0189</td>
+<td>2.000000</td>
+<td>3.51e-7</td>
+<td>6.9e-11</td>
+</tr>
+<tr class="even">
+<td>7</td>
+<td>121.223</td>
+<td>1.2346</td>
+<td>1.999999</td>
+<td>5.64e-7</td>
+<td>1.0e-12</td>
+</tr>
+<tr class="odd">
+<td>15</td>
+<td>140.247</td>
+<td>3.7902</td>
+<td>1.999990</td>
+<td>9.73e-6</td>
+<td>4.1e-14</td>
+</tr>
+<tr class="even">
+<td>22</td>
+<td>169.203</td>
+<td>12.6191</td>
+<td>1.999742</td>
+<td>2.58e-4</td>
+<td>2.8e-13</td>
+</tr>
+<tr class="odd">
+<td>26</td>
+<td>190.522</td>
+<td>23.8190</td>
+<td>1.998289</td>
+<td>1.71e-3</td>
+<td>1.5e-12</td>
+</tr>
+<tr class="even">
+<td>30</td>
+<td>218.163</td>
+<td>43.3685</td>
+<td>1.988535</td>
+<td>0.011465</td>
+<td>2.8e-12</td>
+</tr>
+<tr class="odd">
+<td>34</td>
+<td>261.975</td>
+<td>76.4321</td>
+<td>1.922761</td>
+<td>0.077239</td>
+<td>1.8e-15</td>
+</tr>
+<tr class="even">
+<td>37</td>
+<td>318.490</td>
+<td>104.4098</td>
+<td>1.673208</td>
+<td>0.326792</td>
+<td>7.8e-13</td>
+</tr>
+<tr class="odd">
+<td>41</td>
+<td>383.564</td>
+<td>67.0413</td>
+<td>0.507837</td>
+<td>1.492163</td>
+<td>5.8e-15</td>
+</tr>
+<tr class="even">
+<td>45</td>
+<td>342.792</td>
+<td>18.7437</td>
+<td>0.107913</td>
+<td>1.892087</td>
+<td>1.6e-10</td>
+</tr>
+<tr class="odd">
+<td>49</td>
+<td>293.220</td>
+<td>4.3428</td>
+<td>0.028133</td>
+<td>1.971867</td>
+<td>7.4e-13</td>
+</tr>
+<tr class="even">
+<td>53</td>
+<td>253.384</td>
+<td>0.9291</td>
+<td>0.008051</td>
+<td>1.991949</td>
+<td>8.9e-13</td>
+</tr>
+</tbody>
+</table>
+<p>At the cold bubble end, K₁ tends to 2 = 1/z₁: the vapour is almost pure methane, and K₂ tends to 0. At the warm dew end the incipient liquid is almost pure n-butane, so K₂ tends to 2 instead.</p>
+</section>
+<section id="verification" class="level2">
+<h2 class="anchored" data-anchor-id="verification">6. Verification</h2>
+<p>Three quantities are not traced points. The critical point, the cricondentherm and the cricondenbar all generally fall <em>between</em> stored points, so reading them off the curve gives an estimate whose error is set by the step length. Each is solved separately instead, with the interpolated value used only as a starting guess.</p>
+<p>The difference is not cosmetic. Interpolating the critical point from where ln K changes sign, between points 39 and 40, is out by 1.02 K and 2.33 bar, because the trace takes a long step across the crossing. The cricondentherm sits in a stretch where the trace steps 16 K and 17 bar between neighbours, and the hottest stored point misses it by 0.52 K. The cricondenbar happens to land almost on a stored point, so there refining changes the fourth decimal.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Quantity</th>
+<th>Best traced point</th>
+<th>Solved</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Critical point</td>
+<td>373.274 K, 94.876 bar</td>
+<td>374.2981 K, 97.2038 bar</td>
+</tr>
+<tr class="even">
+<td>Cricondentherm</td>
+<td>383.5641 K</td>
+<td>384.0805 K, at 73.479 bar</td>
+</tr>
+<tr class="odd">
+<td>Cricondenbar</td>
+<td>107.91149 bar</td>
+<td>107.91163 bar, at 342.673 K</td>
+</tr>
+</tbody>
+</table>
+<p>The finished curve then goes through five checks: saturation at every stored point, continuity along the path, the critical point, the two extremes, and whether the envelope closes. They are read-only — each reports PASS, WARN or FAIL and never moves, adds or removes a point, so a curve that passes the tracer’s own acceptance tests can still fail one. All five pass here, in 0.01 s, with a worst residual of 9.3e-10 over the 54 points and a median of 9.1e-13.</p>
+<p>The phase properties in sections 1 and 3 (A, B, the cubic roots, ln φ and ln f) come from a separate, from-scratch Peng–Robinson script with its own cubic solver and none of the tracer’s code.</p>
+</section>
+<section id="appendix-a.-from-newtons-method-for-fx-to-j_textfree-δu-r" class="level2">
+<h2 class="anchored" data-anchor-id="appendix-a.-from-newtons-method-for-fx-to-j_textfree-δu-r">Appendix A. From Newton’s method for f(x) to <span class="math inline">\(J_{\text{free}}\)</span> Δu = −R</h2>
+<p>The corrector equation <span class="math inline">\(J_{\text{free}}\)</span> Δu = −R is Newton’s method for one equation f(x) = 0, extended to several equations, with one unknown held fixed so that the system is square.</p>
+<section id="a.1-one-equation-one-unknown" class="level3">
+<h3 class="anchored" data-anchor-id="a.1-one-equation-one-unknown">A.1 One equation, one unknown</h3>
+<p>Near the current guess xₖ, replace f by its tangent line and set that to zero:</p>
+<p><span class="math display">\[
+f(x_k + \Delta x) \approx f(x_k) + f'(x_k)\,\Delta x = 0
+\]</span></p>
+<p><span class="math display">\[
+f'(x_k)\,\Delta x = -f(x_k) \quad\Longrightarrow\quad x_{k+1} = x_k - \frac{f(x_k)}{f'(x_k)}
+\]</span></p>
+</section>
+<section id="a.2-several-equations" class="level3">
+<h3 class="anchored" data-anchor-id="a.2-several-equations">A.2 Several equations</h3>
+<p>Each residual Rᵢ gets its own linear (Taylor) approximation in all the unknowns:</p>
+<p><span class="math display">\[
+R_i(\mathbf{u} + \Delta\mathbf{u}) \approx R_i(\mathbf{u}) + \sum_j \frac{\partial R_i}{\partial u_j}\,\Delta u_j
+\]</span></p>
+<p>The derivatives ∂Rᵢ/∂uⱼ form the Jacobian J, which plays the role of f′. Setting every linear approximation to zero at once gives</p>
+<p><span class="math display">\[
+J\,\Delta\mathbf{u} = -\mathbf{R}
+\]</span></p>
+<p>This has the same form as f′ Δx = −f.&nbsp;You cannot divide by a matrix, so you solve the linear system instead.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>One variable</th>
+<th>Several variables</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>f(x)</td>
+<td>R(u), three residuals</td>
+</tr>
+<tr class="even">
+<td>f′(x)</td>
+<td>J = ∂R/∂u</td>
+</tr>
+<tr class="odd">
+<td>Δx = −f / f′</td>
+<td>solve J Δu = −R</td>
+</tr>
+<tr class="even">
+<td>x ← x + Δx</td>
+<td>u ← u + Δu</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="a.3-why-j_textfree-three-equations-four-unknowns" class="level3">
+<h3 class="anchored" data-anchor-id="a.3-why-j_textfree-three-equations-four-unknowns">A.3 Why <span class="math inline">\(J_{\text{free}}\)</span>: three equations, four unknowns</h3>
+<p>With u = (ln K₁, ln K₂, ln T, ln P), J is 3 × 4. Three equations in four unknowns have infinitely many solutions, and that set of solutions is the envelope curve itself. Newton needs a square system, so one unknown is held fixed: ln P at the seed (section 3), and during tracing the unknown that changes fastest (section 4). A fixed unknown has Δu = 0, so its column drops out of J, and what remains is the square matrix <span class="math inline">\(J_{\text{free}}\)</span>:</p>
+<p><span class="math display">\[
+J_{\text{free}}\,\Delta\mathbf{u}_{\text{free}} = -\mathbf{R}
+\]</span></p>
+<p>Equivalently, append a fourth equation that fixes the pinned unknown, for example ln P − ln 10⁵ = 0. Its Jacobian row is (0, 0, 0, 1), and the 4 × 4 system gives the same step. The Python corrector solves the reduced 3 × 3 system, and the C++ core does the same.</p>
+</section>
+<section id="a.4-what-the-coupling-adds-with-the-seed-numbers" class="level3">
+<h3 class="anchored" data-anchor-id="a.4-what-the-coupling-adds-with-the-seed-numbers">A.4 What the coupling adds, with the seed numbers</h3>
+<p>Suppose only R₂ and ln K₂ were involved. Plain one-variable Newton would give</p>
+<p><span class="math display">\[
+\Delta\ln K_2 = -\frac{R_2}{\partial R_2/\partial\ln K_2} = -\frac{1.6995}{1.0} = -1.70
+\]</span></p>
+<p>The full system gives −2.305 (section 3, iteration 0). The extra −0.6 comes from coupling. The other equations also want T to drop, by Δln T = −0.0219. Through ∂R₂/∂ln T = −27.67, that cooling raises R₂ by 27.67 × 0.0219 = 0.606, and ln K₂ has to fall further to cancel it. The matrix form handles all three equations and their cross-effects in one step, which separate one-variable Newton on each equation cannot do.</p>
+</section>
+<section id="a.5-the-step-cap-is-damped-newton" class="level3">
+<h3 class="anchored" data-anchor-id="a.5-the-step-cap-is-damped-newton">A.5 The step cap is damped Newton</h3>
+<p>The update actually applied is</p>
+<p><span class="math display">\[
+\mathbf{u} \leftarrow \mathbf{u} + \lambda\,\Delta\mathbf{u},\qquad \lambda = \min\!\left(1,\ \frac{\Delta_{\max}}{\max_j \lvert\Delta u_j\rvert}\right)
+\]</span></p>
+<p>This is the multi-variable form of damped Newton, xₖ₊₁ = xₖ − λ f/f′. Every component is scaled by the same λ, so the direction of the step is kept and only its length is cut. Because every unknown is a logarithm, 0.5 means a factor of at most e^0.5 = 1.65 per iteration in K, T or P. The cap guards against a nearly singular J near the critical point, against the cubic switching roots after a large jump in T or P, and against landing on the trivial solution K = 1.</p>
+<p>Once λ = 1, the iteration is pure Newton again. It converges quadratically for the same reason as in one variable: the linear model is wrong only by terms of order Δu². That is the 0.226 → 1.33e-4 → 4.08e-10 sequence in section 3.</p>
+</section>
+</section>
+<section id="appendix-b.-the-composition-derivative-partiallnvarphi_ipartial-x_k" class="level2">
+<h2 class="anchored" data-anchor-id="appendix-b.-the-composition-derivative-partiallnvarphi_ipartial-x_k">Appendix B. The composition derivative <span class="math inline">\(\partial\ln\varphi_i/\partial x_k\)</span></h2>
+<p>This is the one derivative in <span class="math inline">\(J_{\text{free}}\)</span> that is not a one-liner, because composition reaches ln φ through five channels — four explicit and one implicit.</p>
+<section id="b.1-the-expression-grouped" class="level3">
+<h3 class="anchored" data-anchor-id="b.1-the-expression-grouped">B.1 The expression, grouped</h3>
+<p>Write the Peng–Robinson fugacity coefficient of section 1 as</p>
+<p><span class="math display">\[
+\ln\varphi_i = \bar B_i\,(Z-1) - \ln(Z-B)
+- \frac{A}{2\sqrt{2}\,B}\left(\bar A_i - \bar B_i\right) q
+\]</span></p>
+<p>with the three composition-dependent groups</p>
+<p><span class="math display">\[
+\bar A_i = \frac{2\sum_j x_j a_{ij}}{a_m}, \qquad
+\bar B_i = \frac{b_i}{b_m}, \qquad
+q = \ln\frac{Z+(1+\sqrt{2})B}{Z+(1-\sqrt{2})B}
+\]</span></p>
+<p>Perturbing one mole fraction moves a_m and b_m, hence A and B, hence Āᵢ, B̄ᵢ and q — and it moves Z, which is not given by a formula at all but by the cubic.</p>
+</section>
+<section id="b.2-the-explicit-pieces" class="level3">
+<h3 class="anchored" data-anchor-id="b.2-the-explicit-pieces">B.2 The explicit pieces</h3>
+<p>Differentiating the mixing rules directly:</p>
+<p><span class="math display">\[
+\frac{\partial a_m}{\partial x_k} = 2\sum_j x_j a_{kj}, \qquad
+\frac{\partial b_m}{\partial x_k} = b_k
+\]</span></p>
+<p><span class="math display">\[
+\frac{\partial A}{\partial x_k} = \frac{A}{a_m}\frac{\partial a_m}{\partial x_k}, \qquad
+\frac{\partial B}{\partial x_k} = \frac{B\,b_k}{b_m}
+\]</span></p>
+<p><span class="math display">\[
+\frac{\partial \bar A_i}{\partial x_k} = \frac{2a_{ik}}{a_m}
+- \frac{\bar A_i}{a_m}\frac{\partial a_m}{\partial x_k}, \qquad
+\frac{\partial \bar B_i}{\partial x_k} = -\frac{\bar B_i\,b_k}{b_m}
+\]</span></p>
+</section>
+<section id="b.3-the-implicit-piece-partial-zpartial-x_k" class="level3">
+<h3 class="anchored" data-anchor-id="b.3-the-implicit-piece-partial-zpartial-x_k">B.3 The implicit piece: <span class="math inline">\(\partial Z/\partial x_k\)</span></h3>
+<p>Z is a root of the cubic, so it has no closed form worth differentiating. Treat the cubic as F(Z, A, B) = 0 and differentiate implicitly:</p>
+<p><span class="math display">\[
+F_Z = 3Z^2 - 2(1-B)Z + (A - 3B^2 - 2B), \qquad F_A = Z - B
+\]</span></p>
+<p><span class="math display">\[
+F_B = Z^2 - (6B+2)Z - (A - 2B - 3B^2)
+\]</span></p>
+<p><span class="math display">\[
+\frac{\partial Z}{\partial x_k}
+= -\,\frac{F_A\,\dfrac{\partial A}{\partial x_k} + F_B\,\dfrac{\partial B}{\partial x_k}}{F_Z}
+\]</span></p>
+<p>This is the step that makes the derivative awkward, and the reason many codes reach for finite differences here instead. Note that <span class="math inline">\(F_Z = 0\)</span> exactly at a double root — which is the critical point, and is why this quantity degrades there.</p>
+</section>
+<section id="b.4-assembling" class="level3">
+<h3 class="anchored" data-anchor-id="b.4-assembling">B.4 Assembling</h3>
+<p><span class="math display">\[
+\frac{\partial \ln\varphi_i}{\partial x_k}
+= \frac{\partial \bar B_i}{\partial x_k}(Z-1) + \bar B_i \frac{\partial Z}{\partial x_k}
+- \frac{1}{Z-B}\left(\frac{\partial Z}{\partial x_k} - \frac{\partial B}{\partial x_k}\right)
+- \frac{\partial}{\partial x_k}\left[\frac{A(\bar A_i-\bar B_i)q}{2\sqrt{2}B}\right]
+\]</span></p>
+<p>where the last bracket expands by the product rule into three terms, using</p>
+<p><span class="math display">\[
+\frac{\partial q}{\partial x_k}
+= \frac{\partial Z/\partial x_k + (1+\sqrt{2})\,\partial B/\partial x_k}{Z+(1+\sqrt{2})B}
+- \frac{\partial Z/\partial x_k + (1-\sqrt{2})\,\partial B/\partial x_k}{Z+(1-\sqrt{2})B}
+\]</span></p>
+<p>The composition is treated as a set of independent variables and is never renormalised, so this is the unconstrained derivative. That is what the chain rule in move 4 requires: the vector it is contracted with sums to zero, which cancels the constant the Σ xₖ = 1 constraint would otherwise leave undetermined.</p>
+</section>
+<section id="b.5-the-numbers-in-section-3" class="level3">
+<h3 class="anchored" data-anchor-id="b.5-the-numbers-in-section-3">B.5 The numbers in section 3</h3>
+<p>Evaluated at the incipient vapour of iteration 0, with Z = 0.9732743, A = 0.0288439 and B = 0.0026681, the relations above give:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>k</th>
+<th>∂A/∂xₖ</th>
+<th>∂B/∂xₖ</th>
+<th>∂Z/∂xₖ</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1 (methane)</td>
+<td>0.0576877</td>
+<td>0.002668102</td>
+<td>−0.0576041</td>
+</tr>
+<tr class="even">
+<td>2 (n-butane)</td>
+<td>0.1724165</td>
+<td>0.007211559</td>
+<td>−0.1730240</td>
+</tr>
+</tbody>
+</table>
+<p>Feeding these through B.4 gives the table used in move 4:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>∂ln φᵢ/∂xₖ</th>
+<th>k = 1</th>
+<th>k = 2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>i = 1, methane</td>
+<td>+2.074582272e-7</td>
+<td>+6.203744300e-7</td>
+</tr>
+<tr class="even">
+<td>i = 2, n-butane</td>
+<td>−0.123595673</td>
+<td>−0.369595346</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="b.6-two-checks-and-when-differencing-fails" class="level3">
+<h3 class="anchored" data-anchor-id="b.6-two-checks-and-when-differencing-fails">B.6 Two checks, and when differencing fails</h3>
+<p>The obvious test is central differences on ln φ itself. It works for one row here and not the other:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>methane, k = 1</th>
+<th>methane, k = 2</th>
+<th>n-butane, k = 1</th>
+<th>n-butane, k = 2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>analytic</td>
+<td>+2.074582e-7</td>
+<td>+6.203744e-7</td>
+<td>−0.123595673</td>
+<td>−0.369595346</td>
+</tr>
+<tr class="even">
+<td>central, h = 1e-5</td>
+<td>+2.074636e-7</td>
+<td>+6.203716e-7</td>
+<td>−0.123595673</td>
+<td>−0.369595346</td>
+</tr>
+<tr class="odd">
+<td>central, h = 1e-6</td>
+<td>+2.077592e-7</td>
+<td>+6.202157e-7</td>
+<td>−0.123595672</td>
+<td>−0.369595346</td>
+</tr>
+<tr class="even">
+<td>central, h = 1e-7</td>
+<td>+2.063280e-7</td>
+<td>+6.187585e-7</td>
+<td>−0.123595683</td>
+<td>−0.369595338</td>
+</tr>
+</tbody>
+</table>
+<p>The n-butane row differences cleanly: nine decimals, stable at every step size. The methane row does not. It is of order 10⁻⁷, so differencing ln φ₁ — a quantity of order 10⁻² — throws away most of the significant digits, and the fourth figure moves with the step. No step size fixes it: shrink h and subtractive cancellation gets worse, grow it and truncation error does. This is the reason to carry an analytic derivative. The perturbation test in <a href="../numerical-testing-EOS/">Numerical Testing of an EOS Implementation</a> is the systematic version of the same check.</p>
+<p>The second test is free and exact. At constant T and P the fugacity coefficients are not independent:</p>
+<p><span class="math display">\[
+\sum_i x_i \frac{\partial \ln\varphi_i}{\partial x_k} = 0
+\]</span></p>
+<p>Evaluated on the table above, the two column sums come out 2.4e-14 and 7.1e-14. For a binary the relation fixes one row completely from the other,</p>
+<p><span class="math display">\[
+\frac{\partial \ln\varphi_1}{\partial x_k} = -\frac{y_2}{y_1}\frac{\partial \ln\varphi_2}{\partial x_k}
+\]</span></p>
+<p>which holds to nine figures:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th>k = 1</th>
+<th>k = 2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>−(y₂/y₁) ∂ln φ₂/∂xₖ</td>
+<td>+2.074582034e-7</td>
+<td>+6.203743590e-7</td>
+</tr>
+<tr class="even">
+<td>∂ln φ₁/∂xₖ</td>
+<td>+2.074582272e-7</td>
+<td>+6.203744300e-7</td>
+</tr>
+</tbody>
+</table>
+<p>This is the cheapest possible test on any implementation of the derivative — no reference values needed, and it holds at every composition. It also explains a coincidence in move 4: n-butane’s difference column is +0.246000 and methane’s is −4.129162e-7, sharing their digits because the second is just −(y₂/y₁) times the first.</p>
+
+
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Only the <em>residual</em> Gibbs energy, G<sup>res</sup>/RT = Σᵢ xᵢ ln φᵢ, is needed for the comparison. The ideal-gas contribution to G is identical for every root at the same T, P and composition, so it cancels and cannot change which root wins.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/www\.thermonerds\.com");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
