@@ -2,12 +2,11 @@ project:
   type: website
   output-dir: _site
   # A render list defines the FULL set of inputs, so the broad include has to
-  # come first and the exclusions after it. Without these two lines Quarto
+  # come first and the exclusions after it. Without the exclusion Quarto
   # renders every .qmd it finds and `quarto publish` puts them on the live
   # site, whether or not their source is committed.
   render:
     - "*.qmd"
-    - "!posts/pt-envelope/"
     - "!posts/cubic-root-switching/"
 
 website:
